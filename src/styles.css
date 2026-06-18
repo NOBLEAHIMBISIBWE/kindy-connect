@@ -1,6 +1,14 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "@fontsource/fredoka/400.css";
+@import "@fontsource/fredoka/500.css";
+@import "@fontsource/fredoka/600.css";
+@import "@fontsource/fredoka/700.css";
+@import "@fontsource/nunito/400.css";
+@import "@fontsource/nunito/500.css";
+@import "@fontsource/nunito/600.css";
+@import "@fontsource/nunito/700.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -62,39 +70,43 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  --radius: 1rem;
+  /* Sunny & Playful kindergarten palette */
+  --background: oklch(0.987 0.018 95);          /* cream #FFF8E7 */
+  --foreground: oklch(0.28 0.04 60);            /* deep warm brown */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.28 0.04 60);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --popover-foreground: oklch(0.28 0.04 60);
+  --primary: oklch(0.81 0.165 78);              /* sunny yellow #FFB627 */
+  --primary-foreground: oklch(0.28 0.04 60);
+  --secondary: oklch(0.79 0.13 195);            /* mint #4ECDC4 */
+  --secondary-foreground: oklch(0.22 0.04 200);
+  --muted: oklch(0.96 0.025 90);
+  --muted-foreground: oklch(0.5 0.04 60);
+  --accent: oklch(0.72 0.18 22);                /* coral #FF6B6B */
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.62 0.22 27);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.91 0.03 85);
+  --input: oklch(0.94 0.025 85);
+  --ring: oklch(0.81 0.165 78);
+  --chart-1: oklch(0.81 0.165 78);
+  --chart-2: oklch(0.79 0.13 195);
+  --chart-3: oklch(0.72 0.18 22);
+  --chart-4: oklch(0.75 0.16 145);
+  --chart-5: oklch(0.7 0.18 305);
+  --sidebar: oklch(0.99 0.012 90);
+  --sidebar-foreground: oklch(0.28 0.04 60);
+  --sidebar-primary: oklch(0.81 0.165 78);
+  --sidebar-primary-foreground: oklch(0.28 0.04 60);
+  --sidebar-accent: oklch(0.95 0.04 90);
+  --sidebar-accent-foreground: oklch(0.28 0.04 60);
+  --sidebar-border: oklch(0.91 0.03 85);
+  --sidebar-ring: oklch(0.81 0.165 78);
+  --gradient-sunny: linear-gradient(135deg, oklch(0.86 0.16 78), oklch(0.75 0.18 35));
+  --gradient-mint: linear-gradient(135deg, oklch(0.82 0.12 195), oklch(0.78 0.14 165));
+  --shadow-playful: 0 10px 30px -12px oklch(0.81 0.165 78 / 0.45);
 }
 
 .dark {
@@ -140,5 +152,10 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: "Nunito", system-ui, sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Fredoka", "Nunito", system-ui, sans-serif;
+    letter-spacing: -0.01em;
   }
 }
