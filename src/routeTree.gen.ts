@@ -16,6 +16,7 @@ import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppPupilsRouteImport } from './routes/app.pupils'
 import { Route as AppParentsRouteImport } from './routes/app.parents'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
+import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppAttendanceRouteImport } from './routes/app.attendance'
 
 const AppRoute = AppRouteImport.update({
@@ -53,6 +54,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAuditRoute = AppAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAttendanceRoute = AppAttendanceRouteImport.update({
   id: '/attendance',
   path: '/attendance',
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/attendance': typeof AppAttendanceRoute
+  '/app/audit': typeof AppAuditRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/parents': typeof AppParentsRoute
   '/app/pupils': typeof AppPupilsRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/attendance': typeof AppAttendanceRoute
+  '/app/audit': typeof AppAuditRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/parents': typeof AppParentsRoute
   '/app/pupils': typeof AppPupilsRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/attendance': typeof AppAttendanceRoute
+  '/app/audit': typeof AppAuditRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/parents': typeof AppParentsRoute
   '/app/pupils': typeof AppPupilsRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/app/attendance'
+    | '/app/audit'
     | '/app/dashboard'
     | '/app/parents'
     | '/app/pupils'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/app/attendance'
+    | '/app/audit'
     | '/app/dashboard'
     | '/app/parents'
     | '/app/pupils'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/app/attendance'
+    | '/app/audit'
     | '/app/dashboard'
     | '/app/parents'
     | '/app/pupils'
@@ -179,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/audit': {
+      id: '/app/audit'
+      path: '/audit'
+      fullPath: '/app/audit'
+      preLoaderRoute: typeof AppAuditRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/attendance': {
       id: '/app/attendance'
       path: '/attendance'
@@ -191,6 +210,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAttendanceRoute: typeof AppAttendanceRoute
+  AppAuditRoute: typeof AppAuditRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppParentsRoute: typeof AppParentsRoute
   AppPupilsRoute: typeof AppPupilsRoute
@@ -200,6 +220,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAttendanceRoute: AppAttendanceRoute,
+  AppAuditRoute: AppAuditRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppParentsRoute: AppParentsRoute,
   AppPupilsRoute: AppPupilsRoute,
