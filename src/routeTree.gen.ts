@@ -15,6 +15,7 @@ import { Route as AppTeachersRouteImport } from './routes/app.teachers'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppPupilsRouteImport } from './routes/app.pupils'
 import { Route as AppParentsRouteImport } from './routes/app.parents'
+import { Route as AppMarksRouteImport } from './routes/app.marks'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppAttendanceRouteImport } from './routes/app.attendance'
@@ -49,6 +50,11 @@ const AppParentsRoute = AppParentsRouteImport.update({
   path: '/parents',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMarksRoute = AppMarksRouteImport.update({
+  id: '/marks',
+  path: '/marks',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/app/attendance': typeof AppAttendanceRoute
   '/app/audit': typeof AppAuditRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/marks': typeof AppMarksRoute
   '/app/parents': typeof AppParentsRoute
   '/app/pupils': typeof AppPupilsRoute
   '/app/reports': typeof AppReportsRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/app/attendance': typeof AppAttendanceRoute
   '/app/audit': typeof AppAuditRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/marks': typeof AppMarksRoute
   '/app/parents': typeof AppParentsRoute
   '/app/pupils': typeof AppPupilsRoute
   '/app/reports': typeof AppReportsRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/app/attendance': typeof AppAttendanceRoute
   '/app/audit': typeof AppAuditRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/marks': typeof AppMarksRoute
   '/app/parents': typeof AppParentsRoute
   '/app/pupils': typeof AppPupilsRoute
   '/app/reports': typeof AppReportsRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/app/attendance'
     | '/app/audit'
     | '/app/dashboard'
+    | '/app/marks'
     | '/app/parents'
     | '/app/pupils'
     | '/app/reports'
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/app/attendance'
     | '/app/audit'
     | '/app/dashboard'
+    | '/app/marks'
     | '/app/parents'
     | '/app/pupils'
     | '/app/reports'
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/app/attendance'
     | '/app/audit'
     | '/app/dashboard'
+    | '/app/marks'
     | '/app/parents'
     | '/app/pupils'
     | '/app/reports'
@@ -184,6 +196,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppParentsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/marks': {
+      id: '/app/marks'
+      path: '/marks'
+      fullPath: '/app/marks'
+      preLoaderRoute: typeof AppMarksRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/dashboard': {
       id: '/app/dashboard'
       path: '/dashboard'
@@ -212,6 +231,7 @@ interface AppRouteChildren {
   AppAttendanceRoute: typeof AppAttendanceRoute
   AppAuditRoute: typeof AppAuditRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppMarksRoute: typeof AppMarksRoute
   AppParentsRoute: typeof AppParentsRoute
   AppPupilsRoute: typeof AppPupilsRoute
   AppReportsRoute: typeof AppReportsRoute
@@ -222,6 +242,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAttendanceRoute: AppAttendanceRoute,
   AppAuditRoute: AppAuditRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppMarksRoute: AppMarksRoute,
   AppParentsRoute: AppParentsRoute,
   AppPupilsRoute: AppPupilsRoute,
   AppReportsRoute: AppReportsRoute,
@@ -237,3 +258,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

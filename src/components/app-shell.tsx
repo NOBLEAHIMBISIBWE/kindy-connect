@@ -8,7 +8,7 @@ import {
   BarChart3,
   ScrollText,
   LogOut,
-  Sparkles,
+  BookOpen,
 } from "lucide-react";
 import { useStore } from "@/lib/mock-store";
 import { Badge } from "@/components/ui/badge";
@@ -36,21 +36,20 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
         { to: "/app/parents", label: "Parents", icon: Users },
         { to: "/app/teachers", label: "Teachers", icon: GraduationCap, badge: pendingCount },
         { to: "/app/attendance", label: "Attendance", icon: CalendarCheck },
+        { to: "/app/marks", label: "Marks", icon: BookOpen },
         { to: "/app/reports", label: "Reports", icon: BarChart3 },
         { to: "/app/audit", label: "Audit log", icon: ScrollText },
       ]
     : [
         { to: "/app/dashboard", label: "My class", icon: LayoutDashboard },
         { to: "/app/attendance", label: "Attendance", icon: CalendarCheck },
+        { to: "/app/marks", label: "Marks", icon: BookOpen },
       ];
 
   return (
     <div className="flex min-h-screen w-full bg-background">
       <aside className="hidden md:flex w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
         <div className="flex items-center gap-2 px-5 py-5 border-b">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-            <Sparkles className="h-5 w-5" />
-          </div>
           <div>
             <div className="font-semibold leading-tight">Little Stars</div>
             <div className="text-xs text-muted-foreground">Kindergarten</div>

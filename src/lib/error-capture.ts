@@ -9,10 +9,24 @@ function record(error: unknown) {
 }
 
 if (typeof globalThis.addEventListener === "function") {
-  globalThis.addEventListener("error", (event) => record((event as ErrorEvent).error ?? event));
-  globalThis.addEventListener("unhandledrejection", (event) =>
-    record((event as PromiseRejectionEvent).reason),
-  );
+  globalThis.addEventListener("error", (event) => {
+    const error = (event as ErrorEvent).error ?? event;
+    // Suppress AbortError from play() being interrupted - common browser behavior
+    if (error?.name === "AbortError" && error?.message?.includes("play()")) {
+      event.preventDefault();
+      return;
+    }
+    record(error);
+  });
+  globalThis.addEventListener("unhandledrejection", (event) => {
+    const reason = (event as PromiseRejectionEvent).reason;
+    // Suppress AbortError from play() being interrupted - common browser behavior
+    if (reason?.name === "AbortError" && reason?.message?.includes("play()")) {
+      event.preventDefault();
+      return;
+    }
+    record(reason);
+  });
 }
 
 export function consumeLastCapturedError(): unknown {
