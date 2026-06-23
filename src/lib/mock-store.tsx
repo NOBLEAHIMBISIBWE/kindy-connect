@@ -190,7 +190,7 @@ interface Store {
   login: (email: string) => User | null;
   loginAs: (role: Role) => void;
   logout: () => void;
-  registerTeacher: (data: { name: string; email: string; phone: string }) => void;
+  registerUser: (data: { name: string; email: string; phone: string; role: Role }) => void;
   approveTeacher: (id: string) => void;
   rejectTeacher: (id: string) => void;
   addPupil: (data: Omit<Pupil, "id" | "active">) => void;
@@ -350,8 +350,16 @@ export function MockStoreProvider({ children }: { children: ReactNode }) {
       if (u) setState((s: any) => ({ ...s, currentUserId: u.id }));
     },
     logout: () => setState((s: any) => ({ ...s, currentUserId: null })),
-    registerTeacher: ({ name, email, phone }) => {
-      const u: User = { id: uid(), name, email, phone, role: "teacher", status: "pending", registeredAt: today() };
+    registerUser: ({ name, email, phone, role }) => {
+      const u: User = {
+        id: uid(),
+        name,
+        email,
+        phone,
+        role,
+        status: role === "admin" ? "verified" : "pending",
+        registeredAt: today(),
+      };
       setState((s: any) => ({ ...s, users: [...s.users, u] }));
     },
     approveTeacher: (id) => {

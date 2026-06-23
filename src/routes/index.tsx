@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useStore } from "@/lib/mock-store";
+import { useStore, type Role } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,12 +22,12 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
-  const { currentUser, login, registerTeacher } = useStore();
+  const { currentUser, login, registerUser } = useStore();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [regOpen, setRegOpen] = useState(false);
-  const [reg, setReg] = useState({ name: "", email: "", phone: "" });
+  const [reg, setReg] = useState({ name: "", email: "", phone: "", role: "teacher" as Role });
 
   useEffect(() => {
     if (currentUser) navigate({ to: "/app/dashboard" });
@@ -42,10 +42,14 @@ function Landing() {
 
   const submitReg = () => {
     if (!reg.name || !reg.email || !reg.phone) return toast.error("Fill all fields");
-    registerTeacher(reg);
-    toast.success("Registration submitted - awaiting approval");
+    registerUser(reg);
+    if (reg.role === "admin") {
+      toast.success("Admin registration completed - you can now log in!");
+    } else {
+      toast.success("Registration submitted - awaiting approval");
+    }
     setRegOpen(false);
-    setReg({ name: "", email: "", phone: "" });
+    setReg({ name: "", email: "", phone: "", role: "teacher" });
   };
 
   return (
@@ -58,14 +62,25 @@ function Landing() {
           <span className="font-semibold text-lg">Little Stars</span>
         </div>
         <Dialog open={regOpen} onOpenChange={setRegOpen}>
-          <DialogTrigger asChild><Button variant="outline">Teacher sign-up</Button></DialogTrigger>
+          <DialogTrigger asChild><Button variant="outline">Sign up</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Teacher registration</DialogTitle></DialogHeader>
-            <p className="text-sm text-muted-foreground">Your account will be reviewed by the admin or deputy. You'll receive an email once approved.</p>
+            <DialogHeader><DialogTitle>User registration</DialogTitle></DialogHeader>
+            <p className="text-sm text-muted-foreground">Register as an admin or teacher. Teacher registrations require admin approval before login.</p>
             <div className="space-y-3 mt-2">
               <div><Label>Full name</Label><Input value={reg.name} onChange={(e) => setReg({ ...reg, name: e.target.value })} /></div>
               <div><Label>Email</Label><Input type="email" value={reg.email} onChange={(e) => setReg({ ...reg, email: e.target.value })} /></div>
               <div><Label>Phone</Label><Input value={reg.phone} onChange={(e) => setReg({ ...reg, phone: e.target.value })} /></div>
+              <div>
+                <Label>Role</Label>
+                <select
+                  value={reg.role}
+                  onChange={(e) => setReg({ ...reg, role: e.target.value as Role })}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring file:border-0 file:bg-transparent file:text-sm file:font-medium md:text-sm"
+                >
+                  <option value="teacher">Teacher</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
             </div>
             <DialogFooter><Button onClick={submitReg}>Submit registration</Button></DialogFooter>
           </DialogContent>
