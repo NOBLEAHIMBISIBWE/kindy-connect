@@ -12,6 +12,7 @@ export interface User {
   phone?: string;
   classId?: string;
   registeredAt: string;
+  password?: string;
 }
 
 export interface Pupil {
@@ -118,12 +119,12 @@ const seedClasses: ClassRoom[] = [
 ];
 
 const seedUsers: User[] = [
-  { id: "u1", name: "Amina Okello", email: "admin@kinder.app", role: "admin", status: "verified", phone: "+254700000001", registeredAt: "2025-01-10" },
-  { id: "u2", name: "Brian Mwangi", email: "deputy@kinder.app", role: "deputy", status: "verified", phone: "+254700000002", registeredAt: "2025-01-12" },
-  { id: "u3", name: "Grace Wanjiku", email: "grace@kinder.app", role: "teacher", status: "verified", phone: "+254700000003", classId: "c1", registeredAt: "2025-02-01" },
-  { id: "u4", name: "Peter Otieno", email: "peter@kinder.app", role: "teacher", status: "verified", phone: "+254700000004", classId: "c2", registeredAt: "2025-02-03" },
-  { id: "u5", name: "Lucy Achieng", email: "lucy@kinder.app", role: "teacher", status: "pending", phone: "+254700000005", registeredAt: "2025-06-15" },
-  { id: "u6", name: "James Kariuki", email: "james@kinder.app", role: "teacher", status: "pending", phone: "+254700000006", registeredAt: "2025-06-16" },
+  { id: "u1", name: "Amina Okello", email: "admin@kinder.app", role: "admin", status: "verified", phone: "+254700000001", password: "admin123", registeredAt: "2025-01-10" },
+  { id: "u2", name: "Brian Mwangi", email: "deputy@kinder.app", role: "deputy", status: "verified", phone: "+254700000002", password: "deputy123", registeredAt: "2025-01-12" },
+  { id: "u3", name: "Grace Wanjiku", email: "grace@kinder.app", role: "teacher", status: "verified", phone: "+254700000003", classId: "c1", password: "grace123", registeredAt: "2025-02-01" },
+  { id: "u4", name: "Peter Otieno", email: "peter@kinder.app", role: "teacher", status: "verified", phone: "+254700000004", classId: "c2", password: "peter123", registeredAt: "2025-02-03" },
+  { id: "u5", name: "Lucy Achieng", email: "lucy@kinder.app", role: "teacher", status: "pending", phone: "+254700000005", password: "lucy123", registeredAt: "2025-06-15" },
+  { id: "u6", name: "James Kariuki", email: "james@kinder.app", role: "teacher", status: "pending", phone: "+254700000006", password: "james123", registeredAt: "2025-06-16" },
 ];
 
 const seedParents: Parent[] = [
@@ -187,10 +188,10 @@ interface Store {
   notifications: Notification[];
   audit: AuditLog[];
   marks: Mark[];
-  login: (email: string) => User | null;
+  login: (email: string, password?: string) => User | null;
   loginAs: (role: Role) => void;
   logout: () => void;
-  registerUser: (data: { name: string; email: string; phone: string; role: Role }) => void;
+  registerUser: (data: { name: string; email: string; phone: string; password?: string; role: Role }) => void;
   approveTeacher: (id: string) => void;
   rejectTeacher: (id: string) => void;
   addPupil: (data: Omit<Pupil, "id" | "active">) => void;
@@ -338,9 +339,10 @@ export function MockStoreProvider({ children }: { children: ReactNode }) {
     notifications: state.notifications,
     audit: state.audit,
     marks: state.marks || [],
-    login: (email) => {
+    login: (email, password) => {
       const u = state.users.find((x: User) => x.email.toLowerCase() === email.toLowerCase());
       if (!u) return null;
+      if (password && u.password && u.password !== password) return null;
       if (u.role === "teacher" && u.status !== "verified") return null;
       setState((s: any) => ({ ...s, currentUserId: u.id }));
       return u;
@@ -350,13 +352,14 @@ export function MockStoreProvider({ children }: { children: ReactNode }) {
       if (u) setState((s: any) => ({ ...s, currentUserId: u.id }));
     },
     logout: () => setState((s: any) => ({ ...s, currentUserId: null })),
-    registerUser: ({ name, email, phone, role }) => {
+    registerUser: ({ name, email, phone, password, role }) => {
       const u: User = {
         id: uid(),
         name,
         email,
         phone,
         role,
+        password: password || "12345678",
         status: role === "admin" ? "verified" : "pending",
         registeredAt: today(),
       };

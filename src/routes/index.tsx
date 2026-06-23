@@ -27,21 +27,21 @@ function Landing() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [regOpen, setRegOpen] = useState(false);
-  const [reg, setReg] = useState({ name: "", email: "", phone: "", role: "teacher" as Role });
+  const [reg, setReg] = useState({ name: "", email: "", phone: "", password: "", role: "teacher" as Role });
 
   useEffect(() => {
     if (currentUser) navigate({ to: "/app/dashboard" });
   }, [currentUser, navigate]);
 
   const doLogin = () => {
-    const u = login(email);
+    const u = login(email, password);
     if (!u) return toast.error("Invalid credentials or account not verified");
     toast.success(`Welcome, ${u.name.split(" ")[0]}`);
     navigate({ to: "/app/dashboard" });
   };
 
   const submitReg = () => {
-    if (!reg.name || !reg.email || !reg.phone) return toast.error("Fill all fields");
+    if (!reg.name || !reg.email || !reg.phone || !reg.password) return toast.error("Fill all fields");
     registerUser(reg);
     if (reg.role === "admin") {
       toast.success("Admin registration completed - you can now log in!");
@@ -49,7 +49,7 @@ function Landing() {
       toast.success("Registration submitted - awaiting approval");
     }
     setRegOpen(false);
-    setReg({ name: "", email: "", phone: "", role: "teacher" });
+    setReg({ name: "", email: "", phone: "", password: "", role: "teacher" });
   };
 
   return (
@@ -70,6 +70,7 @@ function Landing() {
               <div><Label>Full name</Label><Input value={reg.name} onChange={(e) => setReg({ ...reg, name: e.target.value })} /></div>
               <div><Label>Email</Label><Input type="email" value={reg.email} onChange={(e) => setReg({ ...reg, email: e.target.value })} /></div>
               <div><Label>Phone</Label><Input value={reg.phone} onChange={(e) => setReg({ ...reg, phone: e.target.value })} /></div>
+              <div><Label>Password</Label><Input type="password" value={reg.password} onChange={(e) => setReg({ ...reg, password: e.target.value })} /></div>
               <div>
                 <Label>Role</Label>
                 <select
