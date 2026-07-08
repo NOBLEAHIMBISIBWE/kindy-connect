@@ -225,11 +225,30 @@ export function MockStoreProvider({ children }: { children: ReactNode }) {
     if (persisted) {
       // Clean up old attendance records on load (keep only today and historical)
       const currentDate = today();
-      const cleanedAttendance = persisted.attendance.filter((a: Attendance) => {
-        // Keep records from today or older (for historical purposes)
+      const cleanedAttendance = (persisted.attendance || []).filter((a: Attendance) => {
         return a.date <= currentDate;
       });
-      return { ...persisted, attendance: cleanedAttendance };
+      // Ensure seed users are always present even if persisted state is corrupted
+      const seedIds = seedUsers.map((u) => u.id);
+      const extraUsers = (persisted.users || []).filter((u: User) => !seedIds.includes(u.id));
+      const users = [...seedUsers, ...extraUsers];
+      // Clear stale session if the user still isn't found after re-seeding
+      const currentUserId =
+        persisted.currentUserId && users.some((u: User) => u.id === persisted.currentUserId)
+          ? persisted.currentUserId
+          : null;
+      return {
+        ...persisted,
+        users,
+        currentUserId,
+        pupils: persisted.pupils || seedPupils,
+        parents: persisted.parents || seedParents,
+        classes: persisted.classes || seedClasses,
+        attendance: cleanedAttendance,
+        notifications: persisted.notifications || seedNotifications(),
+        audit: persisted.audit || seedAudit(),
+        marks: persisted.marks || seedMarks(),
+      };
     }
     return {
       currentUserId: null as string | null,
