@@ -1,22 +1,11 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import {
-  LayoutDashboard,
-  Baby,
-  Users,
-  GraduationCap,
-  CalendarCheck,
-  BarChart3,
-  ScrollText,
-  LogOut,
-  BookOpen,
-  Menu,
-} from "lucide-react";
+import { LayoutDashboard, Baby, Users, GraduationCap, CalendarCheck, ChartBar as BarChart3, ScrollText, LogOut, BookOpen, Menu } from "lucide-react";
 import { useStore } from "@/lib/mock-store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
   const { currentUser, users, logout } = useStore();
@@ -24,10 +13,11 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  if (!currentUser) {
-    if (typeof window !== "undefined") navigate({ to: "/" });
-    return null;
-  }
+  useEffect(() => {
+    if (!currentUser) navigate({ to: "/" });
+  }, [currentUser, navigate]);
+
+  if (!currentUser) return null;
 
   const isStaff = currentUser.role === "admin" || currentUser.role === "deputy";
   const pendingCount = users.filter((u) => u.role === "teacher" && u.status === "pending").length;
