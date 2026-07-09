@@ -30,7 +30,9 @@ function Landing() {
   const [reg, setReg] = useState({ name: "", email: "", phone: "", password: "", role: "teacher" as Role });
 
   useEffect(() => {
-    if (currentUser) navigate({ to: "/app/dashboard" });
+    if (currentUser) {
+      navigate({ to: currentUser.role === "superadmin" ? "/app/schools" : "/app/dashboard" });
+    }
   }, [currentUser, navigate]);
 
   const doLogin = () => {
@@ -114,7 +116,7 @@ function Landing() {
               <div><Label>Email</Label><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@kinder.app" /></div>
               <div><Label>Password</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="********" /></div>
               <Button className="w-full" onClick={doLogin}>Sign in</Button>
-              <p className="text-xs text-muted-foreground text-center">Try: admin@kinder.app - deputy@kinder.app - grace@kinder.app</p>
+              <p className="text-xs text-muted-foreground text-center">Try: super@kinder.app / super123 · admin@kinder.app / admin123 · grace@kinder.app / grace123</p>
             </div>
           </CardContent>
         </Card>
