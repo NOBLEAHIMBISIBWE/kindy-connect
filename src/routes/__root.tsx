@@ -10,7 +10,7 @@ import {
 import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { MockStoreProvider } from "../lib/mock-store";
+import { StoreProvider } from "../lib/store";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -115,10 +115,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <MockStoreProvider>
+      <StoreProvider>
         <Outlet />
         <Toaster richColors position="top-right" />
-      </MockStoreProvider>
+      </StoreProvider>
     </QueryClientProvider>
   );
 }

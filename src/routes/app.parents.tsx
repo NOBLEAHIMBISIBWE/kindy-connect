@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
-import { useStore } from "@/lib/mock-store";
+import { useStore } from "@/lib/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,9 +24,9 @@ function ParentsPage() {
 
   const filtered = parents.filter((p) => `${p.name} ${p.phone} ${p.email}`.toLowerCase().includes(q.toLowerCase()));
 
-  const submit = () => {
+  const submit = async () => {
     if (!form.name || !form.phone || !form.email) return toast.error("Fill all fields");
-    addParent(form);
+    await addParent(form);
     toast.success("Parent registered");
     setOpen(false);
     setForm({ name: "", phone: "", email: "", relationship: "Mother" });

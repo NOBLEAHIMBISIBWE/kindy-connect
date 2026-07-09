@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
-import { useStore, type Pupil } from "@/lib/mock-store";
+import { useStore, type Pupil } from "@/lib/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,10 +28,10 @@ function PupilsPage() {
     (p) => `${p.firstName} ${p.lastName} ${p.admissionNo}`.toLowerCase().includes(q.toLowerCase()),
   );
 
-  const submit = () => {
+  const submit = async () => {
     if (!form.admissionNo || !form.firstName || !form.lastName) return toast.error("Fill required fields");
     if (pupils.some((p) => p.admissionNo === form.admissionNo)) return toast.error("Admission number already exists");
-    addPupil(form as Omit<Pupil, "id" | "active">);
+    await addPupil(form as Omit<Pupil, "id" | "active">);
     toast.success("Pupil registered");
     setOpen(false);
     setForm({ admissionNo: "", firstName: "", lastName: "", gender: "M", dob: "", classId: classes[0]?.id ?? "", parentIds: [] });
@@ -97,7 +97,7 @@ function PupilsPage() {
                   <TableCell>{p.parentIds.length}</TableCell>
                   <TableCell>{p.active ? <Badge>Active</Badge> : <Badge variant="secondary">Inactive</Badge>}</TableCell>
                   <TableCell className="text-right">
-                    {p.active && <Button size="sm" variant="ghost" onClick={() => { deactivatePupil(p.id); toast.success("Pupil deactivated"); }}>Deactivate</Button>}
+                    {p.active && <Button size="sm" variant="ghost" onClick={async () => { await deactivatePupil(p.id); toast.success("Pupil deactivated"); }}>Deactivate</Button>}
                   </TableCell>
                 </TableRow>
               ))}

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
-import { useStore } from "@/lib/mock-store";
+import { useStore } from "@/lib/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,8 +52,8 @@ function TeachersPage() {
             </TableCell>
             {withActions && (
               <TableCell className="space-x-2">
-                <Button size="sm" onClick={() => { approveTeacher(t.id); toast.success(`${t.name} approved - email sent`); }}><Check className="h-4 w-4 mr-1" />Approve</Button>
-                <Button size="sm" variant="destructive" onClick={() => { rejectTeacher(t.id); toast(`${t.name} rejected`); }}><X className="h-4 w-4 mr-1" />Reject</Button>
+                <Button size="sm" onClick={async () => { await approveTeacher(t.id); toast.success(`${t.name} approved`); }}><Check className="h-4 w-4 mr-1" />Approve</Button>
+                <Button size="sm" variant="destructive" onClick={async () => { await rejectTeacher(t.id); toast(`${t.name} rejected`); }}><X className="h-4 w-4 mr-1" />Reject</Button>
               </TableCell>
             )}
           </TableRow>

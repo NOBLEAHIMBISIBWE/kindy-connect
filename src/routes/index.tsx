@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useStore, type Role } from "@/lib/mock-store";
+import { useStore, type Role } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,12 +22,13 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
-  const { currentUser, login, registerUser } = useStore();
+  const { currentUser, login, registerUser, loading } = useStore();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [regOpen, setRegOpen] = useState(false);
   const [reg, setReg] = useState({ name: "", email: "", phone: "", password: "", role: "teacher" as Role });
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -35,23 +36,45 @@ function Landing() {
     }
   }, [currentUser, navigate]);
 
-  const doLogin = () => {
-    const u = login(email, password);
-    if (!u) return toast.error("Invalid credentials or account not verified");
-    toast.success(`Welcome, ${u.name.split(" ")[0]}`);
+  const doLogin = async () => {
+    if (!email || !password) return toast.error("Enter email and password");
+    setSubmitting(true);
+    try {
+      const u = await login(email, password);
+      if (!u) {
+        toast.error("Invalid credentials or account not verified");
+      } else {
+        toast.success(`Welcome, ${u.name.split(" ")[0]}`);
+      }
+    } catch {
+      toast.error("Sign in failed. Please try again.");
+    }
+    setSubmitting(false);
   };
 
-  const submitReg = () => {
+  const submitReg = async () => {
     if (!reg.name || !reg.email || !reg.phone || !reg.password) return toast.error("Fill all fields");
-    registerUser(reg);
-    if (reg.role === "admin") {
-      toast.success("Admin registration completed - you can now log in!");
-    } else {
-      toast.success("Registration submitted - awaiting approval");
+    try {
+      await registerUser(reg);
+      if (reg.role === "admin") {
+        toast.success("Registration submitted - awaiting admin approval");
+      } else {
+        toast.success("Registration submitted - awaiting approval");
+      }
+      setRegOpen(false);
+      setReg({ name: "", email: "", phone: "", password: "", role: "teacher" });
+    } catch (err: any) {
+      toast.error(err.message || "Registration failed");
     }
-    setRegOpen(false);
-    setReg({ name: "", email: "", phone: "", password: "", role: "teacher" });
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -66,7 +89,7 @@ function Landing() {
           <DialogTrigger asChild><Button variant="outline">Sign up</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>User registration</DialogTitle></DialogHeader>
-            <p className="text-sm text-muted-foreground">Register as an admin or teacher. Teacher registrations require admin approval before login.</p>
+            <p className="text-sm text-muted-foreground">Register as an admin or teacher. All registrations require admin approval before login.</p>
             <div className="space-y-3 mt-2">
               <div><Label>Full name</Label><Input value={reg.name} onChange={(e) => setReg({ ...reg, name: e.target.value })} /></div>
               <div><Label>Email</Label><Input type="email" value={reg.email} onChange={(e) => setReg({ ...reg, email: e.target.value })} /></div>
@@ -111,12 +134,12 @@ function Landing() {
         <Card className="border-0 shadow-xl rounded-3xl overflow-hidden">
           <CardContent className="p-7">
             <h2 className="text-2xl font-semibold">Sign in</h2>
-            <p className="text-sm text-muted-foreground mb-5">Admin, deputy & verified teachers.</p>
+            <p className="text-sm text-muted-foreground mb-5">Only pre-assigned, verified users can sign in.</p>
             <div className="space-y-3 mt-4">
               <div><Label>Email</Label><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@kinder.app" /></div>
-              <div><Label>Password</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="********" /></div>
-              <Button className="w-full" onClick={doLogin}>Sign in</Button>
-              <p className="text-xs text-muted-foreground text-center">Try: super@kinder.app / super123 · admin@kinder.app / admin123 · grace@kinder.app / grace123</p>
+              <div><Label>Password</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="********" onKeyDown={(e) => e.key === "Enter" && doLogin()} /></div>
+              <Button className="w-full" onClick={doLogin} disabled={submitting}>{submitting ? "Signing in..." : "Sign in"}</Button>
+              <p className="text-xs text-muted-foreground text-center">Demo: super@kinder.app / super123 · admin@kinder.app / admin123 · grace@kinder.app / grace123</p>
             </div>
           </CardContent>
         </Card>

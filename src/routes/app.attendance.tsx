@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
-import { useStore } from "@/lib/mock-store";
+import { useStore } from "@/lib/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -50,13 +50,13 @@ function AttendancePage() {
   const transportModes = ["Car", "School Bus", "Motorcycle", "Walking", "Bicycle", "Van", "Taxi"];
   const relations = ["Mother", "Father", "Guardian", "Driver", "Uncle", "Aunt", "Grandparent", "Sibling"];
 
-  const handleArrival = () => {
+  const handleArrival = async () => {
     if (!selectedPupil || !arrivalForm.transport || !arrivalForm.personName || !arrivalForm.personRelation || !arrivalForm.phone) {
       toast.error("Please fill in all required fields");
       return;
     }
 
-    markArrival(selectedPupil.id, {
+    await markArrival(selectedPupil.id, {
       transport: arrivalForm.transport,
       vehicleReg: arrivalForm.vehicleReg,
       personName: arrivalForm.personName,
@@ -70,13 +70,13 @@ function AttendancePage() {
     setArrivalForm({ transport: "", vehicleReg: "", personName: "", personRelation: "", phone: "" });
   };
 
-  const handleDeparture = () => {
+  const handleDeparture = async () => {
     if (!selectedPupil || !departureForm.transport || !departureForm.personName || !departureForm.personRelation || !departureForm.phone) {
       toast.error("Please fill in all required fields");
       return;
     }
 
-    markDeparture(selectedPupil.id, {
+    await markDeparture(selectedPupil.id, {
       transport: departureForm.transport,
       vehicleReg: departureForm.vehicleReg,
       personName: departureForm.personName,

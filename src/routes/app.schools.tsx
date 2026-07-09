@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
-import { useStore } from "@/lib/mock-store";
+import { useStore } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,27 +37,27 @@ function SchoolsPage() {
   const adminsFor = (schoolId: string) => users.filter((u) => u.role === "admin" && u.schoolId === schoolId);
   const unassignedAdmins = users.filter((u) => u.role === "admin" && !u.schoolId);
 
-  const submitSchool = () => {
+  const submitSchool = async () => {
     if (!form.name.trim()) return toast.error("School name is required");
-    createSchool(form);
+    await createSchool(form);
     toast.success("School created");
     setForm({ name: "", location: "", phone: "", email: "" });
     setNewOpen(false);
   };
 
-  const submitAdmin = () => {
+  const submitAdmin = async () => {
     if (!adminOpenFor) return;
     if (!adminForm.name || !adminForm.email || !adminForm.password) return toast.error("Name, email and password are required");
-    const u = createSchoolAdmin(adminOpenFor, adminForm);
+    const u = await createSchoolAdmin(adminOpenFor, adminForm);
     if (!u) return toast.error("Email already in use");
     toast.success(`Admin account created for ${u.name}`);
     setAdminForm({ name: "", email: "", phone: "", password: "" });
     setAdminOpenFor(null);
   };
 
-  const submitAssign = () => {
+  const submitAssign = async () => {
     if (!assignOpenFor || !assignUserId) return toast.error("Choose an admin");
-    assignAdminToSchool(assignUserId, assignOpenFor);
+    await assignAdminToSchool(assignUserId, assignOpenFor);
     toast.success("Admin assigned");
     setAssignUserId("");
     setAssignOpenFor(null);
@@ -151,7 +151,7 @@ function SchoolsPage() {
                   </Dialog>
 
                   {s.active && (
-                    <Button size="sm" variant="ghost" onClick={() => { deactivateSchool(s.id); toast.success("School deactivated"); }}>
+                    <Button size="sm" variant="ghost" onClick={async () => { await deactivateSchool(s.id); toast.success("School deactivated"); }}>
                       <Ban className="h-4 w-4 mr-1" /> Deactivate
                     </Button>
                   )}
@@ -178,7 +178,7 @@ function SchoolsPage() {
                           <TableCell>{a.email}</TableCell>
                           <TableCell>{a.phone || "—"}</TableCell>
                           <TableCell className="text-right">
-                            <Button size="sm" variant="ghost" onClick={() => { unassignAdmin(a.id); toast.success("Admin unassigned"); }}>
+                            <Button size="sm" variant="ghost" onClick={async () => { await unassignAdmin(a.id); toast.success("Admin unassigned"); }}>
                               <UserMinus className="h-4 w-4" />
                             </Button>
                           </TableCell>

@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Baby, Users, GraduationCap, CalendarCheck, ChartBar as BarChart3, ScrollText, LogOut, BookOpen, Menu, Building2 } from "lucide-react";
-import { useStore } from "@/lib/mock-store";
+import { useStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -17,7 +17,16 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
     if (!currentUser) navigate({ to: "/" });
   }, [currentUser, navigate]);
 
-  if (!currentUser) return null;
+  if (!currentUser) {
+    if (!loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="text-muted-foreground">Redirecting...</div>
+        </div>
+      );
+    }
+    return null;
+  }
 
   const isSuper = currentUser.role === "superadmin";
   const isStaff = currentUser.role === "admin" || currentUser.role === "deputy";
@@ -83,7 +92,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
         <div className="text-sm font-medium truncate">{currentUser.name}</div>
         <div className="text-xs text-muted-foreground capitalize">{currentUser.role}</div>
       </div>
-      <Button size="icon" variant="ghost" onClick={() => { logout(); navigate({ to: "/" }); }}>
+      <Button size="icon" variant="ghost" onClick={() => { logout().then(() => navigate({ to: "/" })); }}>
         <LogOut className="h-4 w-4" />
       </Button>
     </div>

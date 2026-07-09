@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
-import { useStore } from "@/lib/mock-store";
+import { useStore } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -45,7 +45,7 @@ function MarksPage() {
   const subjects = ["Reading", "Math", "Writing", "Art", "Music", "Physical Education", "Science"];
   const terms = ["Term 1", "Term 2", "Term 3"];
 
-  const handleAddMark = () => {
+  const handleAddMark = async () => {
     if (!selectedPupilId || !formData.score || !formData.maxScore) {
       toast.error("Please fill in all required fields");
       return;
@@ -61,7 +61,7 @@ function MarksPage() {
       return;
     }
 
-    addMark({
+    await addMark({
       pupilId: selectedPupilId,
       subject,
       term,
@@ -77,13 +77,13 @@ function MarksPage() {
     setFormData({ score: "", maxScore: "100", teacherComment: "" });
   };
 
-  const handleEditMark = () => {
+  const handleEditMark = async () => {
     if (!editingMark || !formData.score || !formData.maxScore) {
       toast.error("Please fill in all required fields");
       return;
     }
 
-    updateMark(editingMark.id, {
+    await updateMark(editingMark.id, {
       score: parseFloat(formData.score),
       maxScore: parseFloat(formData.maxScore),
       teacherComment: formData.teacherComment,
@@ -96,9 +96,9 @@ function MarksPage() {
     setFormData({ score: "", maxScore: "100", teacherComment: "" });
   };
 
-  const handleDelete = (markId: string, pupilName: string) => {
+  const handleDelete = async (markId: string, pupilName: string) => {
     if (confirm(`Are you sure you want to delete this mark for ${pupilName}?`)) {
-      deleteMark(markId);
+      await deleteMark(markId);
       toast.success("Mark deleted");
     }
   };
