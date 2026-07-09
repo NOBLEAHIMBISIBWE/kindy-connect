@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppTeachersRouteImport } from './routes/app.teachers'
+import { Route as AppSchoolsRouteImport } from './routes/app.schools'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppPupilsRouteImport } from './routes/app.pupils'
 import { Route as AppParentsRouteImport } from './routes/app.parents'
@@ -33,6 +34,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppTeachersRoute = AppTeachersRouteImport.update({
   id: '/teachers',
   path: '/teachers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSchoolsRoute = AppSchoolsRouteImport.update({
+  id: '/schools',
+  path: '/schools',
   getParentRoute: () => AppRoute,
 } as any)
 const AppReportsRoute = AppReportsRouteImport.update({
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/app/parents': typeof AppParentsRoute
   '/app/pupils': typeof AppPupilsRoute
   '/app/reports': typeof AppReportsRoute
+  '/app/schools': typeof AppSchoolsRoute
   '/app/teachers': typeof AppTeachersRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/app/parents': typeof AppParentsRoute
   '/app/pupils': typeof AppPupilsRoute
   '/app/reports': typeof AppReportsRoute
+  '/app/schools': typeof AppSchoolsRoute
   '/app/teachers': typeof AppTeachersRoute
 }
 export interface FileRoutesById {
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/app/parents': typeof AppParentsRoute
   '/app/pupils': typeof AppPupilsRoute
   '/app/reports': typeof AppReportsRoute
+  '/app/schools': typeof AppSchoolsRoute
   '/app/teachers': typeof AppTeachersRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/app/parents'
     | '/app/pupils'
     | '/app/reports'
+    | '/app/schools'
     | '/app/teachers'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/app/parents'
     | '/app/pupils'
     | '/app/reports'
+    | '/app/schools'
     | '/app/teachers'
   id:
     | '__root__'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/app/parents'
     | '/app/pupils'
     | '/app/reports'
+    | '/app/schools'
     | '/app/teachers'
   fileRoutesById: FileRoutesById
 }
@@ -173,6 +185,13 @@ declare module '@tanstack/react-router' {
       path: '/teachers'
       fullPath: '/app/teachers'
       preLoaderRoute: typeof AppTeachersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/schools': {
+      id: '/app/schools'
+      path: '/schools'
+      fullPath: '/app/schools'
+      preLoaderRoute: typeof AppSchoolsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/reports': {
@@ -235,6 +254,7 @@ interface AppRouteChildren {
   AppParentsRoute: typeof AppParentsRoute
   AppPupilsRoute: typeof AppPupilsRoute
   AppReportsRoute: typeof AppReportsRoute
+  AppSchoolsRoute: typeof AppSchoolsRoute
   AppTeachersRoute: typeof AppTeachersRoute
 }
 
@@ -246,6 +266,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppParentsRoute: AppParentsRoute,
   AppPupilsRoute: AppPupilsRoute,
   AppReportsRoute: AppReportsRoute,
+  AppSchoolsRoute: AppSchoolsRoute,
   AppTeachersRoute: AppTeachersRoute,
 }
 
