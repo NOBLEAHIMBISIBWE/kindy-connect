@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-export type Role = "admin" | "deputy" | "teacher";
+export type Role = "superadmin" | "admin" | "deputy" | "teacher";
 export type TeacherStatus = "pending" | "verified" | "rejected";
 
 export interface User {
@@ -11,8 +11,19 @@ export interface User {
   status: TeacherStatus;
   phone?: string;
   classId?: string;
+  schoolId?: string;
   registeredAt: string;
   password?: string;
+}
+
+export interface School {
+  id: string;
+  name: string;
+  location?: string;
+  phone?: string;
+  email?: string;
+  createdAt: string;
+  active: boolean;
 }
 
 export interface Pupil {
@@ -120,12 +131,17 @@ const seedClasses: ClassRoom[] = [
 ];
 
 const seedUsers: User[] = [
-  { id: "u1", name: "Amina Okello", email: "admin@kinder.app", role: "admin", status: "verified", phone: "+254700000001", password: "admin123", registeredAt: "2025-01-10" },
-  { id: "u2", name: "Brian Mwangi", email: "deputy@kinder.app", role: "deputy", status: "verified", phone: "+254700000002", password: "deputy123", registeredAt: "2025-01-12" },
-  { id: "u3", name: "Grace Wanjiku", email: "grace@kinder.app", role: "teacher", status: "verified", phone: "+254700000003", classId: "c1", password: "grace123", registeredAt: "2025-02-01" },
-  { id: "u4", name: "Peter Otieno", email: "peter@kinder.app", role: "teacher", status: "verified", phone: "+254700000004", classId: "c2", password: "peter123", registeredAt: "2025-02-03" },
-  { id: "u5", name: "Lucy Achieng", email: "lucy@kinder.app", role: "teacher", status: "pending", phone: "+254700000005", password: "lucy123", registeredAt: "2025-06-15" },
-  { id: "u6", name: "James Kariuki", email: "james@kinder.app", role: "teacher", status: "pending", phone: "+254700000006", password: "james123", registeredAt: "2025-06-16" },
+  { id: "u0", name: "Super Admin", email: "super@kinder.app", role: "superadmin", status: "verified", phone: "+254700000000", password: "super123", registeredAt: "2025-01-01" },
+  { id: "u1", name: "Amina Okello", email: "admin@kinder.app", role: "admin", status: "verified", phone: "+254700000001", password: "admin123", schoolId: "s1", registeredAt: "2025-01-10" },
+  { id: "u2", name: "Brian Mwangi", email: "deputy@kinder.app", role: "deputy", status: "verified", phone: "+254700000002", password: "deputy123", schoolId: "s1", registeredAt: "2025-01-12" },
+  { id: "u3", name: "Grace Wanjiku", email: "grace@kinder.app", role: "teacher", status: "verified", phone: "+254700000003", classId: "c1", schoolId: "s1", password: "grace123", registeredAt: "2025-02-01" },
+  { id: "u4", name: "Peter Otieno", email: "peter@kinder.app", role: "teacher", status: "verified", phone: "+254700000004", classId: "c2", schoolId: "s1", password: "peter123", registeredAt: "2025-02-03" },
+  { id: "u5", name: "Lucy Achieng", email: "lucy@kinder.app", role: "teacher", status: "pending", phone: "+254700000005", schoolId: "s1", password: "lucy123", registeredAt: "2025-06-15" },
+  { id: "u6", name: "James Kariuki", email: "james@kinder.app", role: "teacher", status: "pending", phone: "+254700000006", schoolId: "s1", password: "james123", registeredAt: "2025-06-16" },
+];
+
+const seedSchools: School[] = [
+  { id: "s1", name: "Little Stars Kindergarten", location: "Nairobi", phone: "+254700111111", email: "info@littlestars.app", createdAt: "2025-01-01", active: true },
 ];
 
 const seedParents: Parent[] = [
@@ -185,6 +201,7 @@ interface Store {
   pupils: Pupil[];
   parents: Parent[];
   classes: ClassRoom[];
+  schools: School[];
   attendance: Attendance[];
   notifications: Notification[];
   audit: AuditLog[];
@@ -193,6 +210,12 @@ interface Store {
   loginAs: (role: Role) => void;
   logout: () => void;
   registerUser: (data: { name: string; email: string; phone: string; password?: string; role: Role }) => void;
+  createSchool: (data: { name: string; location?: string; phone?: string; email?: string }) => School;
+  updateSchool: (id: string, data: Partial<Omit<School, "id" | "createdAt">>) => void;
+  deactivateSchool: (id: string) => void;
+  createSchoolAdmin: (schoolId: string, data: { name: string; email: string; phone: string; password: string }) => User | null;
+  assignAdminToSchool: (userId: string, schoolId: string) => void;
+  unassignAdmin: (userId: string) => void;
   approveTeacher: (id: string) => void;
   rejectTeacher: (id: string) => void;
   addPupil: (data: Omit<Pupil, "id" | "active">) => void;
@@ -244,6 +267,7 @@ export function MockStoreProvider({ children }: { children: ReactNode }) {
         pupils: persisted.pupils || seedPupils,
         parents: persisted.parents || seedParents,
         classes: persisted.classes || seedClasses,
+        schools: persisted.schools || seedSchools,
         attendance: cleanedAttendance,
         notifications: persisted.notifications || seedNotifications(),
         audit: persisted.audit || seedAudit(),
@@ -256,6 +280,7 @@ export function MockStoreProvider({ children }: { children: ReactNode }) {
       pupils: seedPupils,
       parents: seedParents,
       classes: seedClasses,
+      schools: seedSchools,
       attendance: seedAttendance(),
       notifications: seedNotifications(),
       audit: seedAudit(),
@@ -355,6 +380,7 @@ export function MockStoreProvider({ children }: { children: ReactNode }) {
     pupils: state.pupils,
     parents: state.parents,
     classes: state.classes,
+    schools: state.schools || [],
     attendance: state.attendance,
     notifications: state.notifications,
     audit: state.audit,
@@ -384,6 +410,54 @@ export function MockStoreProvider({ children }: { children: ReactNode }) {
         registeredAt: today(),
       };
       setState((s: any) => ({ ...s, users: [...s.users, u] }));
+    },
+    createSchool: ({ name, location, phone, email }) => {
+      const school: School = { id: uid(), name, location, phone, email, createdAt: today(), active: true };
+      setState((s: any) => ({ ...s, schools: [...s.schools, school] }));
+      logAction(currentUser, "Created school", name);
+      return school;
+    },
+    updateSchool: (id, data) => {
+      setState((s: any) => ({ ...s, schools: s.schools.map((sc: School) => (sc.id === id ? { ...sc, ...data } : sc)) }));
+      const sc = state.schools.find((x: School) => x.id === id);
+      if (sc) logAction(currentUser, "Updated school", sc.name);
+    },
+    deactivateSchool: (id) => {
+      setState((s: any) => ({ ...s, schools: s.schools.map((sc: School) => (sc.id === id ? { ...sc, active: false } : sc)) }));
+      const sc = state.schools.find((x: School) => x.id === id);
+      if (sc) logAction(currentUser, "Deactivated school", sc.name);
+    },
+    createSchoolAdmin: (schoolId, { name, email, phone, password }) => {
+      if (state.users.some((u: User) => u.email.toLowerCase() === email.toLowerCase())) return null;
+      const u: User = {
+        id: uid(),
+        name,
+        email,
+        phone,
+        role: "admin",
+        password: password || "12345678",
+        status: "verified",
+        schoolId,
+        registeredAt: today(),
+      };
+      setState((s: any) => ({ ...s, users: [...s.users, u] }));
+      const sc = state.schools.find((x: School) => x.id === schoolId);
+      logAction(currentUser, "Created admin", `${name} for ${sc?.name ?? schoolId}`);
+      return u;
+    },
+    assignAdminToSchool: (userId, schoolId) => {
+      setState((s: any) => ({
+        ...s,
+        users: s.users.map((u: User) => (u.id === userId ? { ...u, schoolId, role: u.role === "admin" ? u.role : "admin", status: "verified" } : u)),
+      }));
+      const u = state.users.find((x: User) => x.id === userId);
+      const sc = state.schools.find((x: School) => x.id === schoolId);
+      if (u && sc) logAction(currentUser, "Assigned admin", `${u.name} → ${sc.name}`);
+    },
+    unassignAdmin: (userId) => {
+      setState((s: any) => ({ ...s, users: s.users.map((u: User) => (u.id === userId ? { ...u, schoolId: undefined } : u)) }));
+      const u = state.users.find((x: User) => x.id === userId);
+      if (u) logAction(currentUser, "Unassigned admin", u.name);
     },
     approveTeacher: (id) => {
       setState((s: any) => ({ ...s, users: s.users.map((u: User) => (u.id === id ? { ...u, status: "verified" } : u)) }));

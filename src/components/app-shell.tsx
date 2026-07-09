@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Baby, Users, GraduationCap, CalendarCheck, ChartBar as BarChart3, ScrollText, LogOut, BookOpen, Menu } from "lucide-react";
+import { LayoutDashboard, Baby, Users, GraduationCap, CalendarCheck, ChartBar as BarChart3, ScrollText, LogOut, BookOpen, Menu, Building2 } from "lucide-react";
 import { useStore } from "@/lib/mock-store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,10 +19,16 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
 
   if (!currentUser) return null;
 
+  const isSuper = currentUser.role === "superadmin";
   const isStaff = currentUser.role === "admin" || currentUser.role === "deputy";
   const pendingCount = users.filter((u) => u.role === "teacher" && u.status === "pending").length;
 
-  const items = isStaff
+  const items = isSuper
+    ? [
+        { to: "/app/schools", label: "Schools", icon: Building2 },
+        { to: "/app/audit", label: "Audit log", icon: ScrollText },
+      ]
+    : isStaff
     ? [
         { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { to: "/app/pupils", label: "Pupils", icon: Baby },
