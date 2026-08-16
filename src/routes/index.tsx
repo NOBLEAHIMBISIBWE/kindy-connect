@@ -124,6 +124,7 @@ function Landing() {
                 <Input
                   value={reg.name}
                   onChange={(e) => setReg({ ...reg, name: e.target.value })}
+                  autoComplete="off"
                 />
               </div>
               <div>
@@ -132,6 +133,7 @@ function Landing() {
                   type="email"
                   value={reg.email}
                   onChange={(e) => setReg({ ...reg, email: e.target.value })}
+                  autoComplete="off"
                 />
               </div>
               <div>
@@ -139,6 +141,7 @@ function Landing() {
                 <Input
                   value={reg.phone}
                   onChange={(e) => setReg({ ...reg, phone: e.target.value })}
+                  autoComplete="off"
                 />
               </div>
               <div>
@@ -147,6 +150,7 @@ function Landing() {
                   type="password"
                   value={reg.password}
                   onChange={(e) => setReg({ ...reg, password: e.target.value })}
+                  autoComplete="off"
                 />
               </div>
               <div>
@@ -204,6 +208,7 @@ function Landing() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@kinder.app"
+                  autoComplete="off"
                 />
               </div>
               <div>
@@ -214,6 +219,7 @@ function Landing() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="********"
                   onKeyDown={(e) => e.key === "Enter" && doLogin()}
+                  autoComplete="off"
                 />
               </div>
               <Button className="w-full" onClick={doLogin} disabled={submitting}>
