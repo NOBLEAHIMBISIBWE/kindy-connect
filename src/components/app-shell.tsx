@@ -20,7 +20,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import { useEffect, useState, type ReactNode } from "react";
 
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
-  const { currentUser, users, logout, loading } = useStore();
+  const { currentUser, users, logout } = useStore();
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -30,14 +30,11 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
   }, [currentUser, navigate]);
 
   if (!currentUser) {
-    if (!loading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <div className="text-muted-foreground">Redirecting...</div>
-        </div>
-      );
-    }
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-muted-foreground">Redirecting...</div>
+      </div>
+    );
   }
 
   const isSuper = currentUser.role === "superadmin";
