@@ -299,6 +299,7 @@ function UsersPage() {
                         value={form.id}
                         onChange={(e) => setForm({ ...form, id: e.target.value })}
                         placeholder="e.g. KC004"
+                        required
                         autoComplete="off"
                       />
                     </div>
@@ -310,6 +311,7 @@ function UsersPage() {
                         value={form.password}
                         onChange={(e) => setForm({ ...form, password: e.target.value })}
                         placeholder="e.g. secure123"
+                        required
                         autoComplete="new-password"
                         data-lpignore="true"
                         data-bwignore="true"
