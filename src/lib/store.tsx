@@ -258,7 +258,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Hydrate saved session on client post-mount to prevent SSR hydration mismatch (Error #418)
   useEffect(() => {
     try {
-      const savedUserId = localStorage.getItem(SESSION_KEY);
+      const savedUserId = sessionStorage.getItem(SESSION_KEY);
       const savedSchoolId = sessionStorage.getItem(SCHOOL_CONTEXT_KEY);
       if (savedUserId || savedSchoolId) {
         setState((s) => ({
@@ -390,13 +390,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [state.currentUserId]);
 
-  // Sync user session to local storage
+  // Sync user session to session storage (not persistent local storage)
   useEffect(() => {
     try {
       if (state.currentUserId) {
-        localStorage.setItem(SESSION_KEY, state.currentUserId);
+        sessionStorage.setItem(SESSION_KEY, state.currentUserId);
       } else {
-        localStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_KEY);
       }
     } catch {}
   }, [state.currentUserId]);
