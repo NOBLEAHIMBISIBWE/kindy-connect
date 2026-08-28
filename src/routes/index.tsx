@@ -184,7 +184,7 @@ function Landing() {
               <CardContent className="p-6">
                 <div className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="login-id">Assigned ID</Label>
+                    <Label htmlFor="login-id">Assigned ID *</Label>
                     <Input
                       id="login-id"
                       name="login-id"
@@ -192,6 +192,7 @@ function Landing() {
                       onChange={(event) => setAssignedId(event.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="e.g. KC001"
+                      required
                       disabled={isLoading}
                       autoComplete="off"
                       autoCapitalize="none"
@@ -204,7 +205,7 @@ function Landing() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
+                    <Label htmlFor="login-password">Password *</Label>
                     <Input
                       id="login-password"
                       name="login-password"
@@ -213,6 +214,7 @@ function Landing() {
                       onChange={(event) => setPassword(event.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Enter your password"
+                      required
                       disabled={isLoading}
                       autoComplete="new-password"
                       data-lpignore="true"
