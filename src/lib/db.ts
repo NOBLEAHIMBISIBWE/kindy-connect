@@ -44,6 +44,14 @@ export const sql = postgres(connectionString || "", {
   // REQUIRED for Supabase PgBouncer in transaction mode (default pooler)
   // Without this, prepared statements fail on pooled connections
   prepare: false,
+  types: {
+    numeric: {
+      to: 1700,
+      from: [1700],
+      serialize: (x: any) => x.toString(),
+      parse: (x: string) => parseFloat(x),
+    },
+  },
   ssl:
     typeof process !== "undefined" &&
     (process.env.NODE_ENV === "production" || process.env.VERCEL === "1")
