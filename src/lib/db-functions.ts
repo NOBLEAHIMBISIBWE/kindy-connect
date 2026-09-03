@@ -1960,9 +1960,12 @@ export const assignFeeCharges = createServerFn({ method: "POST" })
       const structure = structures[0];
       if (!structure) throw new Error("Fee structure not found");
       await assertFeeStaff(tx, data.actorId, structure.school_id);
+      const selectedPupils = data.pupilIds && data.pupilIds.length > 0 ? data.pupilIds : [];
       const pupils = data.allActive
         ? await tx`SELECT id FROM pupils WHERE school_id = ${structure.school_id} AND active = TRUE`
-        : await tx`SELECT id FROM pupils WHERE school_id = ${structure.school_id} AND id = ANY(${data.pupilIds || []})`;
+        : selectedPupils.length > 0
+          ? await tx`SELECT id FROM pupils WHERE school_id = ${structure.school_id} AND id = ANY(${sql.array(selectedPupils)})`
+          : [];
       const inserted: any[] = [];
       for (const pupil of pupils) {
         const id = `charge_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;

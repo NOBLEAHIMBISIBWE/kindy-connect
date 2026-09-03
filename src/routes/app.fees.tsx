@@ -32,6 +32,8 @@ function FeesPage() {
     feePayments,
     selectedSchoolId,
     addFeeStructure,
+    updateFeeStructure,
+    deleteFeeStructure,
     assignFeeCharges,
     addFeePayment,
   } = useStore();
@@ -39,6 +41,7 @@ function FeesPage() {
   const [amount, setAmount] = useState("");
   const [term, setTerm] = useState("Term 1");
   const [year, setYear] = useState(String(new Date().getFullYear()));
+  const [editingStructureId, setEditingStructureId] = useState<string | null>(null);
   const [structureId, setStructureId] = useState("");
   const [selectedPupils, setSelectedPupils] = useState<string[]>([]);
   const [assignAll, setAssignAll] = useState(true);
@@ -104,24 +107,60 @@ function FeesPage() {
     { due: 0, paid: 0 },
   );
 
-  const createStructure = async () => {
+  const saveStructure = async () => {
     if (!schoolId || !name.trim() || Number(amount) <= 0 || !Number(year)) {
       return toast.error("Choose a school and enter a name, positive amount, and year");
     }
     try {
-      const structure = await addFeeStructure({
-        schoolId,
-        name: name.trim(),
-        amount: Number(amount),
-        term,
-        year: Number(year),
-      });
-      setStructureId(structure.id);
+      if (editingStructureId) {
+        await updateFeeStructure(editingStructureId, {
+          name: name.trim(),
+          amount: Number(amount),
+          term,
+          year: Number(year),
+        });
+        toast.success("Fee charge updated");
+        setEditingStructureId(null);
+      } else {
+        const structure = await addFeeStructure({
+          schoolId,
+          name: name.trim(),
+          amount: Number(amount),
+          term,
+          year: Number(year),
+        });
+        setStructureId(structure.id);
+        toast.success("Fee charge configured");
+      }
       setName("");
       setAmount("");
-      toast.success("Fee charge configured");
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Could not configure charge");
+      toast.error(error instanceof Error ? error.message : "Could not save charge");
+    }
+  };
+
+  const editStructure = (structure: (typeof feeStructures)[0]) => {
+    setEditingStructureId(structure.id);
+    setName(structure.name);
+    setAmount(String(structure.amount));
+    setTerm(structure.term);
+    setYear(String(structure.year));
+  };
+
+  const cancelEditing = () => {
+    setEditingStructureId(null);
+    setName("");
+    setAmount("");
+  };
+
+  const removeStructure = async (id: string) => {
+    try {
+      await deleteFeeStructure(id);
+      if (editingStructureId === id) cancelEditing();
+      if (structureId === id) setStructureId("");
+      toast.success("Fee charge removed");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Could not remove charge");
     }
   };
 
@@ -198,7 +237,9 @@ function FeesPage() {
         <div className="grid gap-5 lg:grid-cols-3">
           <Card>
             <CardHeader>
-              <CardTitle>Configure a charge</CardTitle>
+              <CardTitle>
+                {editingStructureId ? "Edit configured charge" : "Configure a charge"}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
@@ -229,9 +270,53 @@ function FeesPage() {
                   <Input type="number" value={year} onChange={(e) => setYear(e.target.value)} />
                 </div>
               </div>
-              <Button className="w-full" onClick={createStructure}>
-                Save charge
-              </Button>
+              <div className="flex gap-2">
+                <Button className="flex-1" onClick={saveStructure}>
+                  {editingStructureId ? "Update charge" : "Save charge"}
+                </Button>
+                {editingStructureId && (
+                  <Button variant="outline" onClick={cancelEditing}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
+
+              {schoolStructures.length > 0 && (
+                <div className="pt-2">
+                  <Label className="text-xs text-muted-foreground">Existing charges</Label>
+                  <div className="mt-1.5 max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                    {schoolStructures.map((structure) => (
+                      <div
+                        key={structure.id}
+                        className="flex items-center justify-between rounded-md border p-2 text-xs"
+                      >
+                        <div className="truncate">
+                          <span className="font-medium">{structure.name}</span> · {structure.term}{" "}
+                          {structure.year} · {Number(structure.amount).toFixed(2)}
+                        </div>
+                        <div className="flex gap-1 shrink-0 ml-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-1.5 text-xs"
+                            onClick={() => editStructure(structure)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-1.5 text-xs text-destructive hover:text-destructive"
+                            onClick={() => removeStructure(structure.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -359,6 +444,7 @@ function FeesPage() {
                   <TableHead>Due</TableHead>
                   <TableHead>Paid</TableHead>
                   <TableHead>Balance</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -369,6 +455,9 @@ function FeesPage() {
                     .filter((p) => p.chargeId === charge.id)
                     .reduce((sum, p) => sum + Number(p.amount), 0);
                   const balance = Number(charge.amount) - paid;
+                  const isPaid = balance <= 0.001;
+                  const isPartial = paid > 0 && balance > 0.001;
+
                   return (
                     <TableRow key={charge.id}>
                       <TableCell className="font-medium">
@@ -380,9 +469,12 @@ function FeesPage() {
                       </TableCell>
                       <TableCell>{Number(charge.amount).toFixed(2)}</TableCell>
                       <TableCell>{paid.toFixed(2)}</TableCell>
+                      <TableCell className="font-semibold">{balance.toFixed(2)}</TableCell>
                       <TableCell>
-                        <Badge variant={balance > 0 ? "secondary" : "default"}>
-                          {balance.toFixed(2)}
+                        <Badge
+                          variant={isPaid ? "default" : isPartial ? "secondary" : "destructive"}
+                        >
+                          {isPaid ? "Paid" : isPartial ? "Partial" : "Unpaid"}
                         </Badge>
                       </TableCell>
                     </TableRow>
