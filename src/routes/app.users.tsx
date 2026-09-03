@@ -46,7 +46,14 @@ export const Route = createFileRoute("/app/users")({
 });
 
 function UsersPage() {
-  const { currentUser, users = [], schools = [], registerUser, deleteUser, loading = false } = useStore();
+  const {
+    currentUser,
+    users = [],
+    schools = [],
+    registerUser,
+    deleteUser,
+    loading = false,
+  } = useStore();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
