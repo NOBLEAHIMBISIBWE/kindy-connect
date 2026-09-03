@@ -150,6 +150,25 @@ CREATE TABLE subjects (
     CONSTRAINT unq_school_subject_name UNIQUE (school_id, name)
 );
 
+-- 11. Fees Table
+CREATE TABLE fees (
+    id VARCHAR(50) PRIMARY KEY,
+    pupil_id VARCHAR(50) NOT NULL,
+    school_id VARCHAR(50) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    term VARCHAR(50) NOT NULL,
+    year VARCHAR(4) NOT NULL,
+    amount_due NUMERIC(12, 2) NOT NULL CHECK (amount_due > 0),
+    amount_paid NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (amount_paid >= 0),
+    due_date DATE,
+    notes TEXT,
+    created_by VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_fee_paid_limit CHECK (amount_paid <= amount_due),
+    CONSTRAINT unq_fee_pupil_description_term_year UNIQUE (pupil_id, description, term, year)
+);
+
 -- Add Foreign Key Constraints (separately to resolve circular dependency at table creation)
 ALTER TABLE classes 
     ADD CONSTRAINT fk_classes_teacher FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE SET NULL,
@@ -157,6 +176,11 @@ ALTER TABLE classes
 
 ALTER TABLE subjects
     ADD CONSTRAINT fk_subjects_school FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE;
+
+ALTER TABLE fees
+    ADD CONSTRAINT fk_fees_pupil FOREIGN KEY (pupil_id) REFERENCES pupils(id) ON DELETE CASCADE,
+    ADD CONSTRAINT fk_fees_school FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE,
+    ADD CONSTRAINT fk_fees_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT;
 
 ALTER TABLE users 
     ADD CONSTRAINT fk_users_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL,

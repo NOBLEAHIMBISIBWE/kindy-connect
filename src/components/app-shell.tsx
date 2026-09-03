@@ -15,6 +15,7 @@ import {
   Building2,
   Phone,
   Mail,
+  WalletCards,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +77,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
           { to: "/app/attendance", label: "Attendance", icon: CalendarCheck },
           { to: "/app/marks", label: "Marks", icon: ClipboardList },
           { to: "/app/reports", label: "Reports", icon: BarChart3 },
+          { to: "/app/fees", label: "Fees", icon: WalletCards },
           { to: "/app/audit", label: "Audit log", icon: ScrollText },
         ]
       : [

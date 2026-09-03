@@ -27,6 +27,8 @@ import {
   updateMark as updateMarkDb,
   deleteMark as deleteMarkDb,
   saveBulkMarks as saveBulkMarksDb,
+  addFee as addFeeDb,
+  updateFee as updateFeeDb,
   addSchool as addSchoolDb,
   updateSchool as updateSchoolDb,
   deleteSchool as deleteSchoolDb,
@@ -50,6 +52,7 @@ import {
   type Mark,
   type School,
   type Subject,
+  type Fee,
 } from "./db-functions";
 import { queryClient, queryKeys } from "./query-client";
 
@@ -67,6 +70,7 @@ export type {
   Mark,
   School,
   Subject,
+  Fee,
 };
 
 interface Store {
@@ -82,6 +86,7 @@ interface Store {
   marks: Mark[];
   schools: School[];
   subjects: Subject[];
+  fees: Fee[];
   login: (id: string, password: string) => Promise<User | null>;
   logout: () => void;
   setSchoolContext: (schoolId: string | null) => void;
@@ -189,6 +194,8 @@ interface Store {
   updateSubject: (id: string, name: string, code?: string) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
   seedDefaultSubjects: (schoolId: string) => Promise<void>;
+  addFee: (data: Omit<Fee, "id" | "createdBy" | "createdAt" | "updatedAt">) => Promise<void>;
+  updateFee: (id: string, data: Partial<Pick<Fee, "amountPaid" | "amountDue" | "dueDate" | "notes">>) => Promise<void>;
   getSchoolSubjects: (schoolId?: string) => Subject[];
   refreshData: () => Promise<void>;
   lastSyncTime: string | null;
@@ -253,6 +260,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     marks: [] as Mark[],
     schools: [] as School[],
     subjects: [] as Subject[],
+    fees: [] as Fee[],
   }));
 
   // Hydrate saved session on client post-mount to prevent SSR hydration mismatch (Error #418)
@@ -329,6 +337,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         audit: data.audit ?? s.audit,
         marks: data.marks ?? s.marks,
         subjects: data.subjects ?? s.subjects,
+        fees: data.fees ?? s.fees,
       }));
       setLastSyncTime(new Date().toLocaleTimeString());
       queryClient.setQueryData(queryKeys.initialData(state.currentUserId), data);
@@ -613,6 +622,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     );
   }, [state.marks, state.pupils, currentUser, state.selectedSchoolId]);
 
+  const filteredFees = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.role === "super_admin") {
+      return state.selectedSchoolId
+        ? state.fees.filter((fee) => fee.schoolId === state.selectedSchoolId)
+        : state.fees;
+    }
+    return state.fees.filter((fee) => fee.schoolId === currentUser.schoolId);
+  }, [state.fees, currentUser, state.selectedSchoolId]);
+
   const store: Store = {
     currentUser,
     selectedSchoolId: state.selectedSchoolId,
@@ -624,6 +643,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     notifications: filteredNotifications,
     audit: filteredAudit,
     marks: filteredMarks,
+    fees: filteredFees,
     schools: state.schools,
     lastSyncTime,
     loading,
@@ -1187,6 +1207,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ],
         };
       });
+    },
+
+    addFee: async (feeData) => {
+      if (!currentUser) return;
+      const newFee = await addFeeDb({
+        data: { fee: feeData, actorId: currentUser.id, actorName: currentUser.name },
+      });
+      setState((s) => ({ ...s, fees: [newFee, ...s.fees] }));
+    },
+
+    updateFee: async (id, feeData) => {
+      if (!currentUser) return;
+      const result = await updateFeeDb({
+        data: { id, data: feeData, actorId: currentUser.id, actorName: currentUser.name },
+      });
+      setState((s) => ({
+        ...s,
+        fees: s.fees.map((fee) => (fee.id === id ? { ...fee, ...result.data } : fee)),
+      }));
     },
 
     addSchool: async (schoolData) => {

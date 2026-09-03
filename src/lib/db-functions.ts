@@ -131,6 +131,22 @@ export interface Mark {
   recordedAt: string;
 }
 
+export interface Fee {
+  id: string;
+  pupilId: string;
+  schoolId: string;
+  description: string;
+  term: string;
+  year: string;
+  amountDue: number;
+  amountPaid: number;
+  dueDate?: string;
+  notes?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Helper for safe audit log insertion (prevents FK violation if actorId is not in users table)
 async function safeInsertAuditLog(
   tx: any,
@@ -180,6 +196,7 @@ export const getInitialData = createServerFn({ method: "GET" })
         audit,
         marks,
         subjects,
+        fees,
       ] = await Promise.all([
         client`SELECT * FROM schools ORDER BY name ASC`,
         client`SELECT * FROM users ORDER BY registered_at DESC`,
@@ -192,6 +209,7 @@ export const getInitialData = createServerFn({ method: "GET" })
         client`SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 200`,
         client`SELECT * FROM marks ORDER BY recorded_at DESC LIMIT 2000`,
         client`SELECT * FROM subjects ORDER BY name ASC`,
+        client`SELECT * FROM fees ORDER BY due_date ASC NULLS LAST, created_at DESC`,
       ]);
 
       const parentMap: Record<string, string[]> = {};
@@ -220,6 +238,7 @@ export const getInitialData = createServerFn({ method: "GET" })
         audit: toCamel<AuditLog[]>(audit),
         marks: toCamel<Mark[]>(marks),
         subjects: toCamel<Subject[]>(subjects),
+        fees: toCamel<Fee[]>(fees),
       };
     };
 
@@ -236,6 +255,7 @@ export const getInitialData = createServerFn({ method: "GET" })
         "audit",
         "marks",
         "subjects",
+        "fees",
       ];
 
       return await serverCache.cachedFetch(cacheKey, 60, cacheTags, async () => {
@@ -260,6 +280,7 @@ export const getInitialData = createServerFn({ method: "GET" })
         audit: [],
         marks: [],
         subjects: [],
+        fees: [],
         error: error?.message || "Failed to query database",
       };
     }
@@ -1228,6 +1249,35 @@ export const deleteMark = createServerFn({ method: "POST" })
       console.error("Error in deleteMark:", error);
       throw error;
     }
+  });
+
+// ----------------------------------------------------
+// 7. Fees Functions
+// ----------------------------------------------------
+export const addFee = createServerFn({ method: "POST" })
+  .validator((d: { fee: Omit<Fee, "id" | "createdBy" | "createdAt" | "updatedAt">; actorId: string; actorName: string }) => d)
+  .handler(async ({ data }) => {
+    const id = Math.random().toString(36).slice(2, 10);
+    const now = new Date().toISOString();
+    const dbFee = toSnake({ id, ...data.fee, createdBy: data.actorId, createdAt: now, updatedAt: now });
+    await sql.begin(async (tx) => {
+      await tx`INSERT INTO fees ${sql(dbFee)}`;
+      await safeInsertAuditLog(tx, Math.random().toString(36).slice(2, 10), data.actorId, data.actorName, "Added fee", data.fee.description);
+    });
+    serverCache.invalidateTags(["fees", "audit"]);
+    return toCamel<Fee>(dbFee);
+  });
+
+export const updateFee = createServerFn({ method: "POST" })
+  .validator((d: { id: string; data: Partial<Omit<Fee, "id" | "pupilId" | "schoolId" | "createdBy" | "createdAt" | "updatedAt">>; actorId: string; actorName: string }) => d)
+  .handler(async ({ data }) => {
+    const dbFields = toSnake({ ...data.data, updatedAt: new Date().toISOString() });
+    await sql.begin(async (tx) => {
+      await tx`UPDATE fees SET ${sql(dbFields)} WHERE id = ${data.id}`;
+      await safeInsertAuditLog(tx, Math.random().toString(36).slice(2, 10), data.actorId, data.actorName, "Updated fee", data.id);
+    });
+    serverCache.invalidateTags(["fees", "audit"]);
+    return { id: data.id, data: { ...data.data, updatedAt: dbFields.updated_at } };
   });
 
 export const saveBulkMarks = createServerFn({ method: "POST" })
