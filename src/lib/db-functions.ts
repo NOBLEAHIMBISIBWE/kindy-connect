@@ -239,9 +239,17 @@ export const getInitialData = createServerFn({ method: "GET" })
         attendance: toCamel<Attendance[]>(attendance),
         notifications: toCamel<Notification[]>(notifications),
         audit: toCamel<AuditLog[]>(audit),
-        marks: toCamel<Mark[]>(marks),
+        marks: toCamel<Mark[]>(marks).map((m) => ({
+          ...m,
+          score: Number(m.score),
+          maxScore: Number(m.maxScore),
+        })),
         subjects: toCamel<Subject[]>(subjects),
-        fees: toCamel<Fee[]>(fees),
+        fees: toCamel<Fee[]>(fees).map((f) => ({
+          ...f,
+          amountDue: Number(f.amountDue),
+          amountPaid: Number(f.amountPaid),
+        })),
       };
     };
 
@@ -1118,7 +1126,12 @@ export const addMark = createServerFn({ method: "POST" })
         INSERT INTO marks ${sql(dbMark)}
       `;
       serverCache.invalidateTags(["marks", "audit"]);
-      return toCamel<Mark>(dbMark);
+      const camelMark = toCamel<Mark>(dbMark);
+      return {
+        ...camelMark,
+        score: Number(camelMark.score),
+        maxScore: Number(camelMark.maxScore),
+      };
     } catch (error) {
       console.error("Error in addMark:", error);
       throw error;
@@ -1200,7 +1213,10 @@ export const updateMark = createServerFn({ method: "POST" })
         UPDATE marks SET ${sql(dbFields)} WHERE id = ${id}
       `;
       serverCache.invalidateTags(["marks", "audit"]);
-      return { id, data: { ...markData, ...(grade !== undefined ? { grade } : {}) } };
+      const updatedData = { ...markData, ...(grade !== undefined ? { grade } : {}) };
+      if (updatedData.score !== undefined) updatedData.score = Number(updatedData.score);
+      if (updatedData.maxScore !== undefined) updatedData.maxScore = Number(updatedData.maxScore);
+      return { id, data: updatedData };
     } catch (error) {
       console.error("Error in updateMark:", error);
       throw error;
@@ -1236,7 +1252,12 @@ export const addFee = createServerFn({ method: "POST" })
       await safeInsertAuditLog(tx, Math.random().toString(36).slice(2, 10), data.actorId, data.actorName, "Added fee", data.fee.description);
     });
     serverCache.invalidateTags(["fees", "audit"]);
-    return toCamel<Fee>(dbFee);
+    const camelFee = toCamel<Fee>(dbFee);
+    return {
+      ...camelFee,
+      amountDue: Number(camelFee.amountDue),
+      amountPaid: Number(camelFee.amountPaid),
+    };
   });
 
 export const updateFee = createServerFn({ method: "POST" })
@@ -1248,7 +1269,10 @@ export const updateFee = createServerFn({ method: "POST" })
       await safeInsertAuditLog(tx, Math.random().toString(36).slice(2, 10), data.actorId, data.actorName, "Updated fee", data.id);
     });
     serverCache.invalidateTags(["fees", "audit"]);
-    return { id: data.id, data: { ...data.data, updatedAt: dbFields.updated_at } };
+    const updatedData = { ...data.data, updatedAt: dbFields.updated_at };
+    if (updatedData.amountDue !== undefined) updatedData.amountDue = Number(updatedData.amountDue);
+    if (updatedData.amountPaid !== undefined) updatedData.amountPaid = Number(updatedData.amountPaid);
+    return { id: data.id, data: updatedData };
   });
 
 export const saveBulkMarks = createServerFn({ method: "POST" })
@@ -1293,7 +1317,12 @@ export const saveBulkMarks = createServerFn({ method: "POST" })
         `;
         const updated = await sql`SELECT * FROM marks WHERE id = ${existingId}`;
         if (updated.length > 0) {
-          results.push(toCamel<Mark>(updated[0]));
+          const m = toCamel<Mark>(updated[0]);
+          results.push({
+            ...m,
+            score: Number(m.score),
+            maxScore: Number(m.maxScore),
+          });
         }
       } else {
         const id = Math.random().toString(36).slice(2, 10);
@@ -1313,7 +1342,12 @@ export const saveBulkMarks = createServerFn({ method: "POST" })
         await sql`
           INSERT INTO marks ${sql(dbMark)}
         `;
-        results.push(toCamel<Mark>(dbMark));
+        const m = toCamel<Mark>(dbMark);
+        results.push({
+          ...m,
+          score: Number(m.score),
+          maxScore: Number(m.maxScore),
+        });
       }
     }
 
