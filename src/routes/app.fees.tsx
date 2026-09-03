@@ -20,7 +20,7 @@ export const Route = createFileRoute("/app/fees")({
 
 const emptyForm = { pupilId: "", description: "Tuition", term: "Term 1", year: String(new Date().getFullYear()), amountDue: "", dueDate: "", notes: "" };
 
-const outstandingAmount = (amountDue: number, amountPaid: number) => Math.max(0, amountDue - amountPaid);
+const outstandingAmount = (amountDue: number, amountPaid: number) => Math.max(0, Number(amountDue || 0) - Number(amountPaid || 0));
 
 function FeesPage() {
   const { fees, pupils, addFee, updateFee } = useStore();
@@ -36,8 +36,8 @@ function FeesPage() {
     const dueAmount = outstandingAmount(fee.amountDue, fee.amountPaid);
     return matchesQuery && (status === "all" || (status === "paid" ? dueAmount === 0 : dueAmount > 0));
   }), [fees, pupils, query, status]);
-  const totalDue = fees.reduce((sum, fee) => sum + fee.amountDue, 0);
-  const totalPaid = fees.reduce((sum, fee) => sum + fee.amountPaid, 0);
+  const totalDue = fees.reduce((sum, fee) => sum + Number(fee.amountDue || 0), 0);
+  const totalPaid = fees.reduce((sum, fee) => sum + Number(fee.amountPaid || 0), 0);
   const totalOutstanding = fees.reduce((sum, fee) => sum + outstandingAmount(fee.amountDue, fee.amountPaid), 0);
 
   const submit = async () => {
@@ -84,7 +84,7 @@ function FeesPage() {
         </CardHeader>
         <CardContent>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" placeholder="Search pupils or charges..." value={query} onChange={(event) => setQuery(event.target.value)} /></div><Select value={status} onValueChange={setStatus}><SelectTrigger className="sm:w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All statuses</SelectItem><SelectItem value="paid">Paid</SelectItem><SelectItem value="outstanding">Outstanding</SelectItem></SelectContent></Select></div>
-          <Table><TableHeader><TableRow><TableHead>Pupil</TableHead><TableHead>Charge</TableHead><TableHead>Term</TableHead><TableHead>Due amount</TableHead><TableHead>Paid</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader><TableBody>{visibleFees.map((fee) => { const dueAmount = outstandingAmount(fee.amountDue, fee.amountPaid); return <TableRow key={fee.id}><TableCell className="font-medium">{pupilName(fee.pupilId)}</TableCell><TableCell>{fee.description}</TableCell><TableCell>{fee.term} {fee.year}</TableCell><TableCell>{dueAmount.toFixed(2)}</TableCell><TableCell>{fee.amountPaid.toFixed(2)}</TableCell><TableCell><Badge variant={dueAmount === 0 ? "secondary" : "outline"}>{dueAmount === 0 ? "Paid" : `${dueAmount.toFixed(2)} due`}</Badge></TableCell><TableCell className="text-right">{dueAmount > 0 && <Button size="sm" variant="outline" onClick={() => setPaymentId(fee.id)}><CreditCard className="mr-1 h-3.5 w-3.5" />Pay</Button>}</TableCell></TableRow>; })}</TableBody></Table>
+          <Table><TableHeader><TableRow><TableHead>Pupil</TableHead><TableHead>Charge</TableHead><TableHead>Term</TableHead><TableHead>Total Charge</TableHead><TableHead>Amount Paid</TableHead><TableHead>Status / Balance</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader><TableBody>{visibleFees.map((fee) => { const dueAmount = outstandingAmount(fee.amountDue, fee.amountPaid); return <TableRow key={fee.id}><TableCell className="font-medium">{pupilName(fee.pupilId)}</TableCell><TableCell>{fee.description}</TableCell><TableCell>{fee.term} {fee.year}</TableCell><TableCell>{Number(fee.amountDue || 0).toFixed(2)}</TableCell><TableCell>{Number(fee.amountPaid || 0).toFixed(2)}</TableCell><TableCell><Badge variant={dueAmount === 0 ? "secondary" : "outline"}>{dueAmount === 0 ? "Paid" : `${dueAmount.toFixed(2)} balance`}</Badge></TableCell><TableCell className="text-right">{dueAmount > 0 && <Button size="sm" variant="outline" onClick={() => setPaymentId(fee.id)}><CreditCard className="mr-1 h-3.5 w-3.5" />Pay</Button>}</TableCell></TableRow>; })}</TableBody></Table>
           {!visibleFees.length && <p className="py-10 text-center text-sm text-muted-foreground">No fee records match this view.</p>}
         </CardContent>
       </Card>

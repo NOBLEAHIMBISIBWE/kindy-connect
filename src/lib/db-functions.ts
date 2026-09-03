@@ -241,7 +241,11 @@ export const getInitialData = createServerFn({ method: "GET" })
         audit: toCamel<AuditLog[]>(audit),
         marks: toCamel<Mark[]>(marks),
         subjects: toCamel<Subject[]>(subjects),
-        fees: toCamel<Fee[]>(fees),
+        fees: toCamel<Fee[]>(fees).map((f) => ({
+          ...f,
+          amountDue: Number(f.amountDue || 0),
+          amountPaid: Number(f.amountPaid || 0),
+        })),
       };
     };
 
@@ -1236,7 +1240,12 @@ export const addFee = createServerFn({ method: "POST" })
       await safeInsertAuditLog(tx, Math.random().toString(36).slice(2, 10), data.actorId, data.actorName, "Added fee", data.fee.description);
     });
     serverCache.invalidateTags(["fees", "audit"]);
-    return toCamel<Fee>(dbFee);
+    const res = toCamel<Fee>(dbFee);
+    return {
+      ...res,
+      amountDue: Number(res.amountDue || 0),
+      amountPaid: Number(res.amountPaid || 0),
+    };
   });
 
 export const updateFee = createServerFn({ method: "POST" })
