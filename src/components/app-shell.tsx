@@ -15,6 +15,7 @@ import {
   Building2,
   Phone,
   Mail,
+  CircleDollarSign,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +65,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
         { to: "/app/classes", label: "Classes", icon: Building2 },
         { to: "/app/subjects", label: "Subjects", icon: BookMarked },
         { to: "/app/audit", label: "Audit log", icon: ScrollText },
+        { to: "/app/fees", label: "Fees", icon: CircleDollarSign },
       ]
     : isStaff
       ? [
@@ -76,6 +78,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
           { to: "/app/attendance", label: "Attendance", icon: CalendarCheck },
           { to: "/app/marks", label: "Marks", icon: ClipboardList },
           { to: "/app/reports", label: "Reports", icon: BarChart3 },
+          { to: "/app/fees", label: "Fees", icon: CircleDollarSign },
           { to: "/app/audit", label: "Audit log", icon: ScrollText },
         ]
       : [

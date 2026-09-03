@@ -38,6 +38,11 @@ import {
   updateSubject as updateSubjectDb,
   deleteSubject as deleteSubjectDb,
   seedDefaultSubjects as seedDefaultSubjectsDb,
+  addFeeStructure as addFeeStructureDb,
+  updateFeeStructure as updateFeeStructureDb,
+  deleteFeeStructure as deleteFeeStructureDb,
+  assignFeeCharges as assignFeeChargesDb,
+  addFeePayment as addFeePaymentDb,
   type Role,
   type TeacherStatus,
   type User,
@@ -50,6 +55,9 @@ import {
   type Mark,
   type School,
   type Subject,
+  type FeeStructure,
+  type FeeCharge,
+  type FeePayment,
 } from "./db-functions";
 import { queryClient, queryKeys } from "./query-client";
 
@@ -67,6 +75,9 @@ export type {
   Mark,
   School,
   Subject,
+  FeeStructure,
+  FeeCharge,
+  FeePayment,
 };
 
 interface Store {
@@ -82,6 +93,9 @@ interface Store {
   marks: Mark[];
   schools: School[];
   subjects: Subject[];
+  feeStructures: FeeStructure[];
+  feeCharges: FeeCharge[];
+  feePayments: FeePayment[];
   login: (id: string, password: string) => Promise<User | null>;
   logout: () => void;
   setSchoolContext: (schoolId: string | null) => void;
@@ -189,6 +203,30 @@ interface Store {
   updateSubject: (id: string, name: string, code?: string) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
   seedDefaultSubjects: (schoolId: string) => Promise<void>;
+  addFeeStructure: (data: {
+    schoolId: string;
+    name: string;
+    amount: number;
+    term: string;
+    year: number;
+  }) => Promise<FeeStructure>;
+  updateFeeStructure: (
+    id: string,
+    data: Partial<Pick<FeeStructure, "name" | "amount" | "term" | "year" | "active">>,
+  ) => Promise<void>;
+  deleteFeeStructure: (id: string) => Promise<void>;
+  assignFeeCharges: (
+    feeStructureId: string,
+    pupilIds?: string[],
+    allActive?: boolean,
+  ) => Promise<void>;
+  addFeePayment: (data: {
+    chargeId: string;
+    amount: number;
+    paidOn?: string;
+    reference?: string;
+    notes?: string;
+  }) => Promise<void>;
   getSchoolSubjects: (schoolId?: string) => Subject[];
   refreshData: () => Promise<void>;
   lastSyncTime: string | null;
@@ -253,6 +291,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     marks: [] as Mark[],
     schools: [] as School[],
     subjects: [] as Subject[],
+    feeStructures: [] as FeeStructure[],
+    feeCharges: [] as FeeCharge[],
+    feePayments: [] as FeePayment[],
   }));
 
   // Hydrate saved session on client post-mount to prevent SSR hydration mismatch (Error #418)
@@ -329,6 +370,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         audit: data.audit ?? s.audit,
         marks: data.marks ?? s.marks,
         subjects: data.subjects ?? s.subjects,
+        feeStructures: data.feeStructures ?? s.feeStructures,
+        feeCharges: data.feeCharges ?? s.feeCharges,
+        feePayments: data.feePayments ?? s.feePayments,
       }));
       setLastSyncTime(new Date().toLocaleTimeString());
       queryClient.setQueryData(queryKeys.initialData(state.currentUserId), data);
@@ -382,6 +426,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         audit: data.audit ?? s.audit,
         marks: data.marks ?? s.marks,
         subjects: data.subjects ?? s.subjects,
+        feeStructures: data.feeStructures ?? s.feeStructures,
+        feeCharges: data.feeCharges ?? s.feeCharges,
+        feePayments: data.feePayments ?? s.feePayments,
       }));
       setLastSyncTime(new Date().toLocaleTimeString());
       queryClient.setQueryData(queryKeys.initialData(state.currentUserId), data);
@@ -612,6 +659,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       (m) => state.pupils.find((p) => p.id === m.pupilId)?.schoolId === currentUser.schoolId,
     );
   }, [state.marks, state.pupils, currentUser, state.selectedSchoolId]);
+
+  const filteredFeeStructures = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.role === "super_admin") {
+      return state.selectedSchoolId
+        ? state.feeStructures.filter((f) => f.schoolId === state.selectedSchoolId)
+        : state.feeStructures;
+    }
+    return state.feeStructures.filter((f) => f.schoolId === currentUser.schoolId);
+  }, [state.feeStructures, currentUser, state.selectedSchoolId]);
+
+  const filteredFeeCharges = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.role === "super_admin") {
+      return state.selectedSchoolId
+        ? state.feeCharges.filter((c) => c.schoolId === state.selectedSchoolId)
+        : state.feeCharges;
+    }
+    return state.feeCharges.filter((c) => c.schoolId === currentUser.schoolId);
+  }, [state.feeCharges, currentUser, state.selectedSchoolId]);
+
+  const filteredFeePayments = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.role === "super_admin") {
+      return state.selectedSchoolId
+        ? state.feePayments.filter((p) => p.schoolId === state.selectedSchoolId)
+        : state.feePayments;
+    }
+    return state.feePayments.filter((p) => p.schoolId === currentUser.schoolId);
+  }, [state.feePayments, currentUser, state.selectedSchoolId]);
 
   const store: Store = {
     currentUser,
@@ -1253,6 +1330,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
 
     subjects: state.subjects,
+    feeStructures: filteredFeeStructures,
+    feeCharges: filteredFeeCharges,
+    feePayments: filteredFeePayments,
 
     addSubject: async (data) => {
       if (!currentUser) return;
@@ -1303,6 +1383,52 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         data: { schoolId, actorId: currentUser.id, actorName: currentUser.name },
       });
       await refreshData();
+    },
+
+    addFeeStructure: async (data) => {
+      if (!currentUser) throw new Error("Not signed in");
+      const structure = await addFeeStructureDb({
+        data: { ...data, actorId: currentUser.id },
+      });
+      setState((s) => ({ ...s, feeStructures: [...s.feeStructures, structure] }));
+      return structure;
+    },
+
+    updateFeeStructure: async (id, data) => {
+      if (!currentUser) throw new Error("Not signed in");
+      const structure = await updateFeeStructureDb({
+        data: { id, data, actorId: currentUser.id },
+      });
+      setState((s) => ({
+        ...s,
+        feeStructures: s.feeStructures.map((item) => (item.id === id ? structure : item)),
+      }));
+    },
+
+    deleteFeeStructure: async (id) => {
+      if (!currentUser) throw new Error("Not signed in");
+      await deleteFeeStructureDb({ data: { id, actorId: currentUser.id } });
+      setState((s) => ({
+        ...s,
+        feeStructures: s.feeStructures.filter((item) => item.id !== id),
+        feeCharges: s.feeCharges.filter((item) => item.feeStructureId !== id),
+      }));
+    },
+
+    assignFeeCharges: async (feeStructureId, pupilIds, allActive) => {
+      if (!currentUser) throw new Error("Not signed in");
+      const charges = await assignFeeChargesDb({
+        data: { feeStructureId, pupilIds, allActive, actorId: currentUser.id },
+      });
+      setState((s) => ({ ...s, feeCharges: [...charges, ...s.feeCharges] }));
+    },
+
+    addFeePayment: async (data) => {
+      if (!currentUser) throw new Error("Not signed in");
+      const payment = await addFeePaymentDb({
+        data: { ...data, actorId: currentUser.id },
+      });
+      setState((s) => ({ ...s, feePayments: [payment, ...s.feePayments] }));
     },
 
     getSchoolSubjects: (targetSchoolId?: string) => {

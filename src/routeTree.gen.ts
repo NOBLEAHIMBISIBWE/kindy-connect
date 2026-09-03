@@ -19,6 +19,7 @@ import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppPupilsRouteImport } from './routes/app.pupils'
 import { Route as AppParentsRouteImport } from './routes/app.parents'
 import { Route as AppMarksRouteImport } from './routes/app.marks'
+import { Route as AppFeesRouteImport } from './routes/app.fees'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppClassesRouteImport } from './routes/app.classes'
 import { Route as AppAuditRouteImport } from './routes/app.audit'
@@ -74,6 +75,11 @@ const AppMarksRoute = AppMarksRouteImport.update({
   path: '/marks',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFeesRoute = AppFeesRouteImport.update({
+  id: '/fees',
+  path: '/fees',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/app/audit': typeof AppAuditRoute
   '/app/classes': typeof AppClassesRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/fees': typeof AppFeesRoute
   '/app/marks': typeof AppMarksRoute
   '/app/parents': typeof AppParentsRoute
   '/app/pupils': typeof AppPupilsRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/app/audit': typeof AppAuditRoute
   '/app/classes': typeof AppClassesRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/fees': typeof AppFeesRoute
   '/app/marks': typeof AppMarksRoute
   '/app/parents': typeof AppParentsRoute
   '/app/pupils': typeof AppPupilsRoute
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   '/app/audit': typeof AppAuditRoute
   '/app/classes': typeof AppClassesRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/fees': typeof AppFeesRoute
   '/app/marks': typeof AppMarksRoute
   '/app/parents': typeof AppParentsRoute
   '/app/pupils': typeof AppPupilsRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/app/audit'
     | '/app/classes'
     | '/app/dashboard'
+    | '/app/fees'
     | '/app/marks'
     | '/app/parents'
     | '/app/pupils'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/app/audit'
     | '/app/classes'
     | '/app/dashboard'
+    | '/app/fees'
     | '/app/marks'
     | '/app/parents'
     | '/app/pupils'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/app/audit'
     | '/app/classes'
     | '/app/dashboard'
+    | '/app/fees'
     | '/app/marks'
     | '/app/parents'
     | '/app/pupils'
@@ -272,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMarksRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/fees': {
+      id: '/app/fees'
+      path: '/fees'
+      fullPath: '/app/fees'
+      preLoaderRoute: typeof AppFeesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/dashboard': {
       id: '/app/dashboard'
       path: '/dashboard'
@@ -308,6 +327,7 @@ interface AppRouteChildren {
   AppAuditRoute: typeof AppAuditRoute
   AppClassesRoute: typeof AppClassesRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppFeesRoute: typeof AppFeesRoute
   AppMarksRoute: typeof AppMarksRoute
   AppParentsRoute: typeof AppParentsRoute
   AppPupilsRoute: typeof AppPupilsRoute
@@ -323,6 +343,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAuditRoute: AppAuditRoute,
   AppClassesRoute: AppClassesRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppFeesRoute: AppFeesRoute,
   AppMarksRoute: AppMarksRoute,
   AppParentsRoute: AppParentsRoute,
   AppPupilsRoute: AppPupilsRoute,

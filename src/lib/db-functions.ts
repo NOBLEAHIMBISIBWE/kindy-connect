@@ -131,6 +131,40 @@ export interface Mark {
   recordedAt: string;
 }
 
+export interface FeeStructure {
+  id: string;
+  schoolId: string;
+  name: string;
+  amount: number;
+  term: string;
+  year: number;
+  active: boolean;
+  createdBy?: string;
+  createdAt: string;
+}
+
+export interface FeeCharge {
+  id: string;
+  schoolId: string;
+  feeStructureId: string;
+  pupilId: string;
+  amount: number;
+  createdAt: string;
+}
+
+export interface FeePayment {
+  id: string;
+  schoolId: string;
+  chargeId: string;
+  pupilId: string;
+  amount: number;
+  paidOn: string;
+  reference?: string;
+  notes?: string;
+  recordedBy?: string;
+  createdAt: string;
+}
+
 // Helper for safe audit log insertion (prevents FK violation if actorId is not in users table)
 async function safeInsertAuditLog(
   tx: any,
@@ -180,6 +214,9 @@ export const getInitialData = createServerFn({ method: "GET" })
         audit,
         marks,
         subjects,
+        feeStructures,
+        feeCharges,
+        feePayments,
       ] = await Promise.all([
         client`SELECT * FROM schools ORDER BY name ASC`,
         client`SELECT * FROM users ORDER BY registered_at DESC`,
@@ -192,6 +229,9 @@ export const getInitialData = createServerFn({ method: "GET" })
         client`SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 200`,
         client`SELECT * FROM marks ORDER BY recorded_at DESC LIMIT 2000`,
         client`SELECT * FROM subjects ORDER BY name ASC`,
+        client`SELECT * FROM fee_structures ORDER BY year DESC, term ASC, name ASC`,
+        client`SELECT * FROM fee_charges ORDER BY created_at DESC`,
+        client`SELECT * FROM fee_payments ORDER BY paid_on DESC, created_at DESC`,
       ]);
 
       const parentMap: Record<string, string[]> = {};
@@ -220,6 +260,9 @@ export const getInitialData = createServerFn({ method: "GET" })
         audit: toCamel<AuditLog[]>(audit),
         marks: toCamel<Mark[]>(marks),
         subjects: toCamel<Subject[]>(subjects),
+        feeStructures: toCamel<FeeStructure[]>(feeStructures),
+        feeCharges: toCamel<FeeCharge[]>(feeCharges),
+        feePayments: toCamel<FeePayment[]>(feePayments),
       };
     };
 
@@ -236,6 +279,9 @@ export const getInitialData = createServerFn({ method: "GET" })
         "audit",
         "marks",
         "subjects",
+        "feeStructures",
+        "feeCharges",
+        "feePayments",
       ];
 
       return await serverCache.cachedFetch(cacheKey, 60, cacheTags, async () => {
@@ -260,6 +306,9 @@ export const getInitialData = createServerFn({ method: "GET" })
         audit: [],
         marks: [],
         subjects: [],
+        feeStructures: [],
+        feeCharges: [],
+        feePayments: [],
         error: error?.message || "Failed to query database",
       };
     }
@@ -1772,4 +1821,208 @@ export const seedDefaultSubjects = createServerFn({ method: "POST" })
       console.error("Error in seedDefaultSubjects:", error);
       throw error;
     }
+  });
+
+// ----------------------------------------------------
+// 11. Fees Management Functions
+// ----------------------------------------------------
+async function assertFeeStaff(tx: any, actorId: string, schoolId: string) {
+  const actors = await tx`SELECT role, school_id FROM users WHERE id = ${actorId}`;
+  const actor = actors[0];
+  if (!actor || !["super_admin", "admin", "deputy"].includes(actor.role)) {
+    throw new Error("Unauthorized: Fees can only be managed by school staff");
+  }
+  if (actor.role !== "super_admin" && actor.school_id !== schoolId) {
+    throw new Error("Unauthorized: School access denied");
+  }
+  return actor;
+}
+
+export const addFeeStructure = createServerFn({ method: "POST" })
+  .validator(
+    (d: {
+      schoolId: string;
+      name: string;
+      amount: number;
+      term: string;
+      year: number;
+      actorId: string;
+    }) => d,
+  )
+  .handler(async ({ data }) => {
+    const name = data.name.trim();
+    const term = data.term.trim();
+    if (
+      !name ||
+      !term ||
+      !Number.isFinite(data.amount) ||
+      data.amount <= 0 ||
+      !Number.isInteger(data.year) ||
+      data.year < 2000 ||
+      data.year > 2100
+    ) {
+      throw new Error("Name, term, positive amount, and a valid year are required");
+    }
+    const id = `fee_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    try {
+      const result = await sql.begin(async (tx) => {
+        await setRLSContext(tx, data.actorId);
+        await assertFeeStaff(tx, data.actorId, data.schoolId);
+        const row = {
+          id,
+          school_id: data.schoolId,
+          name,
+          amount: data.amount,
+          term,
+          year: data.year,
+          active: true,
+          created_by: data.actorId,
+        };
+        await tx`INSERT INTO fee_structures ${tx(row)}`;
+        return row;
+      });
+      serverCache.invalidateTags(["feeStructures", "feeCharges", "feePayments"]);
+      return toCamel<FeeStructure>(result);
+    } catch (error: any) {
+      if (error.code === "23505") {
+        throw new Error("A charge with this name, term, and year already exists");
+      }
+      throw error;
+    }
+  });
+
+export const updateFeeStructure = createServerFn({ method: "POST" })
+  .validator(
+    (d: {
+      id: string;
+      data: Partial<Pick<FeeStructure, "name" | "amount" | "term" | "year" | "active">>;
+      actorId: string;
+    }) => d,
+  )
+  .handler(async ({ data }) => {
+    const result = await sql.begin(async (tx) => {
+      await setRLSContext(tx, data.actorId);
+      const existing = await tx`SELECT school_id FROM fee_structures WHERE id = ${data.id}`;
+      if (!existing.length) throw new Error("Fee structure not found");
+      await assertFeeStaff(tx, data.actorId, existing[0].school_id);
+      const updates: Record<string, any> = {};
+      if (data.data.name !== undefined) updates.name = data.data.name.trim();
+      if (data.data.amount !== undefined) updates.amount = data.data.amount;
+      if (data.data.term !== undefined) updates.term = data.data.term.trim();
+      if (data.data.year !== undefined) updates.year = data.data.year;
+      if (data.data.active !== undefined) updates.active = data.data.active;
+      if (updates.name === "") throw new Error("Fee name is required");
+      if (updates.term === "") throw new Error("Fee term is required");
+      if (
+        updates.amount !== undefined &&
+        (!Number.isFinite(updates.amount) || updates.amount <= 0)
+      ) {
+        throw new Error("Fee amount must be positive");
+      }
+      if (
+        updates.year !== undefined &&
+        (!Number.isInteger(updates.year) || updates.year < 2000 || updates.year > 2100)
+      ) {
+        throw new Error("Fee year must be between 2000 and 2100");
+      }
+      if (Object.keys(updates).length) {
+        await tx`UPDATE fee_structures SET ${tx(updates)} WHERE id = ${data.id}`;
+      }
+      const rows = await tx`SELECT * FROM fee_structures WHERE id = ${data.id}`;
+      return rows[0];
+    });
+    serverCache.invalidateTags(["feeStructures"]);
+    return toCamel<FeeStructure>(result);
+  });
+
+export const deleteFeeStructure = createServerFn({ method: "POST" })
+  .validator((d: { id: string; actorId: string }) => d)
+  .handler(async ({ data }) => {
+    await sql.begin(async (tx) => {
+      await setRLSContext(tx, data.actorId);
+      const existing = await tx`SELECT school_id FROM fee_structures WHERE id = ${data.id}`;
+      if (!existing.length) throw new Error("Fee structure not found");
+      await assertFeeStaff(tx, data.actorId, existing[0].school_id);
+      await tx`DELETE FROM fee_structures WHERE id = ${data.id}`;
+    });
+    serverCache.invalidateTags(["feeStructures", "feeCharges", "feePayments"]);
+    return { id: data.id };
+  });
+
+export const assignFeeCharges = createServerFn({ method: "POST" })
+  .validator(
+    (d: { feeStructureId: string; pupilIds?: string[]; allActive?: boolean; actorId: string }) => d,
+  )
+  .handler(async ({ data }) => {
+    const charges = await sql.begin(async (tx) => {
+      await setRLSContext(tx, data.actorId);
+      const structures = await tx`SELECT * FROM fee_structures WHERE id = ${data.feeStructureId}`;
+      const structure = structures[0];
+      if (!structure) throw new Error("Fee structure not found");
+      await assertFeeStaff(tx, data.actorId, structure.school_id);
+      const pupils = data.allActive
+        ? await tx`SELECT id FROM pupils WHERE school_id = ${structure.school_id} AND active = TRUE`
+        : await tx`SELECT id FROM pupils WHERE school_id = ${structure.school_id} AND id = ANY(${data.pupilIds || []})`;
+      const inserted: any[] = [];
+      for (const pupil of pupils) {
+        const id = `charge_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const rows = await tx`
+          INSERT INTO fee_charges (id, school_id, fee_structure_id, pupil_id, amount)
+          VALUES (${id}, ${structure.school_id}, ${structure.id}, ${pupil.id}, ${structure.amount})
+          ON CONFLICT (fee_structure_id, pupil_id) DO NOTHING
+          RETURNING *
+        `;
+        if (rows[0]) inserted.push(rows[0]);
+      }
+      return inserted;
+    });
+    serverCache.invalidateTags(["feeCharges", "feePayments"]);
+    return toCamel<FeeCharge[]>(charges);
+  });
+
+export const addFeePayment = createServerFn({ method: "POST" })
+  .validator(
+    (d: {
+      chargeId: string;
+      amount: number;
+      paidOn?: string;
+      reference?: string;
+      notes?: string;
+      actorId: string;
+    }) => d,
+  )
+  .handler(async ({ data }) => {
+    if (!Number.isFinite(data.amount) || data.amount <= 0) {
+      throw new Error("Payment amount must be positive");
+    }
+    const payment = await sql.begin(async (tx) => {
+      await setRLSContext(tx, data.actorId);
+      const rows = await tx`
+        SELECT c.*, COALESCE(SUM(p.amount), 0) AS paid
+        FROM fee_charges c
+        LEFT JOIN fee_payments p ON p.charge_id = c.id
+        WHERE c.id = ${data.chargeId}
+        GROUP BY c.id
+      `;
+      const charge = rows[0];
+      if (!charge) throw new Error("Charge not found");
+      await assertFeeStaff(tx, data.actorId, charge.school_id);
+      const balance = Number(charge.amount) - Number(charge.paid);
+      if (data.amount > balance + 0.005) {
+        throw new Error(`Payment exceeds the outstanding balance of ${balance.toFixed(2)}`);
+      }
+      const id = `payment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const rowsInserted = await tx`
+        INSERT INTO fee_payments
+          (id, school_id, charge_id, pupil_id, amount, paid_on, reference, notes, recorded_by)
+        VALUES
+          (${id}, ${charge.school_id}, ${charge.id}, ${charge.pupil_id},
+           ${data.amount}, ${data.paidOn || new Date().toISOString().slice(0, 10)},
+           ${data.reference?.trim() || null}, ${data.notes?.trim() || null}, ${data.actorId})
+        RETURNING *
+      `;
+      return rowsInserted[0];
+    });
+    serverCache.invalidateTags(["feePayments"]);
+    return toCamel<FeePayment>(payment);
   });
