@@ -218,13 +218,12 @@ const SCHOOL_CONTEXT_KEY = "kinder.selectedSchoolId";
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function classifyDbError(err: any): { isPaused: boolean; message: string } {
   const msg: string = err?.message || err?.toString() || "Unknown error";
+  const lowerMsg = msg.toLowerCase();
   const isPaused =
-    msg.includes("tenant") ||
-    msg.includes("not found") ||
-    msg.includes("ENOTFOUND") ||
-    msg.includes("CONNECT_TIMEOUT") ||
-    msg.includes("timeout") ||
-    msg.includes("ECONNREFUSED");
+    lowerMsg.includes("is_paused") ||
+    lowerMsg.includes("project_paused") ||
+    lowerMsg.includes("project is paused") ||
+    (lowerMsg.includes("paused") && !lowerMsg.includes("unpaused"));
   return { isPaused, message: msg };
 }
 
@@ -306,12 +305,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setIsPausedError(false);
     setRetryIn(0);
 
-    // Timeout guard — Supabase free tier can take up to 25s to wake
+    // Timeout guard — retries connection if loading takes longer than 25 seconds
     let timedOut = false;
     const timeoutId = setTimeout(() => {
       timedOut = true;
-      setLoadError("Database is waking up (this can take up to 2 minutes on free tier).");
-      setIsPausedError(true);
+      setLoadError("Database connection timed out. Attempting to reconnect...");
+      setIsPausedError(false);
       setLoading(false);
       startRetryCountdown(15, attemptLoad);
     }, 25000);
