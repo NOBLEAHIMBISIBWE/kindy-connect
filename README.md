@@ -41,50 +41,53 @@ cd kindy-connect
 npm install
 \`\`\`
 
-### 2. Environment Setup
+### 2. Database Setup ⚠️ **REQUIRED**
 
-Copy \`.env.example\` to \`.env\`:
+**IMPORTANT:** The database connection is currently not working and needs to be fixed first.
+
+See **[DATABASE_SETUP.md](./DATABASE_SETUP.md)** for complete instructions.
+
+**Quick Fix:**
+
+1. **Create a Supabase project** at [supabase.com](https://supabase.com)
+2. **Get your database URL** from Project Settings → Database (use the pooling URL)
+3. **Update `.env` file** with your actual database URL:
+   \`\`\`env
+   DATABASE_URL=postgresql://postgres.[YOUR_PROJECT_ID]:[YOUR_PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
+   \`\`\`
+4. **Test connection:** \`npm run db:test\`
+5. **Setup schema:** \`npm run db:setup\`
+
+### 3. Environment Setup
+
+Update the `.env` file with your credentials:
 
 \`\`\`env
+# Database (REQUIRED - Replace with your actual Supabase URL)
+DATABASE_URL=postgresql://postgres.[PROJECT_ID]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
 
-# Database
-
-DATABASE_URL=postgresql://user:pass@host:5432/db
-
-# Supabase
-
-SUPABASE_URL=https://xxxxx.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-# App
-
-VITE_APP_NAME=Little Stars
-VITE_APP_URL=http://localhost:3000
+# Environment
 NODE_ENV=development
+
+# Optional: Supabase client configuration
+# VITE_SUPABASE_URL=https://[PROJECT_ID].supabase.co
+# VITE_SUPABASE_ANON_KEY=your_anon_key_here
 \`\`\`
 
-### 3. Database Setup
-
-Run the schema and seed data:
+### 4. Database Schema Setup
 
 \`\`\`bash
+# Test your database connection first
+npm run db:test
 
-# Using Supabase CLI
+# Then set up the database schema
+npm run db:setup
 
-supabase db push
-
-# Or manually in Supabase SQL Editor
-
-# Run: database/schema.sql
-
-# Then: database/seed.sql
-
-# Finally: CREATE_ADMIN_USER.sql
-
+# Alternative: Manual setup using psql
+# psql "$DATABASE_URL" -f database/schema.sql
 \`\`\`
 
-### 4. Start Development Server
+### 5. Start Development Server
 
 \`\`\`bash
 npm run dev
@@ -92,7 +95,7 @@ npm run dev
 
 Visit: http://localhost:3000
 
-### 5. Login
+### 6. Login
 
 Default superadmin:
 
@@ -100,6 +103,31 @@ Default superadmin:
 - **Password:** \`admin123\`
 
 ⚠️ Change password immediately after first login!
+
+## Available Scripts
+
+\`\`\`bash
+npm run dev          # Start development server
+npm run build        # Production build
+npm run preview      # Preview production build
+npm run lint         # Lint code
+npm run format       # Format with Prettier
+npm run db:test      # Test database connection
+npm run db:setup     # Initialize database schema
+\`\`\`
+
+## Database Commands
+
+\`\`\`bash
+# Test your database connection
+npm run db:test
+
+# Set up the database schema (run after creating Supabase project)
+npm run db:setup
+
+# Manual schema setup (alternative)
+psql "$DATABASE_URL" -f database/schema.sql
+\`\`\`
 
 ## Project Structure
 

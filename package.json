@@ -12,7 +12,9 @@
     "build:dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "db:test": "node test-database-connection.js",
+    "db:setup": "node setup-database.js"
   },
   "dependencies": {
     "@fontsource/fredoka": "^5.2.10",
@@ -74,6 +76,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
+    "dotenv": "^16.4.7",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
