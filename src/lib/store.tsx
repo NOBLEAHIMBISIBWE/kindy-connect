@@ -223,6 +223,13 @@ function classifyDbError(err: any): { isPaused: boolean; message: string } {
     lowerMsg.includes("is_paused") ||
     lowerMsg.includes("project_paused") ||
     lowerMsg.includes("project is paused") ||
+    lowerMsg.includes("enotfound") ||
+    lowerMsg.includes("tenant/user") ||
+    lowerMsg.includes("not found") ||
+    lowerMsg.includes("503") ||
+    lowerMsg.includes("econnrefused") ||
+    lowerMsg.includes("etimedout") ||
+    lowerMsg.includes("connection timed out") ||
     (lowerMsg.includes("paused") && !lowerMsg.includes("unpaused"));
   return { isPaused, message: msg };
 }
@@ -351,8 +358,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setLoadError(message);
       setIsPausedError(isPaused);
       setLoading(false);
-      // Auto-retry every 15 seconds for paused-project errors
-      if (isPaused) startRetryCountdown(15, attemptLoad);
+      // Auto-retry every 15 seconds for database connection/paused errors
+      startRetryCountdown(15, attemptLoad);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startRetryCountdown, state.currentUserId]);
@@ -1475,16 +1482,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           </div>
 
           {/* Auto-retry countdown bar */}
-          {isPausedError && retryIn > 0 && (
+          {retryIn > 0 && (
             <div className="space-y-2">
               <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                 <div
-                  className="h-full bg-orange-400 rounded-full transition-all duration-1000 ease-linear"
+                  className={`h-full rounded-full transition-all duration-1000 ease-linear ${
+                    isPausedError ? "bg-orange-400" : "bg-primary"
+                  }`}
                   style={{ width: `${(retryIn / 15) * 100}%` }}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Auto-retrying in <span className="font-semibold text-orange-500">{retryIn}s</span>…
+                Auto-retrying in{" "}
+                <span
+                  className={`font-semibold ${
+                    isPausedError ? "text-orange-500" : "text-primary"
+                  }`}
+                >
+                  {retryIn}s
+                </span>
+                …
               </p>
             </div>
           )}
