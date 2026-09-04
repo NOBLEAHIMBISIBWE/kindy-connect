@@ -249,13 +249,12 @@ const SCHOOL_CONTEXT_KEY = "kinder.selectedSchoolId";
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function classifyDbError(err: any): { isPaused: boolean; message: string } {
   const msg: string = err?.message || err?.toString() || "Unknown error";
+  const lowerMsg = msg.toLowerCase();
   const isPaused =
-    msg.includes("tenant") ||
-    msg.includes("not found") ||
-    msg.includes("ENOTFOUND") ||
-    msg.includes("CONNECT_TIMEOUT") ||
-    msg.includes("timeout") ||
-    msg.includes("ECONNREFUSED");
+    lowerMsg.includes("is_paused") ||
+    lowerMsg.includes("project_paused") ||
+    lowerMsg.includes("project is paused") ||
+    (lowerMsg.includes("paused") && !lowerMsg.includes("unpaused"));
   return { isPaused, message: msg };
 }
 
