@@ -235,7 +235,9 @@ function Dashboard() {
   const today = new Date().toISOString().slice(0, 10);
   const todayAtt = (attendance || []).filter((a) => a && a.date === today);
   const presentIds = new Set(todayAtt.filter((a) => a && a.arrival).map((a) => a.pupilId));
-  const pending = (users || []).filter((u) => u && u.role === "teacher" && u.status === "pending").length;
+  const pending = (users || []).filter(
+    (u) => u && u.role === "teacher" && u.status === "pending",
+  ).length;
 
   const activePupilsCount = (pupils || []).filter((p) => p && p.active).length;
 
@@ -476,7 +478,9 @@ function Dashboard() {
                               <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
                               <span className="truncate">
                                 {assignedClass ? (
-                                  <span className="font-medium text-foreground">{assignedClass}</span>
+                                  <span className="font-medium text-foreground">
+                                    {assignedClass}
+                                  </span>
                                 ) : (
                                   <span className="italic">No class assigned</span>
                                 )}
@@ -518,7 +522,8 @@ function Dashboard() {
                   <GraduationCap className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
                   <p className="font-medium text-foreground">No teachers registered yet</p>
                   <p className="text-xs text-muted-foreground mb-3">
-                    Add teaching staff to your school to begin assigning classes and recording marks.
+                    Add teaching staff to your school to begin assigning classes and recording
+                    marks.
                   </p>
                   <Button asChild size="sm">
                     <Link to="/app/teachers">Add Teacher</Link>
@@ -1110,7 +1115,9 @@ function SuperAdminDashboard({
                     const status = pupilsCount > 0 ? "Active" : "New";
                     return (
                       <TableRow key={s.id || Math.random().toString()}>
-                        <TableCell className="font-semibold">{s.name || "Unnamed School"}</TableCell>
+                        <TableCell className="font-semibold">
+                          {s.name || "Unnamed School"}
+                        </TableCell>
                         <TableCell className="text-muted-foreground">{pupilsCount}</TableCell>
                         <TableCell className="text-muted-foreground">{classesCount}</TableCell>
                         <TableCell className="text-muted-foreground">{staffCount}</TableCell>
@@ -1153,9 +1160,13 @@ function SuperAdminDashboard({
                 if (!a) return null;
                 const timestamp = a?.timestamp ? new Date(a.timestamp) : new Date();
                 const isValidDate = !isNaN(timestamp.getTime());
-                const isToday = isValidDate && timestamp.toDateString() === new Date().toDateString();
+                const isToday =
+                  isValidDate && timestamp.toDateString() === new Date().toDateString();
                 return (
-                  <div key={a.id || Math.random().toString()} className="text-sm pb-3 border-b last:border-0 last:pb-0">
+                  <div
+                    key={a.id || Math.random().toString()}
+                    className="text-sm pb-3 border-b last:border-0 last:pb-0"
+                  >
                     <div className="flex justify-between items-start mb-1">
                       <span className="font-medium text-xs truncate max-w-[140px]">
                         {a.actorName || "System"}
@@ -1163,7 +1174,10 @@ function SuperAdminDashboard({
                       <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-2">
                         {isValidDate
                           ? isToday
-                            ? timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                            ? timestamp.toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
                             : timestamp.toLocaleDateString([], { month: "short", day: "numeric" })
                           : "Recently"}
                       </span>

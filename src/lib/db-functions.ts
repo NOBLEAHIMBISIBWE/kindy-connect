@@ -6,6 +6,19 @@ import { serverCache } from "./cache";
 
 type SqlClient = typeof sql;
 
+// Helper to check if database is available
+function isDatabaseAvailable(): boolean {
+  return sql !== null;
+}
+
+// Helper to throw error when database is required but not available
+function requireDatabase(): typeof sql {
+  if (!sql) {
+    throw new Error("Database operation not available - no database connection configured");
+  }
+  return sql;
+}
+
 export interface School {
   id: string;
   name: string;
@@ -179,6 +192,13 @@ async function safeInsertAuditLog(
 export const getInitialData = createServerFn({ method: "GET" })
   .validator((d: { userId?: string } | undefined) => d ?? {})
   .handler(async ({ data }) => {
+    // Check if we should use mock data (development mode)
+    if (!sql) {
+      const { mockData } = await import("./mock-data");
+      console.log("📝 Using mock data for development (no database connection)");
+      return mockData;
+    }
+
     const fetchInitialData = async (client: typeof sql) => {
       // ─── Run ALL queries in parallel ────────────────────────────────────────
       // Previously sequential (8 awaits in a row). Now concurrent: total time =
@@ -339,7 +359,19 @@ export const loginUser = createServerFn({ method: "POST" })
   });
 
 export const registerUser = createServerFn({ method: "POST" })
-  .validator((d: Omit<User, "status" | "registeredAt"> & { password: string; schoolId?: string; newSchoolName?: string; status?: "pending" | "verified" | "rejected"; subjects?: string[]; photo?: string; classId?: string; }) => d)
+  .validator(
+    (
+      d: Omit<User, "status" | "registeredAt"> & {
+        password: string;
+        schoolId?: string;
+        newSchoolName?: string;
+        status?: "pending" | "verified" | "rejected";
+        subjects?: string[];
+        photo?: string;
+        classId?: string;
+      },
+    ) => d,
+  )
   .handler(async ({ data }) => {
     const id = data.id.trim();
     const password = data.password.trim();
@@ -493,7 +525,14 @@ export const rejectTeacher = createServerFn({ method: "POST" })
 // 3. Pupil CRUD Functions
 // ----------------------------------------------------
 export const addPupil = createServerFn({ method: "POST" })
-  .validator((d: { pupil: Omit<Pupil, "id" | "active">; parent: ParentInput; actorId: string; actorName: string; }) => d)
+  .validator(
+    (d: {
+      pupil: Omit<Pupil, "id" | "active">;
+      parent: ParentInput;
+      actorId: string;
+      actorName: string;
+    }) => d,
+  )
   .handler(async ({ data }) => {
     const { pupil, parent, actorId, actorName } = data;
 
@@ -569,7 +608,13 @@ export const addPupil = createServerFn({ method: "POST" })
 
 // Bulk add pupils with their parents
 export const bulkAddPupils = createServerFn({ method: "POST" })
-  .validator((d: { pupils: Array<{ pupil: Omit<Pupil, "id" | "active">; parent: ParentInput; }>; actorId: string; actorName: string; }) => d)
+  .validator(
+    (d: {
+      pupils: Array<{ pupil: Omit<Pupil, "id" | "active">; parent: ParentInput }>;
+      actorId: string;
+      actorName: string;
+    }) => d,
+  )
   .handler(async ({ data }) => {
     const { pupils, actorId, actorName } = data;
 
@@ -801,7 +846,20 @@ export const addParent = createServerFn({ method: "POST" })
 // 5. Attendance & Notifications Functions
 // ----------------------------------------------------
 export const markArrival = createServerFn({ method: "POST" })
-  .validator((d: { pupilId: string; transportDetails: { transport: string; vehicleReg?: string; personName: string; personRelation: string; phone?: string; }; actorId: string; actorName: string; }) => d)
+  .validator(
+    (d: {
+      pupilId: string;
+      transportDetails: {
+        transport: string;
+        vehicleReg?: string;
+        personName: string;
+        personRelation: string;
+        phone?: string;
+      };
+      actorId: string;
+      actorName: string;
+    }) => d,
+  )
   .handler(async ({ data }) => {
     const { pupilId, transportDetails, actorId, actorName } = data;
     const date = new Date().toISOString().slice(0, 10);
@@ -931,7 +989,20 @@ export const markArrival = createServerFn({ method: "POST" })
   });
 
 export const markDeparture = createServerFn({ method: "POST" })
-  .validator((d: { pupilId: string; transportDetails: { transport: string; vehicleReg?: string; personName: string; personRelation: string; phone?: string; }; actorId: string; actorName: string; }) => d)
+  .validator(
+    (d: {
+      pupilId: string;
+      transportDetails: {
+        transport: string;
+        vehicleReg?: string;
+        personName: string;
+        personRelation: string;
+        phone?: string;
+      };
+      actorId: string;
+      actorName: string;
+    }) => d,
+  )
   .handler(async ({ data }) => {
     const { pupilId, transportDetails, actorId, actorName } = data;
     const date = new Date().toISOString().slice(0, 10);
@@ -1126,7 +1197,13 @@ export const addMark = createServerFn({ method: "POST" })
   });
 
 export const updateMark = createServerFn({ method: "POST" })
-  .validator((d: { id: string; data: Partial<Omit<Mark, "id" | "recordedBy" | "recordedAt">>; actorId?: string; }) => d)
+  .validator(
+    (d: {
+      id: string;
+      data: Partial<Omit<Mark, "id" | "recordedBy" | "recordedAt">>;
+      actorId?: string;
+    }) => d,
+  )
   .handler(async ({ data }) => {
     const { id, data: markData, actorId } = data;
 
@@ -1226,33 +1303,82 @@ export const deleteMark = createServerFn({ method: "POST" })
 // 7. Fees Functions
 // ----------------------------------------------------
 export const addFee = createServerFn({ method: "POST" })
-  .validator((d: { fee: Omit<Fee, "id" | "createdBy" | "createdAt" | "updatedAt">; actorId: string; actorName: string }) => d)
+  .validator(
+    (d: {
+      fee: Omit<Fee, "id" | "createdBy" | "createdAt" | "updatedAt">;
+      actorId: string;
+      actorName: string;
+    }) => d,
+  )
   .handler(async ({ data }) => {
     const id = Math.random().toString(36).slice(2, 10);
     const now = new Date().toISOString();
-    const dbFee = toSnake({ id, ...data.fee, createdBy: data.actorId, createdAt: now, updatedAt: now });
+    const dbFee = toSnake({
+      id,
+      ...data.fee,
+      createdBy: data.actorId,
+      createdAt: now,
+      updatedAt: now,
+    });
     await sql.begin(async (tx) => {
       await tx`INSERT INTO fees ${sql(dbFee)}`;
-      await safeInsertAuditLog(tx, Math.random().toString(36).slice(2, 10), data.actorId, data.actorName, "Added fee", data.fee.description);
+      await safeInsertAuditLog(
+        tx,
+        Math.random().toString(36).slice(2, 10),
+        data.actorId,
+        data.actorName,
+        "Added fee",
+        data.fee.description,
+      );
     });
     serverCache.invalidateTags(["fees", "audit"]);
     return toCamel<Fee>(dbFee);
   });
 
 export const updateFee = createServerFn({ method: "POST" })
-  .validator((d: { id: string; data: Partial<Omit<Fee, "id" | "pupilId" | "schoolId" | "createdBy" | "createdAt" | "updatedAt">>; actorId: string; actorName: string }) => d)
+  .validator(
+    (d: {
+      id: string;
+      data: Partial<
+        Omit<Fee, "id" | "pupilId" | "schoolId" | "createdBy" | "createdAt" | "updatedAt">
+      >;
+      actorId: string;
+      actorName: string;
+    }) => d,
+  )
   .handler(async ({ data }) => {
     const dbFields = toSnake({ ...data.data, updatedAt: new Date().toISOString() });
     await sql.begin(async (tx) => {
       await tx`UPDATE fees SET ${sql(dbFields)} WHERE id = ${data.id}`;
-      await safeInsertAuditLog(tx, Math.random().toString(36).slice(2, 10), data.actorId, data.actorName, "Updated fee", data.id);
+      await safeInsertAuditLog(
+        tx,
+        Math.random().toString(36).slice(2, 10),
+        data.actorId,
+        data.actorName,
+        "Updated fee",
+        data.id,
+      );
     });
     serverCache.invalidateTags(["fees", "audit"]);
     return { id: data.id, data: { ...data.data, updatedAt: dbFields.updated_at } };
   });
 
 export const saveBulkMarks = createServerFn({ method: "POST" })
-  .validator((d: { marks: Array<{ id?: string; pupilId: string; subject: string; term: string; year: string; score: number; maxScore: number; teacherComment?: string; }>; actorId: string; }) => d)
+  .validator(
+    (d: {
+      marks: Array<{
+        id?: string;
+        pupilId: string;
+        subject: string;
+        term: string;
+        year: string;
+        score: number;
+        maxScore: number;
+        teacherComment?: string;
+      }>;
+      actorId: string;
+    }) => d,
+  )
   .handler(async ({ data }) => {
     const { marks: markItems, actorId } = data;
     if (!markItems || markItems.length === 0) {
@@ -1401,7 +1527,10 @@ export const deleteSchool = createServerFn({ method: "POST" })
 // 8. Class Management Functions
 // ----------------------------------------------------
 export const addClass = createServerFn({ method: "POST" })
-  .validator((d: { id?: string; name: string; schoolId: string; teacherId?: string; subjects?: string[] }) => d)
+  .validator(
+    (d: { id?: string; name: string; schoolId: string; teacherId?: string; subjects?: string[] }) =>
+      d,
+  )
   .handler(async ({ data }) => {
     const trimmedName = data.name.trim();
     const existingClass = await sql`
@@ -1537,7 +1666,14 @@ export const deleteUser = createServerFn({ method: "POST" })
   });
 
 export const updateUser = createServerFn({ method: "POST" })
-  .validator((d: { id: string; actorId?: string; actorName?: string; data: Partial<Omit<User, "id" | "registeredAt">> & { password?: string } }) => d)
+  .validator(
+    (d: {
+      id: string;
+      actorId?: string;
+      actorName?: string;
+      data: Partial<Omit<User, "id" | "registeredAt">> & { password?: string };
+    }) => d,
+  )
   .handler(async ({ data }) => {
     const { id, actorId, actorName, data: updates } = data;
     try {
@@ -1559,11 +1695,7 @@ export const updateUser = createServerFn({ method: "POST" })
         if (updates.photo !== undefined) dbUpdates.photo = updates.photo;
         if (updates.password !== undefined && updates.password.trim() !== "") {
           const rawPwd = updates.password.trim();
-          if (
-            rawPwd.startsWith("$2b$") ||
-            rawPwd.startsWith("$2a$") ||
-            rawPwd.startsWith("$2y$")
-          ) {
+          if (rawPwd.startsWith("$2b$") || rawPwd.startsWith("$2a$") || rawPwd.startsWith("$2y$")) {
             dbUpdates.password = rawPwd;
           } else {
             dbUpdates.password = await bcrypt.hash(rawPwd, 10);
@@ -1599,7 +1731,10 @@ export const updateUser = createServerFn({ method: "POST" })
 // 10. Subject Management Functions
 // ----------------------------------------------------
 export const addSubject = createServerFn({ method: "POST" })
-  .validator((d: { schoolId: string; name: string; code?: string; actorId?: string; actorName?: string }) => d)
+  .validator(
+    (d: { schoolId: string; name: string; code?: string; actorId?: string; actorName?: string }) =>
+      d,
+  )
   .handler(async ({ data }) => {
     const id = `subj_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const dbSubject = toSnake({
@@ -1630,7 +1765,9 @@ export const addSubject = createServerFn({ method: "POST" })
   });
 
 export const updateSubject = createServerFn({ method: "POST" })
-  .validator((d: { id: string; name: string; code?: string; actorId?: string; actorName?: string }) => d)
+  .validator(
+    (d: { id: string; name: string; code?: string; actorId?: string; actorName?: string }) => d,
+  )
   .handler(async ({ data }) => {
     try {
       const dbFields = toSnake({
@@ -1684,7 +1821,14 @@ export const deleteSubject = createServerFn({ method: "POST" })
   });
 
 export const addSubjectsBulk = createServerFn({ method: "POST" })
-  .validator((d: { schoolId: string; subjects: Array<{ name: string; code?: string }>; actorId?: string; actorName?: string }) => d)
+  .validator(
+    (d: {
+      schoolId: string;
+      subjects: Array<{ name: string; code?: string }>;
+      actorId?: string;
+      actorName?: string;
+    }) => d,
+  )
   .handler(async ({ data }) => {
     try {
       const inserted: Subject[] = [];

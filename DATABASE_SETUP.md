@@ -1,6 +1,7 @@
 # Database Setup Guide
 
 ## Issue Description
+
 The Kindy Connect project requires a Supabase PostgreSQL database. The current DATABASE_URL in `.env` contains placeholder values that need to be replaced with actual database credentials.
 
 ## Fix Instructions
@@ -32,10 +33,11 @@ The Kindy Connect project requires a Supabase PostgreSQL database. The current D
      ```
 
 5. **Set Up Database Schema**
+
    ```bash
    # Run the schema setup (you may need to install postgres CLI tools)
    psql "your_database_url_here" -f database/schema.sql
-   
+
    # Or use the included setup script
    node setup-database.js
    ```
@@ -51,11 +53,13 @@ If you have an existing Supabase project:
 ### Option 3: Local Development with Supabase CLI
 
 1. **Install Supabase CLI**
+
    ```bash
    npm install -g supabase
    ```
 
 2. **Initialize Local Supabase**
+
    ```bash
    supabase init
    supabase start
@@ -72,6 +76,7 @@ If you have an existing Supabase project:
 After setting up your database:
 
 1. **Test Connection**
+
    ```bash
    node test-database-connection.js
    ```
@@ -79,7 +84,7 @@ After setting up your database:
 2. **Verify Schema**
    The following tables should exist:
    - schools
-   - users  
+   - users
    - classes
    - subjects
    - pupils

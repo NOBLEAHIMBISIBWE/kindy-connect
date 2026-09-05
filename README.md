@@ -63,28 +63,39 @@ See **[DATABASE_SETUP.md](./DATABASE_SETUP.md)** for complete instructions.
 Update the `.env` file with your credentials:
 
 \`\`\`env
+
 # Database (REQUIRED - Replace with your actual Supabase URL)
+
 DATABASE_URL=postgresql://postgres.[PROJECT_ID]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
 
 # Environment
+
 NODE_ENV=development
 
 # Optional: Supabase client configuration
+
 # VITE_SUPABASE_URL=https://[PROJECT_ID].supabase.co
+
 # VITE_SUPABASE_ANON_KEY=your_anon_key_here
+
 \`\`\`
 
 ### 4. Database Schema Setup
 
 \`\`\`bash
+
 # Test your database connection first
+
 npm run db:test
 
 # Then set up the database schema
+
 npm run db:setup
 
 # Alternative: Manual setup using psql
+
 # psql "$DATABASE_URL" -f database/schema.sql
+
 \`\`\`
 
 ### 5. Start Development Server
@@ -107,25 +118,29 @@ Default superadmin:
 ## Available Scripts
 
 \`\`\`bash
-npm run dev          # Start development server
-npm run build        # Production build
-npm run preview      # Preview production build
-npm run lint         # Lint code
-npm run format       # Format with Prettier
-npm run db:test      # Test database connection
-npm run db:setup     # Initialize database schema
+npm run dev # Start development server
+npm run build # Production build
+npm run preview # Preview production build
+npm run lint # Lint code
+npm run format # Format with Prettier
+npm run db:test # Test database connection
+npm run db:setup # Initialize database schema
 \`\`\`
 
 ## Database Commands
 
 \`\`\`bash
+
 # Test your database connection
+
 npm run db:test
 
 # Set up the database schema (run after creating Supabase project)
+
 npm run db:setup
 
 # Manual schema setup (alternative)
+
 psql "$DATABASE_URL" -f database/schema.sql
 \`\`\`
 

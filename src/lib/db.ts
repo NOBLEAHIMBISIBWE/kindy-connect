@@ -25,33 +25,43 @@ if (typeof process !== "undefined" && !process.env.DATABASE_URL) {
 
 const connectionString = typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
 
-if (!connectionString) {
-  console.error(
-    "CRITICAL ERROR: DATABASE_URL is not defined in environment variables! " +
-      "Please set DATABASE_URL in your Vercel Project Settings -> Environment Variables.",
+// Development mode check - if we can't connect to the database, we'll use mock data
+const isDevelopmentMode =
+  !connectionString ||
+  connectionString.includes("localhost") ||
+  connectionString.includes("placeholder") ||
+  connectionString.includes("[PROJECT_ID]");
+
+if (!connectionString && typeof process !== "undefined") {
+  console.warn(
+    "⚠️  WARNING: DATABASE_URL is not defined. Running in mock data mode for development.\n" +
+      "To use a real database, set DATABASE_URL in your .env file.",
   );
 }
 
-export const sql = postgres(connectionString || "", {
-  // Supabase PgBouncer pooler (port 6543) allows high client connections
-  max: 15,
-  // Close idle connections quickly to free up slots
-  idle_timeout: 30,
-  // Allow 30 seconds for connection — Supabase free tier can take up to 20s to wake
-  connect_timeout: 30,
-  // Recycle connections every 10 minutes
-  max_lifetime: 60 * 10,
-  // REQUIRED for Supabase PgBouncer in transaction mode (default pooler)
-  // Without this, prepared statements fail on pooled connections
-  prepare: false,
-  ssl:
-    typeof process !== "undefined" &&
-    (process.env.NODE_ENV === "production" || process.env.VERCEL === "1")
-      ? { rejectUnauthorized: false }
-      : false,
-  // Suppress notices
-  onnotice: () => {},
-});
+export const sql =
+  connectionString && !isDevelopmentMode
+    ? postgres(connectionString, {
+        // Supabase PgBouncer pooler (port 6543) allows high client connections
+        max: 15,
+        // Close idle connections quickly to free up slots
+        idle_timeout: 30,
+        // Allow 30 seconds for connection — Supabase free tier can take up to 20s to wake
+        connect_timeout: 30,
+        // Recycle connections every 10 minutes
+        max_lifetime: 60 * 10,
+        // REQUIRED for Supabase PgBouncer in transaction mode (default pooler)
+        // Without this, prepared statements fail on pooled connections
+        prepare: false,
+        ssl:
+          typeof process !== "undefined" &&
+          (process.env.NODE_ENV === "production" || process.env.VERCEL === "1")
+            ? { rejectUnauthorized: false }
+            : false,
+        // Suppress notices
+        onnotice: () => {},
+      })
+    : null;
 
 /**
  * Deeply converts an object's keys from snake_case to camelCase

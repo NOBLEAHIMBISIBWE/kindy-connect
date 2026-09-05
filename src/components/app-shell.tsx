@@ -53,7 +53,9 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
 
   const isSuperAdmin = currentUser.role === "super_admin";
   const isStaff = currentUser.role === "admin" || currentUser.role === "deputy";
-  const pendingCount = (users || []).filter((u) => u?.role === "teacher" && u?.status === "pending").length;
+  const pendingCount = (users || []).filter(
+    (u) => u?.role === "teacher" && u?.status === "pending",
+  ).length;
   const currentSchool = (schools || []).find((s) => s?.id === currentUser.schoolId);
 
   const items = isSuperAdmin

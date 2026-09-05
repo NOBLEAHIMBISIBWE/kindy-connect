@@ -95,8 +95,10 @@ function TeachersPage() {
 
   // Effective school ID: School admins and teachers are scoped to their own school, super admins can switch
   const effectiveSchoolId = isSuperAdmin
-    ? (schoolFilter !== "all" ? schoolFilter : null)
-    : (currentUser?.schoolId || null);
+    ? schoolFilter !== "all"
+      ? schoolFilter
+      : null
+    : currentUser?.schoolId || null;
 
   const safeSchools = useMemo(() => (Array.isArray(schools) ? schools : []), [schools]);
   const safeClasses = useMemo(() => (Array.isArray(classes) ? classes : []), [classes]);
@@ -146,8 +148,7 @@ function TeachersPage() {
   };
 
   // Available subjects for Create Modal
-  const targetSchoolForSubjects =
-    createForm.schoolId || effectiveSchoolId || currentUser?.schoolId;
+  const targetSchoolForSubjects = createForm.schoolId || effectiveSchoolId || currentUser?.schoolId;
   const rawSubjects = useMemo(() => {
     if (typeof getSchoolSubjects === "function") {
       try {
@@ -331,7 +332,9 @@ function TeachersPage() {
         const idMatch = (u.id || "").toLowerCase().includes(searchLower);
         const phoneMatch = (u.phone || "").toLowerCase().includes(searchLower);
         const subs = Array.isArray(u.subjects) ? u.subjects : [];
-        const subjectMatch = subs.some((s) => typeof s === "string" && s.toLowerCase().includes(searchLower));
+        const subjectMatch = subs.some(
+          (s) => typeof s === "string" && s.toLowerCase().includes(searchLower),
+        );
         const className = safeClasses.find((c) => c?.id === u.classId)?.name || "";
         const classMatch = className.toLowerCase().includes(searchLower);
         return nameMatch || emailMatch || idMatch || phoneMatch || subjectMatch || classMatch;
@@ -339,7 +342,16 @@ function TeachersPage() {
     }
 
     return list;
-  }, [safeUsers, roleFilter, isSuperAdmin, schoolFilter, currentUser?.schoolId, classFilter, q, safeClasses]);
+  }, [
+    safeUsers,
+    roleFilter,
+    isSuperAdmin,
+    schoolFilter,
+    currentUser?.schoolId,
+    classFilter,
+    q,
+    safeClasses,
+  ]);
 
   const activeTeachers = useMemo(
     () =>
@@ -426,14 +438,13 @@ function TeachersPage() {
 
     if (
       safeUsers.some(
-        (u) => u?.id !== editingUser.id && (u?.email || "").trim().toLowerCase() === email.toLowerCase(),
+        (u) =>
+          u?.id !== editingUser.id && (u?.email || "").trim().toLowerCase() === email.toLowerCase(),
       )
     ) {
       return toast.error(`Email address '${email}' is registered to another user`);
     }
-    if (
-      safeUsers.some((u) => u?.id !== editingUser.id && u?.phone && u.phone.trim() === phone)
-    ) {
+    if (safeUsers.some((u) => u?.id !== editingUser.id && u?.phone && u.phone.trim() === phone)) {
       return toast.error(`Phone number '${phone}' is registered to another user`);
     }
 
@@ -501,7 +512,9 @@ function TeachersPage() {
           const assignedClass = safeClasses.find((c) => c?.id === t.classId)?.name;
           const canDelete = isSuperAdmin && t.id !== currentUser?.id;
           const initials = getInitials(t.name);
-          const tSubjects = Array.isArray(t.subjects) ? t.subjects.filter((s): s is string => typeof s === "string") : [];
+          const tSubjects = Array.isArray(t.subjects)
+            ? t.subjects.filter((s): s is string => typeof s === "string")
+            : [];
 
           return (
             <Card
@@ -521,7 +534,10 @@ function TeachersPage() {
                       <div className="font-bold text-base flex items-center gap-2">
                         {t.name || "Unnamed"}
                         {t.id === currentUser?.id && (
-                          <Badge variant="outline" className="text-[10px] py-0 px-1 text-primary border-primary/40">
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] py-0 px-1 text-primary border-primary/40"
+                          >
                             You
                           </Badge>
                         )}
@@ -583,7 +599,10 @@ function TeachersPage() {
                   <div className="flex items-center gap-2 pt-1">
                     <span className="text-muted-foreground shrink-0 font-medium">Class:</span>
                     {assignedClass ? (
-                      <Badge variant="secondary" className="font-normal text-xs py-0.5 bg-primary/10 text-primary">
+                      <Badge
+                        variant="secondary"
+                        className="font-normal text-xs py-0.5 bg-primary/10 text-primary"
+                      >
                         <Building2 className="h-3 w-3 mr-1" />
                         {assignedClass}
                       </Badge>
@@ -594,7 +613,9 @@ function TeachersPage() {
 
                   {/* Teaching Subjects */}
                   <div className="pt-2">
-                    <span className="text-muted-foreground font-medium block mb-1.5">Subjects:</span>
+                    <span className="text-muted-foreground font-medium block mb-1.5">
+                      Subjects:
+                    </span>
                     {tSubjects.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
                         {tSubjects.map((sub) => (
@@ -754,14 +775,21 @@ function TeachersPage() {
           <TableBody>
             {(list || []).map((t) => {
               if (!t) return null;
-              const schoolName = safeSchools.find((s) => s?.id === t.schoolId)?.name || "System Wide";
-              const assignedClass = safeClasses.find((c) => c?.id === t.classId)?.name || "Unassigned";
+              const schoolName =
+                safeSchools.find((s) => s?.id === t.schoolId)?.name || "System Wide";
+              const assignedClass =
+                safeClasses.find((c) => c?.id === t.classId)?.name || "Unassigned";
               const canDelete = isSuperAdmin && t.id !== currentUser?.id;
               const initials = getInitials(t.name);
-              const tSubjects = Array.isArray(t.subjects) ? t.subjects.filter((s): s is string => typeof s === "string") : [];
+              const tSubjects = Array.isArray(t.subjects)
+                ? t.subjects.filter((s): s is string => typeof s === "string")
+                : [];
 
               return (
-                <TableRow key={t.id || Math.random().toString()} className="group hover:bg-muted/40">
+                <TableRow
+                  key={t.id || Math.random().toString()}
+                  className="group hover:bg-muted/40"
+                >
                   {isSuperAdmin && (
                     <TableCell className="font-mono text-xs font-semibold">
                       <div className="flex items-center gap-1">
@@ -795,7 +823,10 @@ function TeachersPage() {
                         <div className="font-semibold text-sm flex items-center gap-2">
                           {t.name || "Unnamed"}
                           {t.id === currentUser?.id && (
-                            <Badge variant="outline" className="text-[10px] py-0 px-1 border-primary/40 text-primary font-normal">
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] py-0 px-1 border-primary/40 text-primary font-normal"
+                            >
                               You
                             </Badge>
                           )}
@@ -817,7 +848,10 @@ function TeachersPage() {
                     <TableCell className="text-muted-foreground text-xs">{schoolName}</TableCell>
                   )}
                   <TableCell>
-                    <Badge variant={t.classId ? "secondary" : "outline"} className="font-normal text-xs">
+                    <Badge
+                      variant={t.classId ? "secondary" : "outline"}
+                      className="font-normal text-xs"
+                    >
                       <Building2 className="h-3 w-3 mr-1 opacity-70" />
                       {assignedClass}
                     </Badge>
@@ -826,7 +860,11 @@ function TeachersPage() {
                     {tSubjects.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
                         {tSubjects.map((sub) => (
-                          <Badge key={sub} variant="outline" className="text-[11px] py-0 px-1.5 font-normal bg-secondary/50">
+                          <Badge
+                            key={sub}
+                            variant="outline"
+                            className="text-[11px] py-0 px-1.5 font-normal bg-secondary/50"
+                          >
                             {sub}
                           </Badge>
                         ))}
@@ -873,7 +911,9 @@ function TeachersPage() {
                       )}
                     </TableCell>
                   )}
-                  <TableCell className="text-xs text-muted-foreground">{formatRegisteredAt(t.registeredAt)}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {formatRegisteredAt(t.registeredAt)}
+                  </TableCell>
                   <TableCell>
                     <Badge
                       variant={
@@ -964,7 +1004,12 @@ function TeachersPage() {
                     <GraduationCap className="h-8 w-8 text-muted-foreground/50" />
                     <span>No teacher accounts found matching your filter criteria.</span>
                     {(canManage || canApprove) && (
-                      <Button size="sm" variant="outline" onClick={() => setOpen(true)} className="mt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setOpen(true)}
+                        className="mt-2"
+                      >
                         <Plus className="h-3.5 w-3.5 mr-1" /> Add Teacher
                       </Button>
                     )}
@@ -983,7 +1028,9 @@ function TeachersPage() {
       <AppShell title="Teachers & Staff">
         <div className="min-h-[50vh] flex flex-col items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mb-3" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading teachers directory...</p>
+          <p className="text-sm text-muted-foreground animate-pulse">
+            Loading teachers directory...
+          </p>
         </div>
       </AppShell>
     );
@@ -1030,8 +1077,14 @@ function TeachersPage() {
   }, [safeUsers, isSuperAdmin, schoolFilter, currentUser?.schoolId]);
 
   const totalTeachers = schoolScopedUsers.filter((u) => u?.role === "teacher").length;
-  const pendingTeachersCount = schoolScopedUsers.filter((u) => u?.role === "teacher" && u?.status === "pending").length;
-  const verifiedTeachersCount = schoolScopedUsers.filter((u) => u?.role === "teacher" && (u?.status === "verified" || !u?.status || (u?.status as string) === "active")).length;
+  const pendingTeachersCount = schoolScopedUsers.filter(
+    (u) => u?.role === "teacher" && u?.status === "pending",
+  ).length;
+  const verifiedTeachersCount = schoolScopedUsers.filter(
+    (u) =>
+      u?.role === "teacher" &&
+      (u?.status === "verified" || !u?.status || (u?.status as string) === "active"),
+  ).length;
 
   return (
     <AppShell title="Teachers & Staff">
@@ -1042,7 +1095,12 @@ function TeachersPage() {
               <RefreshCw className="h-4 w-4 shrink-0 animate-spin" />
               <span>{loadError}</span>
             </div>
-            <Button size="sm" variant="outline" onClick={() => attemptLoad()} className="shrink-0 gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => attemptLoad()}
+              className="shrink-0 gap-1.5"
+            >
               <RefreshCw className="h-3.5 w-3.5" /> Retry
             </Button>
           </div>
@@ -1057,7 +1115,9 @@ function TeachersPage() {
               </div>
               <div>
                 <div className="text-3xl font-bold">{verifiedTeachersCount}</div>
-                <div className="text-sm text-muted-foreground font-medium">Available Active Teachers</div>
+                <div className="text-sm text-muted-foreground font-medium">
+                  Available Active Teachers
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1081,7 +1141,9 @@ function TeachersPage() {
               </div>
               <div>
                 <div className="text-3xl font-bold">{totalTeachers}</div>
-                <div className="text-sm text-muted-foreground font-medium">Total Registered Staff</div>
+                <div className="text-sm text-muted-foreground font-medium">
+                  Total Registered Staff
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1096,7 +1158,8 @@ function TeachersPage() {
                 Teachers Directory
               </CardTitle>
               <CardDescription>
-                View all available teachers, assign classes and subjects, manage login credentials, and add new teaching staff.
+                View all available teachers, assign classes and subjects, manage login credentials,
+                and add new teaching staff.
               </CardDescription>
             </div>
 
@@ -1128,7 +1191,9 @@ function TeachersPage() {
                           <Label htmlFor="create-id">Teacher ID *</Label>
                           <button
                             type="button"
-                            onClick={() => setCreateForm((prev) => ({ ...prev, id: generateTeacherId() }))}
+                            onClick={() =>
+                              setCreateForm((prev) => ({ ...prev, id: generateTeacherId() }))
+                            }
                             className="text-[11px] text-primary hover:underline flex items-center gap-0.5"
                           >
                             <RefreshCw className="h-3 w-3" /> Auto
@@ -1148,7 +1213,9 @@ function TeachersPage() {
                           <Label htmlFor="create-pwd">Password *</Label>
                           <button
                             type="button"
-                            onClick={() => setCreateForm((prev) => ({ ...prev, password: generatePassword() }))}
+                            onClick={() =>
+                              setCreateForm((prev) => ({ ...prev, password: generatePassword() }))
+                            }
                             className="text-[11px] text-primary hover:underline flex items-center gap-0.5"
                           >
                             <Sparkles className="h-3 w-3" /> Generate
@@ -1159,7 +1226,9 @@ function TeachersPage() {
                             id="create-pwd"
                             type={showCreatePassword ? "text" : "password"}
                             value={createForm.password}
-                            onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                            onChange={(e) =>
+                              setCreateForm({ ...createForm, password: e.target.value })
+                            }
                             placeholder="Password"
                             autoComplete="new-password"
                             className="pr-9"
@@ -1172,7 +1241,11 @@ function TeachersPage() {
                             className="absolute right-0 top-0 h-9 w-9 text-muted-foreground"
                             onClick={() => setShowCreatePassword(!showCreatePassword)}
                           >
-                            {showCreatePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showCreatePassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -1222,7 +1295,9 @@ function TeachersPage() {
                         <select
                           id="create-role"
                           value={createForm.role}
-                          onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as Role })}
+                          onChange={(e) =>
+                            setCreateForm({ ...createForm, role: e.target.value as Role })
+                          }
                           className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         >
                           <option value="teacher">Teacher</option>
@@ -1236,7 +1311,9 @@ function TeachersPage() {
                           <select
                             id="create-school"
                             value={createForm.schoolId}
-                            onChange={(e) => setCreateForm({ ...createForm, schoolId: e.target.value })}
+                            onChange={(e) =>
+                              setCreateForm({ ...createForm, schoolId: e.target.value })
+                            }
                             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                           >
                             {safeSchools.map((s) => (
@@ -1279,9 +1356,14 @@ function TeachersPage() {
                                 type="checkbox"
                                 checked={(createForm.subjects || []).includes(subject)}
                                 onChange={(e) => {
-                                  const currentSubs = Array.isArray(createForm.subjects) ? createForm.subjects : [];
+                                  const currentSubs = Array.isArray(createForm.subjects)
+                                    ? createForm.subjects
+                                    : [];
                                   if (e.target.checked) {
-                                    setCreateForm({ ...createForm, subjects: [...currentSubs, subject] });
+                                    setCreateForm({
+                                      ...createForm,
+                                      subjects: [...currentSubs, subject],
+                                    });
                                   } else {
                                     setCreateForm({
                                       ...createForm,
@@ -1339,7 +1421,9 @@ function TeachersPage() {
                             alt="Preview"
                             className="w-10 h-10 object-cover rounded-full border"
                           />
-                          <span className="text-xs text-muted-foreground">Photo preview loaded</span>
+                          <span className="text-xs text-muted-foreground">
+                            Photo preview loaded
+                          </span>
                           <Button
                             type="button"
                             variant="ghost"
@@ -1371,7 +1455,8 @@ function TeachersPage() {
               <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
-                    <Edit2 className="h-5 w-5 text-primary" /> Edit Teacher Profile ({editingUser?.id})
+                    <Edit2 className="h-5 w-5 text-primary" /> Edit Teacher Profile (
+                    {editingUser?.id})
                   </DialogTitle>
                 </DialogHeader>
                 <form
@@ -1487,7 +1572,9 @@ function TeachersPage() {
                               type="checkbox"
                               checked={(editForm.subjects || []).includes(subject)}
                               onChange={(e) => {
-                                const currentSubs = Array.isArray(editForm.subjects) ? editForm.subjects : [];
+                                const currentSubs = Array.isArray(editForm.subjects)
+                                  ? editForm.subjects
+                                  : [];
                                 if (e.target.checked) {
                                   setEditForm({ ...editForm, subjects: [...currentSubs, subject] });
                                 } else {
@@ -1584,7 +1671,9 @@ function TeachersPage() {
               <div className="flex flex-wrap items-center gap-2">
                 {/* Class Filter */}
                 <div className="flex items-center gap-1.5">
-                  <Label className="shrink-0 text-xs font-medium text-muted-foreground">Class:</Label>
+                  <Label className="shrink-0 text-xs font-medium text-muted-foreground">
+                    Class:
+                  </Label>
                   <select
                     value={classFilter}
                     onChange={(e) => setClassFilter(e.target.value)}
@@ -1601,7 +1690,9 @@ function TeachersPage() {
 
                 {/* Role Filter */}
                 <div className="flex items-center gap-1.5">
-                  <Label className="shrink-0 text-xs font-medium text-muted-foreground">Role:</Label>
+                  <Label className="shrink-0 text-xs font-medium text-muted-foreground">
+                    Role:
+                  </Label>
                   <select
                     value={roleFilter}
                     onChange={(e) => setRoleFilter(e.target.value)}
@@ -1616,7 +1707,9 @@ function TeachersPage() {
 
                 {isSuperAdmin && (
                   <div className="flex items-center gap-1.5">
-                    <Label className="shrink-0 text-xs font-medium text-muted-foreground">School:</Label>
+                    <Label className="shrink-0 text-xs font-medium text-muted-foreground">
+                      School:
+                    </Label>
                     <select
                       value={schoolFilter}
                       onChange={(e) => setSchoolFilter(e.target.value)}
@@ -1725,4 +1818,3 @@ function TeachersPage() {
     </AppShell>
   );
 }
-

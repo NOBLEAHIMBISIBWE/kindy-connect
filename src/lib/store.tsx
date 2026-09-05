@@ -195,7 +195,10 @@ interface Store {
   deleteSubject: (id: string) => Promise<void>;
   seedDefaultSubjects: (schoolId: string) => Promise<void>;
   addFee: (data: Omit<Fee, "id" | "createdBy" | "createdAt" | "updatedAt">) => Promise<void>;
-  updateFee: (id: string, data: Partial<Pick<Fee, "amountPaid" | "amountDue" | "dueDate" | "notes">>) => Promise<void>;
+  updateFee: (
+    id: string,
+    data: Partial<Pick<Fee, "amountPaid" | "amountDue" | "dueDate" | "notes">>,
+  ) => Promise<void>;
   getSchoolSubjects: (schoolId?: string) => Subject[];
   refreshData: () => Promise<void>;
   lastSyncTime: string | null;
