@@ -72,6 +72,7 @@ try {
     "notifications",
     "audit_logs",
     "marks",
+    "fees",
   ];
 
   const existingTables = await sql`

@@ -207,6 +207,16 @@ export const getInitialData = createServerFn({ method: "GET" })
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
       const cutoffDate = ninetyDaysAgo.toISOString().slice(0, 10);
 
+      const feesQuery = client`SELECT * FROM fees ORDER BY due_date ASC NULLS LAST, created_at DESC`.catch(
+        (err: any) => {
+          if (err?.code === "42P01" || err?.message?.includes("fees")) {
+            console.warn("⚠️ 'fees' table does not exist in database yet, returning empty list.");
+            return [];
+          }
+          throw err;
+        },
+      );
+
       const [
         schools,
         users,
@@ -232,7 +242,7 @@ export const getInitialData = createServerFn({ method: "GET" })
         client`SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 200`,
         client`SELECT * FROM marks ORDER BY recorded_at DESC LIMIT 2000`,
         client`SELECT * FROM subjects ORDER BY name ASC`,
-        client`SELECT * FROM fees ORDER BY due_date ASC NULLS LAST, created_at DESC`,
+        feesQuery,
       ]);
 
       const parentMap: Record<string, string[]> = {};
