@@ -1080,39 +1080,56 @@ function SuperAdminDashboard({
           </Card>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Schools Overview Table */}
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle>Schools Overview</CardTitle>
-              <Button asChild size="sm" variant="outline">
-                <Link to="/app/schools">Manage All</Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>School Name</TableHead>
-                    <TableHead>Pupils</TableHead>
-                    <TableHead>Classes</TableHead>
-                    <TableHead>Staff</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(schools || []).map((s: any) => {
-                    if (!s) return null;
-                    const pupilsCount = (pupils || []).filter(
-                      (p: any) => p && p.schoolId === s.id && p.active,
-                    ).length;
-                    const classesCount = (classes || []).filter(
-                      (c: any) => c && c.schoolId === s.id,
-                    ).length;
-                    const staffCount = (users || []).filter(
-                      (u: any) => u && u.schoolId === s.id && u.status === "verified",
-                    ).length;
-                    const status = pupilsCount > 0 ? "Active" : "New";
+        {(() => {
+          /* ⚡ Bolt Performance Optimization
+           * 💡 What: Pre-computed school statistics using O(N) hash map lookups instead of O(S * N) nested loops.
+           * 🎯 Why: Previously, the table rendered by iterating over all pupils, classes, and users for EVERY school. This caused an O(S * (P + C + U)) bottleneck that blocked the main thread.
+           * 📊 Impact: Changes counting logic from O(S * N) to O(S + N), eliminating redundant array iterations and intermediate array creations.
+           * 🔬 Measurement: Observe faster render times of the Super Admin dashboard when large datasets are loaded.
+           */
+          const schoolStats = new Map();
+          (schools || []).forEach((s: any) => {
+            if (s) schoolStats.set(s.id, { pupils: 0, classes: 0, staff: 0 });
+          });
+          (pupils || []).forEach((p: any) => {
+            if (p && p.active && schoolStats.has(p.schoolId)) schoolStats.get(p.schoolId).pupils++;
+          });
+          (classes || []).forEach((c: any) => {
+            if (c && schoolStats.has(c.schoolId)) schoolStats.get(c.schoolId).classes++;
+          });
+          (users || []).forEach((u: any) => {
+            if (u && u.status === "verified" && schoolStats.has(u.schoolId)) schoolStats.get(u.schoolId).staff++;
+          });
+
+          return (
+            <div className="grid gap-6 lg:grid-cols-3">
+              {/* Schools Overview Table */}
+              <Card className="lg:col-span-2">
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                  <CardTitle>Schools Overview</CardTitle>
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/app/schools">Manage All</Link>
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>School Name</TableHead>
+                        <TableHead>Pupils</TableHead>
+                        <TableHead>Classes</TableHead>
+                        <TableHead>Staff</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(schools || []).map((s: any) => {
+                        if (!s) return null;
+                        const stats = schoolStats.get(s.id) || { pupils: 0, classes: 0, staff: 0 };
+                        const pupilsCount = stats.pupils;
+                        const classesCount = stats.classes;
+                        const staffCount = stats.staff;
+                        const status = pupilsCount > 0 ? "Active" : "New";
                     return (
                       <TableRow key={s.id || Math.random().toString()}>
                         <TableCell className="font-semibold">
@@ -1201,7 +1218,9 @@ function SuperAdminDashboard({
               )}
             </CardContent>
           </Card>
-        </div>
+            </div>
+          );
+        })()}
 
         {/* Quick Access Links */}
         <Card>
