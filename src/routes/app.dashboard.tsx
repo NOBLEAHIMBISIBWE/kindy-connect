@@ -28,7 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -93,32 +93,6 @@ function Dashboard() {
     phone: "",
   });
   const [teacherFilter, setTeacherFilter] = useState<"all" | "present" | "absent">("all");
-
-  if (loading && !currentUser) {
-    return (
-      <AppShell title="Dashboard">
-        <div className="min-h-[50vh] flex flex-col items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mb-3" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading dashboard...</p>
-        </div>
-      </AppShell>
-    );
-  }
-
-  if (!currentUser) return null;
-
-  if (currentUser.role === "super_admin") {
-    return (
-      <SuperAdminDashboard
-        schools={schools}
-        users={users}
-        pupils={pupils}
-        classes={classes}
-        audit={audit}
-        subjects={subjects}
-      />
-    );
-  }
 
   const transportModes = ["Car", "School Bus", "Motorcycle", "Walking", "Bicycle", "Van", "Taxi"];
   const relations = [
@@ -232,64 +206,125 @@ function Dashboard() {
     setDepartureDialogOpen(true);
   };
   const isStaff = currentUser?.role !== "teacher";
-  const today = new Date().toISOString().slice(0, 10);
-  const todayAtt = (attendance || []).filter((a) => a && a.date === today);
-  const presentIds = new Set(todayAtt.filter((a) => a && a.arrival).map((a) => a.pupilId));
-  const pending = (users || []).filter(
-    (u) => u && u.role === "teacher" && u.status === "pending",
-  ).length;
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayAtt = useMemo(
+    () => (attendance || []).filter((a) => a && a.date === today),
+    [attendance, today],
+  );
 
-  const activePupilsCount = (pupils || []).filter((p) => p && p.active).length;
+  const todayAttMap = useMemo(() => {
+    const map = new Map();
+    todayAtt.forEach((a) => {
+      if (a && a.pupilId) map.set(a.pupilId, a);
+    });
+    return map;
+  }, [todayAtt]);
 
-  const stats = isStaff
-    ? [
-        {
-          label: "Total pupils",
-          value: activePupilsCount,
-          icon: Baby,
-          color: "bg-primary/15 text-primary",
-        },
-        {
-          label: "Classes",
-          value: (classes || []).length,
-          icon: Sun,
-          color: "bg-secondary/20 text-secondary-foreground",
-        },
-        {
-          label: "Present today",
-          value: presentIds.size,
-          icon: CalendarCheck,
-          color: "bg-chart-4/20 text-chart-4",
-        },
-        {
-          label: "Absent today",
-          value: Math.max(0, activePupilsCount - presentIds.size),
-          icon: GraduationCap,
-          color: "bg-accent/15 text-accent",
-        },
-      ]
-    : [];
+  const presentIds = useMemo(
+    () => new Set(todayAtt.filter((a) => a && a.arrival).map((a) => a.pupilId)),
+    [todayAtt],
+  );
 
-  const myClassPupils = (pupils || []).filter(
-    (p) => p && p.classId === currentUser?.classId && p.active,
+  const pending = useMemo(
+    () => (users || []).filter((u) => u && u.role === "teacher" && u.status === "pending").length,
+    [users],
+  );
+
+  const activePupilsCount = useMemo(
+    () => (pupils || []).filter((p) => p && p.active).length,
+    [pupils],
+  );
+
+  const stats = useMemo(
+    () =>
+      isStaff
+        ? [
+            {
+              label: "Total pupils",
+              value: activePupilsCount,
+              icon: Baby,
+              color: "bg-primary/15 text-primary",
+            },
+            {
+              label: "Classes",
+              value: (classes || []).length,
+              icon: Sun,
+              color: "bg-secondary/20 text-secondary-foreground",
+            },
+            {
+              label: "Present today",
+              value: presentIds.size,
+              icon: CalendarCheck,
+              color: "bg-chart-4/20 text-chart-4",
+            },
+            {
+              label: "Absent today",
+              value: Math.max(0, activePupilsCount - presentIds.size),
+              icon: GraduationCap,
+              color: "bg-accent/15 text-accent",
+            },
+          ]
+        : [],
+    [isStaff, activePupilsCount, classes, presentIds.size],
+  );
+
+  const myClassPupils = useMemo(
+    () => (pupils || []).filter((p) => p && p.classId === currentUser?.classId && p.active),
+    [pupils, currentUser?.classId],
   );
 
   const teacherTotalCount = myClassPupils.length;
-  const teacherPresentCount = myClassPupils.filter((p) => {
-    const att = todayAtt.find((a) => a && a.pupilId === p.id);
-    return !!att?.arrival;
-  }).length;
+
+  const teacherPresentCount = useMemo(
+    () =>
+      myClassPupils.filter((p) => {
+        const att = todayAttMap.get(p.id);
+        return !!att?.arrival;
+      }).length,
+    [myClassPupils, todayAttMap],
+  );
+
   const teacherAbsentCount = Math.max(0, teacherTotalCount - teacherPresentCount);
 
-  const filteredTeacherPupils = myClassPupils.filter((p) => {
-    const att = todayAtt.find((a) => a && a.pupilId === p.id);
-    const isPresent = !!att?.arrival;
-    if (teacherFilter === "present") return isPresent;
-    if (teacherFilter === "absent") return !isPresent;
-    return true;
-  });
+  const filteredTeacherPupils = useMemo(
+    () =>
+      myClassPupils.filter((p) => {
+        const att = todayAttMap.get(p.id);
+        const isPresent = !!att?.arrival;
+        if (teacherFilter === "present") return isPresent;
+        if (teacherFilter === "absent") return !isPresent;
+        return true;
+      }),
+    [myClassPupils, todayAttMap, teacherFilter],
+  );
 
   const userGreetingName = (currentUser?.name || "User").trim().split(" ")[0] || "User";
+
+  if (loading && !currentUser) {
+    return (
+      <AppShell title="Dashboard">
+        <div className="min-h-[50vh] flex flex-col items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mb-3" />
+          <p className="text-sm text-muted-foreground animate-pulse">Loading dashboard...</p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!currentUser) return null;
+
+  if (currentUser.role === "super_admin") {
+    return (
+      <SuperAdminDashboard
+        schools={schools}
+        users={users}
+        pupils={pupils}
+        classes={classes}
+        audit={audit}
+        subjects={subjects}
+      />
+    );
+  }
 
   return (
     <AppShell title={`Hello, ${userGreetingName}`}>
@@ -630,7 +665,7 @@ function Dashboard() {
             <CardContent className="pt-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 {filteredTeacherPupils.map((p) => {
-                  const att = todayAtt.find((a) => a.pupilId === p.id);
+                  const att = todayAttMap.get(p.id);
                   const isPresent = !!att?.arrival;
                   return (
                     <div
@@ -963,55 +998,72 @@ function SuperAdminDashboard({
   audit = [],
   subjects = [],
 }: any) {
-  const totalTeachers = (users || []).filter(
-    (u: any) => u && u.role === "teacher" && u.status === "verified",
-  ).length;
-  const pendingTeachers = (users || []).filter(
-    (u: any) => u && u.role === "teacher" && u.status === "pending",
-  ).length;
-  const totalAdmins = (users || []).filter(
-    (u: any) => u && (u.role === "admin" || u.role === "deputy") && u.status === "verified",
-  ).length;
-  const activePupils = (pupils || []).filter((p: any) => p && p.active).length;
+  const totalTeachers = useMemo(
+    () =>
+      (users || []).filter((u: any) => u && u.role === "teacher" && u.status === "verified").length,
+    [users],
+  );
+  const pendingTeachers = useMemo(
+    () =>
+      (users || []).filter((u: any) => u && u.role === "teacher" && u.status === "pending").length,
+    [users],
+  );
+  const totalAdmins = useMemo(
+    () =>
+      (users || []).filter(
+        (u: any) => u && (u.role === "admin" || u.role === "deputy") && u.status === "verified",
+      ).length,
+    [users],
+  );
+  const activePupils = useMemo(
+    () => (pupils || []).filter((p: any) => p && p.active).length,
+    [pupils],
+  );
 
-  const stats = [
-    {
-      label: "Total Schools",
-      value: (schools || []).length,
-      icon: Building,
-      color: "bg-blue-500/15 text-blue-600",
-      link: "/app/schools",
-    },
-    {
-      label: "System Users",
-      value: (users || []).length,
-      icon: ShieldCheck,
-      color: "bg-purple-500/15 text-purple-600",
-      link: "/app/teachers",
-    },
-    {
-      label: "Active Pupils",
-      value: activePupils,
-      icon: Baby,
-      color: "bg-green-500/15 text-green-600",
-      link: "/app/pupils",
-    },
-    {
-      label: "Total Classes",
-      value: (classes || []).length,
-      icon: GraduationCap,
-      color: "bg-orange-500/15 text-orange-600",
-      link: "/app/classes",
-    },
-  ];
+  const stats = useMemo(
+    () => [
+      {
+        label: "Total Schools",
+        value: (schools || []).length,
+        icon: Building,
+        color: "bg-blue-500/15 text-blue-600",
+        link: "/app/schools",
+      },
+      {
+        label: "System Users",
+        value: (users || []).length,
+        icon: ShieldCheck,
+        color: "bg-purple-500/15 text-purple-600",
+        link: "/app/teachers",
+      },
+      {
+        label: "Active Pupils",
+        value: activePupils,
+        icon: Baby,
+        color: "bg-green-500/15 text-green-600",
+        link: "/app/pupils",
+      },
+      {
+        label: "Total Classes",
+        value: (classes || []).length,
+        icon: GraduationCap,
+        color: "bg-orange-500/15 text-orange-600",
+        link: "/app/classes",
+      },
+    ],
+    [schools, users, activePupils, classes],
+  );
 
-  const additionalStats = [
-    { label: "Admins/Deputies", value: totalAdmins },
-    { label: "Verified Teachers", value: totalTeachers },
-    { label: "Pending Approvals", value: pendingTeachers, highlight: pendingTeachers > 0 },
-    { label: "Total Subjects", value: (subjects || []).length },
-    { label: "System Logs", value: (audit || []).length },
-  ];
+  const additionalStats = useMemo(
+    () => [
+      { label: "Admins/Deputies", value: totalAdmins },
+      { label: "Verified Teachers", value: totalTeachers },
+      { label: "Pending Approvals", value: pendingTeachers, highlight: pendingTeachers > 0 },
+      { label: "Total Subjects", value: (subjects || []).length },
+      { label: "System Logs", value: (audit || []).length },
+    ],
+    [totalAdmins, totalTeachers, pendingTeachers, subjects, audit],
+  );
 
   return (
     <AppShell title="Super Admin Dashboard">
