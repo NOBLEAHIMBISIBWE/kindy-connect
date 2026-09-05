@@ -222,11 +222,12 @@ const SCHOOL_CONTEXT_KEY = "kinder.selectedSchoolId";
 function classifyDbError(err: any): { isPaused: boolean; message: string } {
   const msg: string = err?.message || err?.toString() || "Unknown error";
   const lowerMsg = msg.toLowerCase();
+  // Only classify as paused if explicitly reported as paused by Supabase or PostgREST API
   const isPaused =
     lowerMsg.includes("is_paused") ||
     lowerMsg.includes("project_paused") ||
     lowerMsg.includes("project is paused") ||
-    (lowerMsg.includes("paused") && !lowerMsg.includes("unpaused"));
+    lowerMsg.includes("database is paused");
   return { isPaused, message: msg };
 }
 
