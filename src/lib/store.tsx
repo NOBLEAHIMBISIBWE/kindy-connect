@@ -219,7 +219,7 @@ const SESSION_KEY = "kinder.currentUserId";
 const SCHOOL_CONTEXT_KEY = "kinder.selectedSchoolId";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-function classifyDbError(err: any): { isPaused: boolean; message: string } {
+function classifyDbError(err: any): { isPaused: boolean; isPoolExhausted: boolean; message: string } {
   const msg: string = err?.message || err?.toString() || "Unknown error";
   const lowerMsg = msg.toLowerCase();
   // Only classify as paused if explicitly reported as paused by Supabase or PostgREST API
@@ -228,7 +228,17 @@ function classifyDbError(err: any): { isPaused: boolean; message: string } {
     lowerMsg.includes("project_paused") ||
     lowerMsg.includes("project is paused") ||
     lowerMsg.includes("database is paused");
-  return { isPaused, message: msg };
+
+  // Check if connection pool / max clients limit reached
+  const isPoolExhausted =
+    lowerMsg.includes("emaxconnsession") ||
+    lowerMsg.includes("max clients reached") ||
+    lowerMsg.includes("pool_size") ||
+    lowerMsg.includes("too many clients") ||
+    lowerMsg.includes("connection limit exceeded") ||
+    lowerMsg.includes("remaining connection slots are reserved");
+
+  return { isPaused, isPoolExhausted, message: msg };
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -247,6 +257,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isPausedError, setIsPausedError] = useState(false);
+  const [isPoolExhaustedError, setIsPoolExhaustedError] = useState(false);
   const [retryIn, setRetryIn] = useState(0); // seconds until next auto-retry
   const retryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
@@ -307,6 +318,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setLoadError(null);
     setIsPausedError(false);
+    setIsPoolExhaustedError(false);
     setRetryIn(0);
 
     // Timeout guard — retries connection if loading takes longer than 25 seconds
@@ -315,6 +327,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       timedOut = true;
       setLoadError("Database connection timed out. Attempting to reconnect...");
       setIsPausedError(false);
+      setIsPoolExhaustedError(false);
       setLoading(false);
       startRetryCountdown(15, attemptLoad);
     }, 25000);
@@ -346,17 +359,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData(queryKeys.initialData(state.currentUserId), data);
       setLoadError(null);
       setIsPausedError(false);
+      setIsPoolExhaustedError(false);
       setLoading(false);
     } catch (err: any) {
       if (timedOut) return;
       clearTimeout(timeoutId);
       console.error("Failed to load live database data:", err);
-      const { isPaused, message } = classifyDbError(err);
+      const { isPaused, isPoolExhausted, message } = classifyDbError(err);
       setLoadError(message);
       setIsPausedError(isPaused);
+      setIsPoolExhaustedError(isPoolExhausted);
       setLoading(false);
-      // Auto-retry every 15 seconds for paused-project errors
-      if (isPaused) startRetryCountdown(15, attemptLoad);
+      // Auto-retry every 10-15 seconds for paused-project or connection pool errors
+      if (isPaused) {
+        startRetryCountdown(15, attemptLoad);
+      } else if (isPoolExhausted) {
+        startRetryCountdown(10, attemptLoad);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startRetryCountdown, state.currentUserId]);
@@ -1441,7 +1460,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           {/* Title + message */}
           <div className="space-y-2">
             <h2 className="text-xl font-semibold text-foreground">
-              {isPausedError ? "Database is sleeping" : "Connection failed"}
+              {isPausedError
+                ? "Database is sleeping"
+                : isPoolExhaustedError
+                  ? "Database busy"
+                  : "Connection failed"}
             </h2>
             {isPausedError ? (
               <div className="space-y-3">
@@ -1471,6 +1494,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                   </li>
                 </ol>
               </div>
+            ) : isPoolExhaustedError ? (
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                The database connection pool is currently busy with high traffic. Reconnecting automatically when connections free up...
+              </p>
             ) : (
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Could not reach the database. Check your connection and try again.
@@ -1479,12 +1506,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           </div>
 
           {/* Auto-retry countdown bar */}
-          {isPausedError && retryIn > 0 && (
+          {(isPausedError || isPoolExhaustedError) && retryIn > 0 && (
             <div className="space-y-2">
               <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                 <div
                   className="h-full bg-orange-400 rounded-full transition-all duration-1000 ease-linear"
-                  style={{ width: `${(retryIn / 15) * 100}%` }}
+                  style={{ width: `${(retryIn / (isPoolExhaustedError ? 10 : 15)) * 100}%` }}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
