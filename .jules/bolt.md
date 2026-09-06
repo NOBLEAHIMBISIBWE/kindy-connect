@@ -1,0 +1,3 @@
+## 2024-10-24 - O(N*M) nested array lookups in store.tsx filtering
+**Learning:** Found multiple instances where `.find()` or `.filter()` are used inside a `.map()` or `.filter()` when filtering store arrays (`filteredAttendance`, `filteredNotifications`, `filteredAudit`, `filteredMarks`). Since the store arrays grow with user activity (pupils, users, etc.), this O(N*M) time complexity presents a major hidden bottleneck during rerenders or store updates.
+**Action:** When filtering related datasets, avoid `.find()` within loops. Instead, compute a `Set` of the foreign keys (e.g. `validPupilIds`) first in O(M), then iterate over the main list with `.filter()` checking the Set using `.has()` in O(N), yielding a more efficient O(N+M) time complexity.
