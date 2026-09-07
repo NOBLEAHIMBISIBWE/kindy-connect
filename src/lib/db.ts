@@ -16,7 +16,7 @@ if (typeof process !== "undefined" && !process.env.DATABASE_URL) {
         const envContent = fs.readFileSync(envPath, "utf-8");
         const match = envContent.match(/^DATABASE_URL=(.+)$/m);
         if (match) {
-          process.env.DATABASE_URL = match[1].trim();
+          process.env.DATABASE_URL = match[1].trim().replace(/^["']|["']$/g, "");
         }
       }
     } catch {}
@@ -74,7 +74,10 @@ function getPostgresClient() {
     prepare: false,
     ssl:
       typeof process !== "undefined" &&
-      (process.env.NODE_ENV === "production" || process.env.VERCEL === "1")
+      (process.env.NODE_ENV === "production" ||
+        process.env.VERCEL === "1" ||
+        connectionString.includes("supabase") ||
+        connectionString.includes("pooler"))
         ? { rejectUnauthorized: false }
         : false,
     // Suppress notices
