@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { CreditCard, Plus, Search } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { CreditCard, Plus, Search, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useStore } from "@/lib/store";
@@ -52,13 +52,119 @@ const outstandingAmount = (amountDue: number, amountPaid: number) =>
   Math.max(0, amountDue - amountPaid);
 
 function FeesPage() {
-  const { fees, pupils, addFee, updateFee } = useStore();
+  const { fees, pupils, addFee, updateFee, refreshData, lastSyncTime, loading } = useStore();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [open, setOpen] = useState(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [payment, setPayment] = useState("");
   const [form, setForm] = useState(emptyForm);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [hasUserActivity, setHasUserActivity] = useState(true);
+
+  // Track user activity to avoid unnecessary refreshes
+  useEffect(() => {
+    let activityTimer: NodeJS.Timeout;
+    
+    const resetActivityTimer = () => {
+      setHasUserActivity(true);
+      clearTimeout(activityTimer);
+      activityTimer = setTimeout(() => setHasUserActivity(false), 60000); // 1 minute
+    };
+
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    events.forEach(event => document.addEventListener(event, resetActivityTimer, true));
+
+    // Set initial timer
+    resetActivityTimer();
+
+    return () => {
+      events.forEach(event => document.removeEventListener(event, resetActivityTimer, true));
+      clearTimeout(activityTimer);
+    };
+  }, []);
+
+  // Monitor online status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Auto-refresh every 30 seconds when online and user is active
+  useEffect(() => {
+    if (!isOnline || !hasUserActivity) return;
+
+    const interval = setInterval(async () => {
+      try {
+        // Only auto-refresh if user has been active and we're online
+        if (hasUserActivity && isOnline && !loading) {
+          await refreshData();
+        }
+      } catch (error) {
+        console.error('Auto-refresh failed:', error);
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [refreshData, isOnline, hasUserActivity, loading]);
+
+  // Refresh on window focus and when coming back online
+  useEffect(() => {
+    const handleFocus = async () => {
+      if (isOnline) {
+        try {
+          await refreshData();
+        } catch (error) {
+          console.error('Focus refresh failed:', error);
+        }
+      }
+    };
+
+    const handleOnlineRefresh = async () => {
+      // Refresh immediately when coming back online
+      try {
+        await refreshData();
+        toast.success("Reconnected - fees data refreshed");
+      } catch (error) {
+        console.error('Online refresh failed:', error);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('online', handleOnlineRefresh);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('online', handleOnlineRefresh);
+    };
+  }, [refreshData, isOnline]);
+
+  // Manual refresh function with enhanced feedback
+  const handleManualRefresh = async () => {
+    if (!isOnline) {
+      toast.error("No internet connection");
+      return;
+    }
+
+    setIsRefreshing(true);
+    try {
+      await refreshData();
+      toast.success("Fees data refreshed");
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to refresh data");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   const pupilName = (id: string) => {
     const pupil = pupils.find((item) => item.id === id);
     return pupil ? `${pupil.firstName} ${pupil.lastName}` : "Unknown pupil";
@@ -103,6 +209,9 @@ function FeesPage() {
       toast.success("Fee charge added");
       setForm(emptyForm);
       setOpen(false);
+      
+      // Auto-refresh after adding fee
+      await refreshData();
     } catch (error: any) {
       toast.error(error?.message || "Could not add fee charge");
     }
@@ -119,6 +228,9 @@ function FeesPage() {
       toast.success("Payment recorded");
       setPaymentId(null);
       setPayment("");
+      
+      // Auto-refresh after payment
+      await refreshData();
     } catch (error: any) {
       toast.error(error?.message || "Could not record payment");
     }
@@ -127,6 +239,36 @@ function FeesPage() {
   return (
     <AppShell title="Fees & Payments">
       <div className="space-y-5">
+        {/* Connection and sync status */}
+        <div className="flex gap-2">
+          {!isOnline && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-2 flex-1">
+              <div className="flex items-center gap-2 text-red-700">
+                <div className="h-2 w-2 bg-red-500 rounded-full"></div>
+                <span className="text-sm">Offline - Data may not be current</span>
+              </div>
+            </div>
+          )}
+          
+          {loading && isOnline && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-2 flex-1">
+              <div className="flex items-center gap-2 text-blue-700">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <span className="text-sm">Syncing fees data...</span>
+              </div>
+            </div>
+          )}
+
+          {isOnline && !loading && lastSyncTime && (
+            <div className="bg-green-50 border border-green-200 rounded-md p-2 flex-1">
+              <div className="flex items-center gap-2 text-green-700">
+                <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm">Auto-sync active • Last update: {lastSyncTime}</span>
+              </div>
+            </div>
+          )}
+        </div>
+        
         <div className="grid gap-4 sm:grid-cols-3">
           <Summary title="Total billed" value={totalDue} />
           <Summary title="Collected" value={totalPaid} tone="text-emerald-600" />
@@ -134,14 +276,37 @@ function FeesPage() {
         </div>
         <Card className="border-0 shadow-sm">
           <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>Fee ledger</CardTitle>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-1 h-4 w-4" />
-                  Add charge
-                </Button>
-              </DialogTrigger>
+            <div className="flex items-center gap-2">
+              <CardTitle>Fee ledger</CardTitle>
+              {lastSyncTime && isOnline && (
+                <Badge variant="outline" className="text-xs">
+                  Updated: {lastSyncTime}
+                </Badge>
+              )}
+              {!isOnline && (
+                <Badge variant="destructive" className="text-xs">
+                  Offline
+                </Badge>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleManualRefresh}
+                disabled={isRefreshing || loading || !isOnline}
+                className={!isOnline ? "opacity-50 cursor-not-allowed" : ""}
+              >
+                <RefreshCw className={`mr-1 h-4 w-4 ${isRefreshing || loading ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : !isOnline ? 'Offline' : 'Refresh'}
+              </Button>
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-1 h-4 w-4" />
+                    Add charge
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Add fee charge</DialogTitle>
@@ -296,9 +461,18 @@ function FeesPage() {
               </TableBody>
             </Table>
             {!visibleFees.length && (
-              <p className="py-10 text-center text-sm text-muted-foreground">
-                No fee records match this view.
-              </p>
+              <div className="py-10 text-center">
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <p className="text-sm text-muted-foreground">Loading fees data...</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No fee records match this view.
+                  </p>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>
