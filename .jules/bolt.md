@@ -1,0 +1,3 @@
+## 2025-05-18 - [Optimized array filtering in StoreProvider]
+**Learning:** Nested array iterations (`.find()` inside `.filter()`) when joining relational data inside `useMemo` hooks can cause O(N*M) time complexity blocks on the main thread, leading to lag when datasets grow large. This is a common performance bottleneck in globally provided context stores managing client-side relational data.
+**Action:** Replace nested array lookups with O(1) Set lookups when computing derived state. Map the foreign keys to a Set first (O(M)), then use `.has()` during the filter (O(N)), making the total complexity O(N+M).
