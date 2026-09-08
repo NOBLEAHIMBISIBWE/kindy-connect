@@ -212,7 +212,7 @@ export const getInitialData = createServerFn({ method: "GET" })
         client`SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 200`,
         client`SELECT * FROM marks ORDER BY recorded_at DESC LIMIT 2000`,
         client`SELECT * FROM subjects ORDER BY name ASC`,
-        client`SELECT * FROM fees ORDER BY due_date ASC NULLS LAST, created_at DESC`,
+        client`SELECT * FROM fees ORDER BY due_date ASC NULLS LAST, created_at DESC`.catch(() => []),
       ]);
 
       const parentMap: Record<string, string[]> = {};
@@ -1229,12 +1229,38 @@ export const deleteMark = createServerFn({ method: "POST" })
 // ----------------------------------------------------
 // 7. Fees Functions
 // ----------------------------------------------------
+async function ensureFeesTable(client: typeof sql = sql) {
+  try {
+    await client`
+      CREATE TABLE IF NOT EXISTS fees (
+        id VARCHAR(50) PRIMARY KEY,
+        pupil_id VARCHAR(50) NOT NULL,
+        school_id VARCHAR(50) NOT NULL,
+        description VARCHAR(255) NOT NULL,
+        term VARCHAR(50) NOT NULL,
+        year VARCHAR(4) NOT NULL,
+        amount_due NUMERIC(12, 2) NOT NULL CHECK (amount_due > 0),
+        amount_paid NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (amount_paid >= 0),
+        due_date DATE,
+        notes TEXT,
+        created_by VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT chk_fee_paid_limit CHECK (amount_paid <= amount_due)
+      );
+    `;
+  } catch (err) {
+    console.error("Could not ensure fees table:", err);
+  }
+}
+
 export const addFee = createServerFn({ method: "POST" })
   .validator((d: { fee: Omit<Fee, "id" | "createdBy" | "createdAt" | "updatedAt">; actorId: string; actorName: string }) => d)
   .handler(async ({ data }) => {
     const id = Math.random().toString(36).slice(2, 10);
     const now = new Date().toISOString();
     const dbFee = toSnake({ id, ...data.fee, createdBy: data.actorId, createdAt: now, updatedAt: now });
+    await ensureFeesTable();
     await sql.begin(async (tx) => {
       await tx`INSERT INTO fees ${sql(dbFee)}`;
       await safeInsertAuditLog(tx, Math.random().toString(36).slice(2, 10), data.actorId, data.actorName, "Added fee", data.fee.description);
