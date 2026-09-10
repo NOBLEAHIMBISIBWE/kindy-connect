@@ -46,7 +46,8 @@ const globalForDb = globalThis as unknown as {
 const defaultMaxPool =
   typeof process !== "undefined" && process.env.DB_POOL_MAX
     ? parseInt(process.env.DB_POOL_MAX, 10)
-    : typeof process !== "undefined" && (process.env.VERCEL === "1" || process.env.NODE_ENV === "production")
+    : typeof process !== "undefined" &&
+        (process.env.VERCEL === "1" || process.env.NODE_ENV === "production")
       ? 3
       : 5;
 
