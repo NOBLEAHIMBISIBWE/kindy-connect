@@ -1023,6 +1023,19 @@ function TeachersPage() {
     );
   };
 
+  // Teacher Metrics (scoped to current school for School Admins, or selected school for Super Admin)
+  const schoolScopedUsers = useMemo(() => {
+    if (isSuperAdmin && schoolFilter !== "all") {
+      return safeUsers.filter((u) => u?.schoolId === schoolFilter);
+    }
+    if (!isSuperAdmin && currentUser?.schoolId) {
+      return safeUsers.filter(
+        (u) => !u?.schoolId || u?.schoolId === currentUser.schoolId || u?.role === "teacher",
+      );
+    }
+    return safeUsers;
+  }, [safeUsers, isSuperAdmin, schoolFilter, currentUser?.schoolId]);
+
   if (loading && safeUsers.length === 0) {
     return (
       <AppShell title="Teachers & Staff">
@@ -1035,6 +1048,8 @@ function TeachersPage() {
       </AppShell>
     );
   }
+
+  const totalTeachers = schoolScopedUsers.filter((u) => u?.role === "teacher").length;
 
   if (!isAuthorized) {
     return (
@@ -1062,21 +1077,6 @@ function TeachersPage() {
       </AppShell>
     );
   }
-
-  // Teacher Metrics (scoped to current school for School Admins, or selected school for Super Admin)
-  const schoolScopedUsers = useMemo(() => {
-    if (isSuperAdmin && schoolFilter !== "all") {
-      return safeUsers.filter((u) => u?.schoolId === schoolFilter);
-    }
-    if (!isSuperAdmin && currentUser?.schoolId) {
-      return safeUsers.filter(
-        (u) => !u?.schoolId || u?.schoolId === currentUser.schoolId || u?.role === "teacher",
-      );
-    }
-    return safeUsers;
-  }, [safeUsers, isSuperAdmin, schoolFilter, currentUser?.schoolId]);
-
-  const totalTeachers = schoolScopedUsers.filter((u) => u?.role === "teacher").length;
   const pendingTeachersCount = schoolScopedUsers.filter(
     (u) => u?.role === "teacher" && u?.status === "pending",
   ).length;

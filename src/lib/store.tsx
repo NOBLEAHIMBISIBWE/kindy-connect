@@ -219,7 +219,11 @@ const SESSION_KEY = "kinder.currentUserId";
 const SCHOOL_CONTEXT_KEY = "kinder.selectedSchoolId";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-function classifyDbError(err: any): { isPaused: boolean; isPoolExhausted: boolean; message: string } {
+function classifyDbError(err: any): {
+  isPaused: boolean;
+  isPoolExhausted: boolean;
+  message: string;
+} {
   const msg: string = err?.message || err?.toString() || "Unknown error";
   const lowerMsg = msg.toLowerCase();
   // Only classify as paused if explicitly reported as paused by Supabase or PostgREST API
@@ -577,35 +581,51 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return state.parents.filter((p) => p.schoolId === currentUser.schoolId);
   }, [state.parents, currentUser, state.selectedSchoolId]);
 
+  // Precompute O(1) lookups for pupil -> school mapping to avoid O(N*M) bottlenecks during filtering
+  const pupilSchoolMap = useMemo(() => {
+    const map = new Map<string, string | null | undefined>();
+    for (const p of state.pupils) {
+      map.set(p.id, p.schoolId);
+    }
+    return map;
+  }, [state.pupils]);
+
+  // Precompute O(1) lookups for user -> school mapping to avoid O(N*M) bottlenecks during filtering
+  const userSchoolMap = useMemo(() => {
+    const map = new Map<string, string | null | undefined>();
+    for (const u of state.users) {
+      map.set(u.id, u.schoolId);
+    }
+    return map;
+  }, [state.users]);
+
   const filteredAttendance = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.role === "super_admin") {
       if (state.selectedSchoolId) {
         return state.attendance.filter(
-          (a) => state.pupils.find((p) => p.id === a.pupilId)?.schoolId === state.selectedSchoolId,
+          (a) => pupilSchoolMap.get(a.pupilId) === state.selectedSchoolId,
         );
       }
       return state.attendance;
     }
-    return state.attendance.filter(
-      (a) => state.pupils.find((p) => p.id === a.pupilId)?.schoolId === currentUser.schoolId,
-    );
-  }, [state.attendance, state.pupils, currentUser, state.selectedSchoolId]);
+    return state.attendance.filter((a) => pupilSchoolMap.get(a.pupilId) === currentUser.schoolId);
+  }, [state.attendance, pupilSchoolMap, currentUser, state.selectedSchoolId]);
 
   const filteredNotifications = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.role === "super_admin") {
       if (state.selectedSchoolId) {
         return state.notifications.filter(
-          (n) => state.pupils.find((p) => p.id === n.pupilId)?.schoolId === state.selectedSchoolId,
+          (n) => pupilSchoolMap.get(n.pupilId) === state.selectedSchoolId,
         );
       }
       return state.notifications;
     }
     return state.notifications.filter(
-      (n) => state.pupils.find((p) => p.id === n.pupilId)?.schoolId === currentUser.schoolId,
+      (n) => pupilSchoolMap.get(n.pupilId) === currentUser.schoolId,
     );
-  }, [state.notifications, state.pupils, currentUser, state.selectedSchoolId]);
+  }, [state.notifications, pupilSchoolMap, currentUser, state.selectedSchoolId]);
 
   const filteredAudit = useMemo(() => {
     if (!currentUser) return [];
@@ -618,31 +638,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
     if (currentUser.role === "super_admin") {
       if (state.selectedSchoolId) {
-        return nonCacheAudit.filter(
-          (a) => state.users.find((u) => u.id === a.actorId)?.schoolId === state.selectedSchoolId,
-        );
+        return nonCacheAudit.filter((a) => userSchoolMap.get(a.actorId) === state.selectedSchoolId);
       }
       return nonCacheAudit;
     }
-    return nonCacheAudit.filter(
-      (a) => state.users.find((u) => u.id === a.actorId)?.schoolId === currentUser.schoolId,
-    );
-  }, [state.audit, state.users, currentUser, state.selectedSchoolId]);
+    return nonCacheAudit.filter((a) => userSchoolMap.get(a.actorId) === currentUser.schoolId);
+  }, [state.audit, userSchoolMap, currentUser, state.selectedSchoolId]);
 
   const filteredMarks = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.role === "super_admin") {
       if (state.selectedSchoolId) {
-        return state.marks.filter(
-          (m) => state.pupils.find((p) => p.id === m.pupilId)?.schoolId === state.selectedSchoolId,
-        );
+        return state.marks.filter((m) => pupilSchoolMap.get(m.pupilId) === state.selectedSchoolId);
       }
       return state.marks;
     }
-    return state.marks.filter(
-      (m) => state.pupils.find((p) => p.id === m.pupilId)?.schoolId === currentUser.schoolId,
-    );
-  }, [state.marks, state.pupils, currentUser, state.selectedSchoolId]);
+    return state.marks.filter((m) => pupilSchoolMap.get(m.pupilId) === currentUser.schoolId);
+  }, [state.marks, pupilSchoolMap, currentUser, state.selectedSchoolId]);
 
   const filteredFees = useMemo(() => {
     if (!currentUser) return [];
@@ -1496,7 +1508,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               </div>
             ) : isPoolExhaustedError ? (
               <p className="text-sm text-muted-foreground leading-relaxed">
-                The database connection pool is currently busy with high traffic. Reconnecting automatically when connections free up...
+                The database connection pool is currently busy with high traffic. Reconnecting
+                automatically when connections free up...
               </p>
             ) : (
               <p className="text-sm text-muted-foreground leading-relaxed">
