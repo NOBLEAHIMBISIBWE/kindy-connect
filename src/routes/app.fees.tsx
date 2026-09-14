@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,8 @@ function FeesPage() {
     addFeeStructure,
     assignFeeCharges,
     addFeePayment,
+    refreshData,
+    lastSyncTime,
   } = useStore();
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
@@ -47,6 +49,34 @@ function FeesPage() {
   const [paidOn, setPaidOn] = useState(new Date().toISOString().slice(0, 10));
   const [reference, setReference] = useState("");
   const [filter, setFilter] = useState("");
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshData();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [refreshData]);
+
+  // Refresh when page becomes visible (user returns to tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [refreshData]);
+
+  // Refresh when coming back online
+  useEffect(() => {
+    const handleOnline = () => {
+      refreshData();
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [refreshData]);
 
   const canManage =
     currentUser?.role === "super_admin" ||
@@ -172,6 +202,15 @@ function FeesPage() {
   return (
     <AppShell title="Fees & balances">
       <div className="space-y-5">
+        {/* Sync indicator */}
+        {lastSyncTime && (
+          <div className="flex justify-end">
+            <Badge variant="outline" className="text-xs">
+              Last updated: {lastSyncTime}
+            </Badge>
+          </div>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-3">
           <Card>
             <CardContent className="p-5">
