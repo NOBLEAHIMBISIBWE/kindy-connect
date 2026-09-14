@@ -210,7 +210,11 @@ export const getInitialData = createServerFn({ method: "GET" })
       const feesQuery =
         client`SELECT * FROM fees ORDER BY due_date ASC NULLS LAST, created_at DESC`.catch(
           (error: any) => {
-            if (error?.code === "42P01") {
+            if (
+              error?.code === "42P01" ||
+              error?.message?.includes("relation \"fees\" does not exist") ||
+              error?.message?.includes("does not exist")
+            ) {
               console.warn("Fees table does not exist yet; returning an empty fee list.");
               return [];
             }

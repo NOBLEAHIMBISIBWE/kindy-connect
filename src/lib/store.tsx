@@ -219,7 +219,11 @@ const SESSION_KEY = "kinder.currentUserId";
 const SCHOOL_CONTEXT_KEY = "kinder.selectedSchoolId";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-function classifyDbError(err: any): { isPaused: boolean; isPoolExhausted: boolean; message: string } {
+function classifyDbError(err: any): {
+  isPaused: boolean;
+  isPoolExhausted: boolean;
+  message: string;
+} {
   const msg: string = err?.message || err?.toString() || "Unknown error";
   const lowerMsg = msg.toLowerCase();
   // Only classify as paused if explicitly reported as paused by Supabase or PostgREST API
@@ -1496,7 +1500,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               </div>
             ) : isPoolExhaustedError ? (
               <p className="text-sm text-muted-foreground leading-relaxed">
-                The database connection pool is currently busy with high traffic. Reconnecting automatically when connections free up...
+                The database connection pool is currently busy with high traffic. Reconnecting
+                automatically when connections free up...
               </p>
             ) : (
               <p className="text-sm text-muted-foreground leading-relaxed">

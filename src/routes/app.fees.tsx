@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { CreditCard, Plus, Search, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -66,21 +66,21 @@ function FeesPage() {
   // Track user activity to avoid unnecessary refreshes
   useEffect(() => {
     let activityTimer: NodeJS.Timeout;
-    
+
     const resetActivityTimer = () => {
       setHasUserActivity(true);
       clearTimeout(activityTimer);
       activityTimer = setTimeout(() => setHasUserActivity(false), 60000); // 1 minute
     };
 
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    events.forEach(event => document.addEventListener(event, resetActivityTimer, true));
+    const events = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"];
+    events.forEach((event) => document.addEventListener(event, resetActivityTimer, true));
 
     // Set initial timer
     resetActivityTimer();
 
     return () => {
-      events.forEach(event => document.removeEventListener(event, resetActivityTimer, true));
+      events.forEach((event) => document.removeEventListener(event, resetActivityTimer, true));
       clearTimeout(activityTimer);
     };
   }, []);
@@ -90,12 +90,12 @@ function FeesPage() {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 
@@ -110,7 +110,7 @@ function FeesPage() {
           await refreshData();
         }
       } catch (error) {
-        console.error('Auto-refresh failed:', error);
+        console.error("Auto-refresh failed:", error);
       }
     }, 30000); // 30 seconds
 
@@ -124,7 +124,7 @@ function FeesPage() {
         try {
           await refreshData();
         } catch (error) {
-          console.error('Focus refresh failed:', error);
+          console.error("Focus refresh failed:", error);
         }
       }
     };
@@ -135,16 +135,16 @@ function FeesPage() {
         await refreshData();
         toast.success("Reconnected - fees data refreshed");
       } catch (error) {
-        console.error('Online refresh failed:', error);
+        console.error("Online refresh failed:", error);
       }
     };
 
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('online', handleOnlineRefresh);
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("online", handleOnlineRefresh);
 
     return () => {
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('online', handleOnlineRefresh);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("online", handleOnlineRefresh);
     };
   }, [refreshData, isOnline]);
 
@@ -165,14 +165,24 @@ function FeesPage() {
       setIsRefreshing(false);
     }
   };
-  const pupilName = (id: string) => {
-    const pupil = pupils.find((item) => item.id === id);
-    return pupil ? `${pupil.firstName} ${pupil.lastName}` : "Unknown pupil";
-  };
+  const pupilNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of pupils) {
+      map.set(p.id, `${p.firstName} ${p.lastName}`);
+    }
+    return map;
+  }, [pupils]);
+
+  const pupilName = useCallback(
+    (id: string) => pupilNameMap.get(id) || "Unknown pupil",
+    [pupilNameMap],
+  );
+
   const visibleFees = useMemo(
     () =>
       fees.filter((fee) => {
-        const matchesQuery = `${pupilName(fee.pupilId)} ${fee.description}`
+        const name = pupilNameMap.get(fee.pupilId) || "Unknown pupil";
+        const matchesQuery = `${name} ${fee.description}`
           .toLowerCase()
           .includes(query.toLowerCase());
         const dueAmount = outstandingAmount(fee.amountDue, fee.amountPaid);
@@ -181,7 +191,7 @@ function FeesPage() {
           (status === "all" || (status === "paid" ? dueAmount === 0 : dueAmount > 0))
         );
       }),
-    [fees, pupils, query, status],
+    [fees, pupilNameMap, query, status],
   );
   const totalDue = fees.reduce((sum, fee) => sum + fee.amountDue, 0);
   const totalPaid = fees.reduce((sum, fee) => sum + fee.amountPaid, 0);
@@ -209,7 +219,7 @@ function FeesPage() {
       toast.success("Fee charge added");
       setForm(emptyForm);
       setOpen(false);
-      
+
       // Auto-refresh after adding fee
       await refreshData();
     } catch (error: any) {
@@ -228,7 +238,7 @@ function FeesPage() {
       toast.success("Payment recorded");
       setPaymentId(null);
       setPayment("");
-      
+
       // Auto-refresh after payment
       await refreshData();
     } catch (error: any) {
@@ -249,7 +259,7 @@ function FeesPage() {
               </div>
             </div>
           )}
-          
+
           {loading && isOnline && (
             <div className="bg-blue-50 border border-blue-200 rounded-md p-2 flex-1">
               <div className="flex items-center gap-2 text-blue-700">
@@ -268,7 +278,7 @@ function FeesPage() {
             </div>
           )}
         </div>
-        
+
         <div className="grid gap-4 sm:grid-cols-3">
           <Summary title="Total billed" value={totalDue} />
           <Summary title="Collected" value={totalPaid} tone="text-emerald-600" />
@@ -297,8 +307,10 @@ function FeesPage() {
                 disabled={isRefreshing || loading || !isOnline}
                 className={!isOnline ? "opacity-50 cursor-not-allowed" : ""}
               >
-                <RefreshCw className={`mr-1 h-4 w-4 ${isRefreshing || loading ? 'animate-spin' : ''}`} />
-                {isRefreshing ? 'Refreshing...' : !isOnline ? 'Offline' : 'Refresh'}
+                <RefreshCw
+                  className={`mr-1 h-4 w-4 ${isRefreshing || loading ? "animate-spin" : ""}`}
+                />
+                {isRefreshing ? "Refreshing..." : !isOnline ? "Offline" : "Refresh"}
               </Button>
               <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
@@ -307,95 +319,96 @@ function FeesPage() {
                     Add charge
                   </Button>
                 </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add fee charge</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <Label>Pupil</Label>
-                    <Select
-                      value={form.pupilId}
-                      onValueChange={(value) => setForm({ ...form, pupilId: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select pupil" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {pupils
-                          .filter((pupil) => pupil.active)
-                          .map((pupil) => (
-                            <SelectItem key={pupil.id} value={pupil.id}>
-                              {pupil.firstName} {pupil.lastName}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Description</Label>
-                    <Input
-                      value={form.description}
-                      onChange={(event) => setForm({ ...form, description: event.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Amount</Label>
-                    <Input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={form.amountDue}
-                      onChange={(event) => setForm({ ...form, amountDue: event.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Term</Label>
-                    <Select
-                      value={form.term}
-                      onValueChange={(value) => setForm({ ...form, term: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {["Term 1", "Term 2", "Term 3"].map((term) => (
-                          <SelectItem key={term} value={term}>
-                            {term}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Year</Label>
-                    <Input
-                      value={form.year}
-                      onChange={(event) => setForm({ ...form, year: event.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Due date</Label>
-                    <Input
-                      type="date"
-                      value={form.dueDate}
-                      onChange={(event) => setForm({ ...form, dueDate: event.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Notes</Label>
-                    <Input
-                      value={form.notes}
-                      onChange={(event) => setForm({ ...form, notes: event.target.value })}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button onClick={submit}>Save charge</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+              </Dialog>
+            </div>
           </CardHeader>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add fee charge</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Label>Pupil</Label>
+                <Select
+                  value={form.pupilId}
+                  onValueChange={(value) => setForm({ ...form, pupilId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select pupil" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pupils
+                      .filter((pupil) => pupil.active)
+                      .map((pupil) => (
+                        <SelectItem key={pupil.id} value={pupil.id}>
+                          {pupil.firstName} {pupil.lastName}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Description</Label>
+                <Input
+                  value={form.description}
+                  onChange={(event) => setForm({ ...form, description: event.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Amount</Label>
+                <Input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={form.amountDue}
+                  onChange={(event) => setForm({ ...form, amountDue: event.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Term</Label>
+                <Select
+                  value={form.term}
+                  onValueChange={(value) => setForm({ ...form, term: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["Term 1", "Term 2", "Term 3"].map((term) => (
+                      <SelectItem key={term} value={term}>
+                        {term}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Year</Label>
+                <Input
+                  value={form.year}
+                  onChange={(event) => setForm({ ...form, year: event.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Due date</Label>
+                <Input
+                  type="date"
+                  value={form.dueDate}
+                  onChange={(event) => setForm({ ...form, dueDate: event.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Notes</Label>
+                <Input
+                  value={form.notes}
+                  onChange={(event) => setForm({ ...form, notes: event.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={submit}>Save charge</Button>
+            </DialogFooter>
+          </DialogContent>
           <CardContent>
             <div className="mb-4 flex flex-col gap-3 sm:flex-row">
               <div className="relative flex-1">
@@ -468,9 +481,7 @@ function FeesPage() {
                     <p className="text-sm text-muted-foreground">Loading fees data...</p>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No fee records match this view.
-                  </p>
+                  <p className="text-sm text-muted-foreground">No fee records match this view.</p>
                 )}
               </div>
             )}
