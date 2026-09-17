@@ -69,6 +69,35 @@ function PupilsPage() {
   const [open, setOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+
+  // Ensure only one dialog is open at a time to prevent Portal conflicts
+  const openCreateDialog = () => {
+    setBulkUploadOpen(false);
+    setEditOpen(false);
+    setOpen(true);
+  };
+
+  const openBulkUploadDialog = () => {
+    setOpen(false);
+    setEditOpen(false);
+    setBulkUploadOpen(true);
+  };
+
+  const openEditDialog = (pupil: Pupil) => {
+    setOpen(false);
+    setBulkUploadOpen(false);
+    setEditingPupil(pupil);
+    setEditForm({
+      admissionNo: pupil.admissionNo,
+      firstName: pupil.firstName,
+      lastName: pupil.lastName,
+      gender: pupil.gender,
+      dob: pupil.dob,
+      classId: pupil.classId,
+      photo: pupil.photo || "",
+    });
+    setEditOpen(true);
+  };
   const [editingPupil, setEditingPupil] = useState<Pupil | null>(null);
   const [form, setForm] = useState({
     admissionNo: "",
@@ -212,18 +241,24 @@ function PupilsPage() {
     }
   };
 
-  const openEdit = (pupil: Pupil) => {
-    setEditingPupil(pupil);
-    setEditForm({
-      admissionNo: pupil.admissionNo,
-      firstName: pupil.firstName,
-      lastName: pupil.lastName,
-      gender: pupil.gender,
-      dob: pupil.dob,
-      classId: pupil.classId,
-      photo: pupil.photo || "",
-    });
-    setEditOpen(true);
+  // Safe dialog close handlers
+  const handleCloseCreate = (open: boolean) => {
+    if (!open) {
+      setOpen(false);
+    }
+  };
+
+  const handleCloseEdit = (open: boolean) => {
+    if (!open) {
+      setEditOpen(false);
+      setEditingPupil(null);
+    }
+  };
+
+  const handleCloseBulkUpload = (open: boolean) => {
+    if (!open) {
+      setBulkUploadOpen(false);
+    }
   };
 
   const submitEdit = async () => {
@@ -323,15 +358,13 @@ function PupilsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={() => setBulkUploadOpen(true)}>
+            <Button variant="outline" onClick={openBulkUploadDialog}>
               <Upload className="h-4 w-4 mr-1" /> Bulk Upload
             </Button>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-1" /> Register pupil
-                </Button>
-              </DialogTrigger>
+            <Button onClick={openCreateDialog}>
+              <Plus className="h-4 w-4 mr-1" /> Register pupil
+            </Button>
+            <Dialog open={open} onOpenChange={handleCloseCreate}>
               <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Register new pupil</DialogTitle>
@@ -513,7 +546,7 @@ function PupilsPage() {
                     {p.active ? <Badge>Active</Badge> : <Badge variant="secondary">Inactive</Badge>}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button size="sm" variant="ghost" onClick={() => openEdit(p)}>
+                    <Button size="sm" variant="ghost" onClick={() => openEditDialog(p)}>
                       <Edit className="h-4 w-4 mr-1" /> Edit
                     </Button>
                     {p.active && (
@@ -537,7 +570,7 @@ function PupilsPage() {
       </Card>
 
       {/* Edit Pupil Dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+      <Dialog open={editOpen} onOpenChange={handleCloseEdit}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Pupil Details</DialogTitle>
@@ -629,7 +662,7 @@ function PupilsPage() {
       </Dialog>
 
       {/* Bulk Upload Dialog */}
-      <BulkUploadPupilsDialog open={bulkUploadOpen} onOpenChange={setBulkUploadOpen} />
+      <BulkUploadPupilsDialog open={bulkUploadOpen} onOpenChange={handleCloseBulkUpload} />
     </AppShell>
   );
 }
