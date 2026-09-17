@@ -46,7 +46,8 @@ const globalForDb = globalThis as unknown as {
 const defaultMaxPool =
   typeof process !== "undefined" && process.env.DB_POOL_MAX
     ? parseInt(process.env.DB_POOL_MAX, 10)
-    : typeof process !== "undefined" && (process.env.VERCEL === "1" || process.env.NODE_ENV === "production")
+    : typeof process !== "undefined" &&
+        (process.env.VERCEL === "1" || process.env.NODE_ENV === "production")
       ? 3
       : 5;
 
@@ -135,12 +136,12 @@ export async function setRLSContext(sql: any, userId: string) {
 
   const user = users[0];
 
-  // Set user_id for all users
-  await sql`SET LOCAL app.user_id = ${userId}`;
+  // Set user_id for all users using set_config (supports parameterized inputs)
+  await sql`SELECT set_config('app.user_id', ${userId}, true)`;
 
   // Set school_id only for school-scoped users (not super_admin)
   if (user.role !== "super_admin" && user.school_id) {
-    await sql`SET LOCAL app.school_id = ${user.school_id}`;
+    await sql`SELECT set_config('app.school_id', ${user.school_id}, true)`;
   }
 
   return { role: user.role, schoolId: user.school_id };
