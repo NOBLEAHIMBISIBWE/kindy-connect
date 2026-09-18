@@ -1,92 +1,92 @@
-import postgres from "postgres";
-import fs from "node:fs";
-import path from "node:path";
+const isServer = typeof window === "undefined";
 
-// Ensure process.env.DATABASE_URL is populated in local development
-if (typeof process !== "undefined" && !process.env.DATABASE_URL) {
-  if (typeof process.loadEnvFile === "function") {
-    try {
-      process.loadEnvFile(".env");
-    } catch {}
-  }
-  if (!process.env.DATABASE_URL) {
-    try {
-      const envPath = path.resolve(process.cwd(), ".env");
-      if (fs.existsSync(envPath)) {
-        const envContent = fs.readFileSync(envPath, "utf-8");
-        const match = envContent.match(/^DATABASE_URL=(.+)$/m);
-        if (match) {
-          process.env.DATABASE_URL = match[1].trim();
+let postgresClient: any = null;
+
+if (isServer) {
+  const postgres = require("postgres");
+  const fs = require("node:fs");
+  const path = require("node:path");
+
+  // Ensure process.env.DATABASE_URL is populated in local development
+  if (typeof process !== "undefined" && !process.env.DATABASE_URL) {
+    if (typeof process.loadEnvFile === "function") {
+      try {
+        process.loadEnvFile(".env");
+      } catch {}
+    }
+    if (!process.env.DATABASE_URL) {
+      try {
+        const envPath = path.resolve(process.cwd(), ".env");
+        if (fs.existsSync(envPath)) {
+          const envContent = fs.readFileSync(envPath, "utf-8");
+          const match = envContent.match(/^DATABASE_URL=(.+)$/m);
+          if (match) {
+            process.env.DATABASE_URL = match[1].trim();
+          }
         }
-      }
-    } catch {}
-  }
-}
-
-const connectionString = typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
-
-// Development mode check - if we can't connect to the database, we'll use mock data
-const isDevelopmentMode =
-  !connectionString ||
-  connectionString.includes("localhost") ||
-  connectionString.includes("placeholder") ||
-  connectionString.includes("[PROJECT_ID]");
-
-if (!connectionString && typeof process !== "undefined") {
-  console.warn(
-    "⚠️  WARNING: DATABASE_URL is not defined. Running in mock data mode for development.\n" +
-      "To use a real database, set DATABASE_URL in your .env file.",
-  );
-}
-
-const globalForDb = globalThis as unknown as {
-  __postgres_sql__?: ReturnType<typeof postgres>;
-};
-
-const defaultMaxPool =
-  typeof process !== "undefined" && process.env.DB_POOL_MAX
-    ? parseInt(process.env.DB_POOL_MAX, 10)
-    : typeof process !== "undefined" &&
-        (process.env.VERCEL === "1" || process.env.NODE_ENV === "production")
-      ? 3
-      : 5;
-
-function getPostgresClient() {
-  if (!connectionString || isDevelopmentMode) {
-    return null;
+      } catch {}
+    }
   }
 
-  if (globalForDb.__postgres_sql__) {
-    return globalForDb.__postgres_sql__;
+  const connectionString = typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
+
+  // Development mode check - if we can't connect to the database, we'll use mock data
+  const isDevelopmentMode =
+    !connectionString ||
+    connectionString.includes("localhost") ||
+    connectionString.includes("placeholder") ||
+    connectionString.includes("[PROJECT_ID]");
+
+  if (!connectionString && typeof process !== "undefined") {
+    console.warn(
+      "⚠️  WARNING: DATABASE_URL is not defined. Running in mock data mode for development.\n" +
+        "To use a real database, set DATABASE_URL in your .env file.",
+    );
   }
 
-  const client = postgres(connectionString, {
-    // Keep max connections per process small (default 3 in production/serverless)
-    // so multiple concurrent serverless instances do not exceed PgBouncer's 15 client limit
-    max: defaultMaxPool,
-    // Close idle connections quickly (10s) to free up PgBouncer connection slots
-    idle_timeout: 10,
-    // Allow 30 seconds for connection — Supabase free tier can take up to 20s to wake
-    connect_timeout: 30,
-    // Recycle connections every 10 minutes
-    max_lifetime: 60 * 10,
-    // REQUIRED for Supabase PgBouncer in transaction mode (default pooler)
-    // Without this, prepared statements fail on pooled connections
-    prepare: false,
-    ssl:
-      typeof process !== "undefined" &&
-      (process.env.NODE_ENV === "production" || process.env.VERCEL === "1")
-        ? { rejectUnauthorized: false }
-        : false,
-    // Suppress notices
-    onnotice: () => {},
-  });
+  const globalForDb = globalThis as unknown as {
+    __postgres_sql__?: any;
+  };
 
-  globalForDb.__postgres_sql__ = client;
-  return client;
+  const defaultMaxPool =
+    typeof process !== "undefined" && process.env.DB_POOL_MAX
+      ? parseInt(process.env.DB_POOL_MAX, 10)
+      : typeof process !== "undefined" &&
+          (process.env.VERCEL === "1" || process.env.NODE_ENV === "production")
+        ? 3
+        : 5;
+
+  function getPostgresClient() {
+    if (!connectionString || isDevelopmentMode) {
+      return null;
+    }
+
+    if (globalForDb.__postgres_sql__) {
+      return globalForDb.__postgres_sql__;
+    }
+
+    const client = postgres(connectionString, {
+      max: defaultMaxPool,
+      idle_timeout: 10,
+      connect_timeout: 30,
+      max_lifetime: 60 * 10,
+      prepare: false,
+      ssl:
+        typeof process !== "undefined" &&
+        (process.env.NODE_ENV === "production" || process.env.VERCEL === "1")
+          ? { rejectUnauthorized: false }
+          : false,
+      onnotice: () => {},
+    });
+
+    globalForDb.__postgres_sql__ = client;
+    return client;
+  }
+
+  postgresClient = getPostgresClient();
 }
 
-export const sql = getPostgresClient();
+export const sql = postgresClient;
 
 /**
  * Deeply converts an object's keys from snake_case to camelCase
