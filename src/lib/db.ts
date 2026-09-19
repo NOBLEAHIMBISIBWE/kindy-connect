@@ -23,10 +23,9 @@ if (typeof window === "undefined" && typeof process !== "undefined" && !process.
 
 const connectionString = typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
 
-// Development mode check - if we can't connect to the database, we'll use mock data
-const isDevelopmentMode =
+// Check if connection string is missing or contains placeholder values
+const isInvalidConnectionString =
   !connectionString ||
-  connectionString.includes("localhost") ||
   connectionString.includes("placeholder") ||
   connectionString.includes("[PROJECT_ID]");
 
@@ -54,7 +53,7 @@ function getPostgresClient() {
     return null;
   }
 
-  if (!connectionString || isDevelopmentMode) {
+  if (!connectionString || isInvalidConnectionString) {
     return null;
   }
 
