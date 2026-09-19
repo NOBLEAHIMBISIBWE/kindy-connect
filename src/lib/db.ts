@@ -1,9 +1,5 @@
-import postgres from "postgres";
-import fs from "node:fs";
-import path from "node:path";
-
 // Ensure process.env.DATABASE_URL is populated in local development
-if (typeof process !== "undefined" && !process.env.DATABASE_URL) {
+if (typeof window === "undefined" && typeof process !== "undefined" && !process.env.DATABASE_URL) {
   if (typeof process.loadEnvFile === "function") {
     try {
       process.loadEnvFile(".env");
@@ -11,6 +7,8 @@ if (typeof process !== "undefined" && !process.env.DATABASE_URL) {
   }
   if (!process.env.DATABASE_URL) {
     try {
+      const path = require("node:path");
+      const fs = require("node:fs");
       const envPath = path.resolve(process.cwd(), ".env");
       if (fs.existsSync(envPath)) {
         const envContent = fs.readFileSync(envPath, "utf-8");
@@ -40,7 +38,7 @@ if (!connectionString && typeof process !== "undefined") {
 }
 
 const globalForDb = globalThis as unknown as {
-  __postgres_sql__?: ReturnType<typeof postgres>;
+  __postgres_sql__?: any;
 };
 
 const defaultMaxPool =
@@ -52,6 +50,10 @@ const defaultMaxPool =
       : 5;
 
 function getPostgresClient() {
+  if (typeof window !== "undefined") {
+    return null;
+  }
+
   if (!connectionString || isDevelopmentMode) {
     return null;
   }
@@ -59,6 +61,8 @@ function getPostgresClient() {
   if (globalForDb.__postgres_sql__) {
     return globalForDb.__postgres_sql__;
   }
+
+  const postgres = require("postgres");
 
   const client = postgres(connectionString, {
     // Keep max connections per process small (default 3 in production/serverless)

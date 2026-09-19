@@ -319,96 +319,96 @@ function FeesPage() {
                     Add charge
                   </Button>
                 </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add fee charge</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <Label>Pupil</Label>
+                      <Select
+                        value={form.pupilId}
+                        onValueChange={(value) => setForm({ ...form, pupilId: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select pupil" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {pupils
+                            .filter((pupil) => pupil.active)
+                            .map((pupil) => (
+                              <SelectItem key={pupil.id} value={pupil.id}>
+                                {pupil.firstName} {pupil.lastName}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Description</Label>
+                      <Input
+                        value={form.description}
+                        onChange={(event) => setForm({ ...form, description: event.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Amount</Label>
+                      <Input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={form.amountDue}
+                        onChange={(event) => setForm({ ...form, amountDue: event.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Term</Label>
+                      <Select
+                        value={form.term}
+                        onValueChange={(value) => setForm({ ...form, term: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["Term 1", "Term 2", "Term 3"].map((term) => (
+                            <SelectItem key={term} value={term}>
+                              {term}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Year</Label>
+                      <Input
+                        value={form.year}
+                        onChange={(event) => setForm({ ...form, year: event.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Due date</Label>
+                      <Input
+                        type="date"
+                        value={form.dueDate}
+                        onChange={(event) => setForm({ ...form, dueDate: event.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Notes</Label>
+                      <Input
+                        value={form.notes}
+                        onChange={(event) => setForm({ ...form, notes: event.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={submit}>Save charge</Button>
+                  </DialogFooter>
+                </DialogContent>
               </Dialog>
             </div>
           </CardHeader>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add fee charge</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <Label>Pupil</Label>
-                <Select
-                  value={form.pupilId}
-                  onValueChange={(value) => setForm({ ...form, pupilId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select pupil" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pupils
-                      .filter((pupil) => pupil.active)
-                      .map((pupil) => (
-                        <SelectItem key={pupil.id} value={pupil.id}>
-                          {pupil.firstName} {pupil.lastName}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Description</Label>
-                <Input
-                  value={form.description}
-                  onChange={(event) => setForm({ ...form, description: event.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Amount</Label>
-                <Input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={form.amountDue}
-                  onChange={(event) => setForm({ ...form, amountDue: event.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Term</Label>
-                <Select
-                  value={form.term}
-                  onValueChange={(value) => setForm({ ...form, term: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {["Term 1", "Term 2", "Term 3"].map((term) => (
-                      <SelectItem key={term} value={term}>
-                        {term}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Year</Label>
-                <Input
-                  value={form.year}
-                  onChange={(event) => setForm({ ...form, year: event.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Due date</Label>
-                <Input
-                  type="date"
-                  value={form.dueDate}
-                  onChange={(event) => setForm({ ...form, dueDate: event.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Notes</Label>
-                <Input
-                  value={form.notes}
-                  onChange={(event) => setForm({ ...form, notes: event.target.value })}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={submit}>Save charge</Button>
-            </DialogFooter>
-          </DialogContent>
           <CardContent>
             <div className="mb-4 flex flex-col gap-3 sm:flex-row">
               <div className="relative flex-1">
