@@ -29,7 +29,7 @@ export function SafeDialog({
   footer,
 }: SafeDialogProps) {
   // Reset any potential state issues on open/close
-  const dialogKey = React.useMemo(() => `dialog-${open ? 'open' : 'closed'}-${Date.now()}`, [open]);
+  const dialogKey = React.useMemo(() => `dialog-${open ? "open" : "closed"}-${Date.now()}`, [open]);
 
   return (
     <ErrorBoundary fallback={<div>Dialog failed to load</div>}>
