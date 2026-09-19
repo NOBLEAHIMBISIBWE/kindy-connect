@@ -360,9 +360,10 @@ export const getInitialData = createServerFn({ method: "GET" })
 export const loginUser = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string; password: string }) => d)
   .handler(async ({ data }) => {
+    const db = requireDatabase();
     const { id, password } = data;
     try {
-      const results = await sql`
+      const results = await db`
         SELECT * FROM users 
         WHERE LOWER(id) = LOWER(${id.trim()})
       `;
@@ -418,6 +419,7 @@ export const registerUser = createServerFn({ method: "POST" })
     ) => d,
   )
   .handler(async ({ data }) => {
+    const db = requireDatabase();
     const id = data.id.trim();
     const password = data.password.trim();
     const status = data.status || (data.role === "admin" ? "verified" : "pending");
@@ -429,20 +431,20 @@ export const registerUser = createServerFn({ method: "POST" })
 
     try {
       // Check for existing ID
-      const idCheck = await sql`SELECT id FROM users WHERE LOWER(id) = LOWER(${id})`;
+      const idCheck = await db`SELECT id FROM users WHERE LOWER(id) = LOWER(${id})`;
       if (idCheck.length > 0) {
         throw new Error("Assigned ID already used");
       }
 
       // Check for existing email
-      const emailCheck = await sql`SELECT id FROM users WHERE LOWER(email) = LOWER(${data.email})`;
+      const emailCheck = await db`SELECT id FROM users WHERE LOWER(email) = LOWER(${data.email})`;
       if (emailCheck.length > 0) {
         throw new Error("Email already used");
       }
 
       // Check for existing phone if provided
       if (data.phone) {
-        const phoneCheck = await sql`SELECT id FROM users WHERE phone = ${data.phone}`;
+        const phoneCheck = await db`SELECT id FROM users WHERE phone = ${data.phone}`;
         if (phoneCheck.length > 0) {
           throw new Error("Phone number already used");
         }
@@ -450,7 +452,7 @@ export const registerUser = createServerFn({ method: "POST" })
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      const result = await sql.begin(async (sql) => {
+      const result = await db.begin(async (sql) => {
         let finalSchoolId = data.schoolId;
         let newSchool: any = null;
 
