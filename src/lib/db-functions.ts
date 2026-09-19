@@ -190,7 +190,7 @@ async function safeInsertAuditLog(
 // 1. Get Initial Data
 // ----------------------------------------------------
 export const getInitialData = createServerFn({ method: "GET" })
-  .validator((d: { userId?: string } | undefined) => d ?? {})
+  .inputValidator((d: { userId?: string } | undefined) => d ?? {})
   .handler(async ({ data }) => {
     // Check if we should use mock data (development mode)
     if (!sql) {
@@ -328,7 +328,7 @@ export const getInitialData = createServerFn({ method: "GET" })
 // 2. Authentication Functions
 // ----------------------------------------------------
 export const loginUser = createServerFn({ method: "POST" })
-  .validator((d: { id: string; password: string }) => d)
+  .inputValidator((d: { id: string; password: string }) => d)
   .handler(async ({ data }) => {
     const { id, password } = data;
     try {
@@ -374,7 +374,7 @@ export const loginUser = createServerFn({ method: "POST" })
   });
 
 export const registerUser = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (
       d: Omit<User, "status" | "registeredAt"> & {
         password: string;
@@ -490,7 +490,7 @@ export const registerUser = createServerFn({ method: "POST" })
   });
 
 export const approveTeacher = createServerFn({ method: "POST" })
-  .validator((d: { id: string; actorId: string; actorName: string }) => d)
+  .inputValidator((d: { id: string; actorId: string; actorName: string }) => d)
   .handler(async ({ data }) => {
     const { id, actorId, actorName } = data;
     const logId = Math.random().toString(36).slice(2, 10);
@@ -514,7 +514,7 @@ export const approveTeacher = createServerFn({ method: "POST" })
   });
 
 export const rejectTeacher = createServerFn({ method: "POST" })
-  .validator((d: { id: string; actorId: string; actorName: string }) => d)
+  .inputValidator((d: { id: string; actorId: string; actorName: string }) => d)
   .handler(async ({ data }) => {
     const { id, actorId, actorName } = data;
     const logId = Math.random().toString(36).slice(2, 10);
@@ -540,7 +540,7 @@ export const rejectTeacher = createServerFn({ method: "POST" })
 // 3. Pupil CRUD Functions
 // ----------------------------------------------------
 export const addPupil = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (d: {
       pupil: Omit<Pupil, "id" | "active">;
       parent: ParentInput;
@@ -623,7 +623,7 @@ export const addPupil = createServerFn({ method: "POST" })
 
 // Bulk add pupils with their parents
 export const bulkAddPupils = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (d: {
       pupils: Array<{ pupil: Omit<Pupil, "id" | "active">; parent: ParentInput }>;
       actorId: string;
@@ -761,7 +761,7 @@ export const bulkAddPupils = createServerFn({ method: "POST" })
   });
 
 export const updatePupil = createServerFn({ method: "POST" })
-  .validator((d: { id: string; data: Partial<Pupil> }) => d)
+  .inputValidator((d: { id: string; data: Partial<Pupil> }) => d)
   .handler(async ({ data }) => {
     const { id, data: pupilData } = data;
 
@@ -797,7 +797,7 @@ export const updatePupil = createServerFn({ method: "POST" })
   });
 
 export const deactivatePupil = createServerFn({ method: "POST" })
-  .validator((d: { id: string }) => d)
+  .inputValidator((d: { id: string }) => d)
   .handler(async ({ data }) => {
     try {
       await sql`
@@ -815,7 +815,7 @@ export const deactivatePupil = createServerFn({ method: "POST" })
 // 4. Parent Functions
 // ----------------------------------------------------
 export const addParent = createServerFn({ method: "POST" })
-  .validator((d: { parent: Omit<Parent, "id">; actorId: string; actorName: string }) => d)
+  .inputValidator((d: { parent: Omit<Parent, "id">; actorId: string; actorName: string }) => d)
   .handler(async ({ data }) => {
     const { parent, actorId, actorName } = data;
 
@@ -861,7 +861,7 @@ export const addParent = createServerFn({ method: "POST" })
 // 5. Attendance & Notifications Functions
 // ----------------------------------------------------
 export const markArrival = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (d: {
       pupilId: string;
       transportDetails: {
@@ -1004,7 +1004,7 @@ export const markArrival = createServerFn({ method: "POST" })
   });
 
 export const markDeparture = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (d: {
       pupilId: string;
       transportDetails: {
@@ -1150,7 +1150,7 @@ export const markDeparture = createServerFn({ method: "POST" })
 // 6. Marks Functions
 // ----------------------------------------------------
 export const addMark = createServerFn({ method: "POST" })
-  .validator((d: { mark: Omit<Mark, "id" | "recordedBy" | "recordedAt">; actorId: string }) => d)
+  .inputValidator((d: { mark: Omit<Mark, "id" | "recordedBy" | "recordedAt">; actorId: string }) => d)
   .handler(async ({ data }) => {
     const { mark, actorId } = data;
     const id = Math.random().toString(36).slice(2, 10);
@@ -1212,7 +1212,7 @@ export const addMark = createServerFn({ method: "POST" })
   });
 
 export const updateMark = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (d: {
       id: string;
       data: Partial<Omit<Mark, "id" | "recordedBy" | "recordedAt">>;
@@ -1300,7 +1300,7 @@ export const updateMark = createServerFn({ method: "POST" })
   });
 
 export const deleteMark = createServerFn({ method: "POST" })
-  .validator((d: { id: string }) => d)
+  .inputValidator((d: { id: string }) => d)
   .handler(async ({ data }) => {
     try {
       await sql`
@@ -1318,7 +1318,7 @@ export const deleteMark = createServerFn({ method: "POST" })
 // 7. Fees Functions
 // ----------------------------------------------------
 export const addFee = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (d: {
       fee: Omit<Fee, "id" | "createdBy" | "createdAt" | "updatedAt">;
       actorId: string;
@@ -1351,7 +1351,7 @@ export const addFee = createServerFn({ method: "POST" })
   });
 
 export const updateFee = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (d: {
       id: string;
       data: Partial<
@@ -1379,7 +1379,7 @@ export const updateFee = createServerFn({ method: "POST" })
   });
 
 export const saveBulkMarks = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (d: {
       marks: Array<{
         id?: string;
@@ -1466,7 +1466,7 @@ export const saveBulkMarks = createServerFn({ method: "POST" })
 // 7. School Management Functions
 // ----------------------------------------------------
 export const addSchool = createServerFn({ method: "POST" })
-  .validator((d: { name: string; address?: string; phone?: string; email?: string }) => d)
+  .inputValidator((d: { name: string; address?: string; phone?: string; email?: string }) => d)
   .handler(async ({ data }) => {
     const trimmedName = data.name.trim();
     const existingSchool = await sql`
@@ -1498,7 +1498,7 @@ export const addSchool = createServerFn({ method: "POST" })
   });
 
 export const updateSchool = createServerFn({ method: "POST" })
-  .validator((d: { id: string; data: Partial<Omit<School, "id" | "registeredAt">> }) => d)
+  .inputValidator((d: { id: string; data: Partial<Omit<School, "id" | "registeredAt">> }) => d)
   .handler(async ({ data }) => {
     const { id, data: schoolData } = data;
     if (schoolData.name) {
@@ -1526,7 +1526,7 @@ export const updateSchool = createServerFn({ method: "POST" })
   });
 
 export const deleteSchool = createServerFn({ method: "POST" })
-  .validator((d: { id: string }) => d)
+  .inputValidator((d: { id: string }) => d)
   .handler(async ({ data }) => {
     try {
       await sql`DELETE FROM schools WHERE id = ${data.id}`;
@@ -1542,7 +1542,7 @@ export const deleteSchool = createServerFn({ method: "POST" })
 // 8. Class Management Functions
 // ----------------------------------------------------
 export const addClass = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (d: { id?: string; name: string; schoolId: string; teacherId?: string; subjects?: string[] }) =>
       d,
   )
@@ -1582,7 +1582,7 @@ export const addClass = createServerFn({ method: "POST" })
   });
 
 export const updateClass = createServerFn({ method: "POST" })
-  .validator((d: { id: string; data: Partial<Omit<ClassRoom, "id">> }) => d)
+  .inputValidator((d: { id: string; data: Partial<Omit<ClassRoom, "id">> }) => d)
   .handler(async ({ data }) => {
     const { id, data: classData } = data;
     const dbFields = toSnake(classData);
@@ -1608,7 +1608,7 @@ export const updateClass = createServerFn({ method: "POST" })
   });
 
 export const deleteClass = createServerFn({ method: "POST" })
-  .validator((d: { id: string }) => d)
+  .inputValidator((d: { id: string }) => d)
   .handler(async ({ data }) => {
     try {
       await sql.begin(async (sql) => {
@@ -1627,7 +1627,7 @@ export const deleteClass = createServerFn({ method: "POST" })
 // 9. User Management Functions
 // ----------------------------------------------------
 export const deleteUser = createServerFn({ method: "POST" })
-  .validator((d: { id: string; actorId: string; actorName: string }) => d)
+  .inputValidator((d: { id: string; actorId: string; actorName: string }) => d)
   .handler(async ({ data }) => {
     const { id, actorId, actorName } = data;
     const logId = Math.random().toString(36).slice(2, 10);
@@ -1681,7 +1681,7 @@ export const deleteUser = createServerFn({ method: "POST" })
   });
 
 export const updateUser = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (d: {
       id: string;
       actorId?: string;
@@ -1746,7 +1746,7 @@ export const updateUser = createServerFn({ method: "POST" })
 // 10. Subject Management Functions
 // ----------------------------------------------------
 export const addSubject = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (d: { schoolId: string; name: string; code?: string; actorId?: string; actorName?: string }) =>
       d,
   )
@@ -1780,7 +1780,7 @@ export const addSubject = createServerFn({ method: "POST" })
   });
 
 export const updateSubject = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (d: { id: string; name: string; code?: string; actorId?: string; actorName?: string }) => d,
   )
   .handler(async ({ data }) => {
@@ -1810,7 +1810,7 @@ export const updateSubject = createServerFn({ method: "POST" })
   });
 
 export const deleteSubject = createServerFn({ method: "POST" })
-  .validator((d: { id: string; actorId?: string; actorName?: string }) => d)
+  .inputValidator((d: { id: string; actorId?: string; actorName?: string }) => d)
   .handler(async ({ data }) => {
     try {
       const subjects = await sql`SELECT name FROM subjects WHERE id = ${data.id}`;
@@ -1836,7 +1836,7 @@ export const deleteSubject = createServerFn({ method: "POST" })
   });
 
 export const addSubjectsBulk = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (d: {
       schoolId: string;
       subjects: Array<{ name: string; code?: string }>;
@@ -1884,7 +1884,7 @@ export const addSubjectsBulk = createServerFn({ method: "POST" })
   });
 
 export const seedDefaultSubjects = createServerFn({ method: "POST" })
-  .validator((d: { schoolId: string; actorId?: string; actorName?: string }) => d)
+  .inputValidator((d: { schoolId: string; actorId?: string; actorName?: string }) => d)
   .handler(async ({ data }) => {
     const defaultList = [
       { name: "Mathematics", code: "MTH" },
