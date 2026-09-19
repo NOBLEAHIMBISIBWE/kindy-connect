@@ -207,15 +207,34 @@ export const getInitialData = createServerFn({ method: "GET" })
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
       const cutoffDate = ninetyDaysAgo.toISOString().slice(0, 10);
 
+      // Optional tables (fees and subjects) query the root sql client so that if they
+      // do not exist in an unmigrated database, catching error 42P01 does not abort transaction tx.
       const feesQuery =
-        client`SELECT * FROM fees ORDER BY due_date ASC NULLS LAST, created_at DESC`.catch(
+        sql`SELECT * FROM fees ORDER BY due_date ASC NULLS LAST, created_at DESC`.catch(
           (error: any) => {
             if (
               error?.code === "42P01" ||
               error?.message?.includes("relation \"fees\" does not exist") ||
-              error?.message?.includes("does not exist")
+              error?.message?.includes("does not exist") ||
+              error?.message?.includes("42P01")
             ) {
               console.warn("Fees table does not exist yet; returning an empty fee list.");
+              return [];
+            }
+            throw error;
+          },
+        );
+
+      const subjectsQuery =
+        sql`SELECT * FROM subjects ORDER BY name ASC`.catch(
+          (error: any) => {
+            if (
+              error?.code === "42P01" ||
+              error?.message?.includes("relation \"subjects\" does not exist") ||
+              error?.message?.includes("does not exist") ||
+              error?.message?.includes("42P01")
+            ) {
+              console.warn("Subjects table does not exist yet; returning an empty subject list.");
               return [];
             }
             throw error;
@@ -246,7 +265,7 @@ export const getInitialData = createServerFn({ method: "GET" })
         client`SELECT * FROM notifications ORDER BY timestamp DESC LIMIT 200`,
         client`SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 200`,
         client`SELECT * FROM marks ORDER BY recorded_at DESC LIMIT 2000`,
-        client`SELECT * FROM subjects ORDER BY name ASC`,
+        subjectsQuery,
         feesQuery,
       ]);
 
@@ -265,6 +284,12 @@ export const getInitialData = createServerFn({ method: "GET" })
         parentIds: parentMap[p.id] || [],
       }));
 
+      const parsedFees = toCamel<Fee[]>(fees).map((f) => ({
+        ...f,
+        amountDue: Number(f.amountDue || 0),
+        amountPaid: Number(f.amountPaid || 0),
+      }));
+
       return {
         schools: toCamel<School[]>(schools),
         users: toCamel<User[]>(users),
@@ -276,7 +301,7 @@ export const getInitialData = createServerFn({ method: "GET" })
         audit: toCamel<AuditLog[]>(audit),
         marks: toCamel<Mark[]>(marks),
         subjects: toCamel<Subject[]>(subjects),
-        fees: toCamel<Fee[]>(fees),
+        fees: parsedFees,
       };
     };
 
@@ -1336,7 +1361,7 @@ export const addFee = createServerFn({ method: "POST" })
       updatedAt: now,
     });
     await sql.begin(async (tx) => {
-      await tx`INSERT INTO fees ${sql(dbFee)}`;
+      await tx`INSERT INTO fees ${tx(dbFee)}`;
       await safeInsertAuditLog(
         tx,
         Math.random().toString(36).slice(2, 10),
@@ -1364,7 +1389,7 @@ export const updateFee = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const dbFields = toSnake({ ...data.data, updatedAt: new Date().toISOString() });
     await sql.begin(async (tx) => {
-      await tx`UPDATE fees SET ${sql(dbFields)} WHERE id = ${data.id}`;
+      await tx`UPDATE fees SET ${tx(dbFields)} WHERE id = ${data.id}`;
       await safeInsertAuditLog(
         tx,
         Math.random().toString(36).slice(2, 10),

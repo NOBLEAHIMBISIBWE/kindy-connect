@@ -141,11 +141,11 @@ export async function setRLSContext(sql: any, userId: string) {
   const user = users[0];
 
   // Set user_id for all users using set_config (supports parameterized inputs)
-  await sql`SELECT set_config('app.user_id', ${userId}, true)`;
+  await sql`SELECT set_config('app.user_id', ${String(userId)}, true)`;
 
   // Set school_id only for school-scoped users (not super_admin)
   if (user.role !== "super_admin" && user.school_id) {
-    await sql`SELECT set_config('app.school_id', ${user.school_id}, true)`;
+    await sql`SELECT set_config('app.school_id', ${String(user.school_id)}, true)`;
   }
 
   return { role: user.role, schoolId: user.school_id };
