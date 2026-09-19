@@ -222,10 +222,24 @@ const SCHOOL_CONTEXT_KEY = "kinder.selectedSchoolId";
 function classifyDbError(err: any): {
   isPaused: boolean;
   isPoolExhausted: boolean;
+  isServerError: boolean;
   message: string;
 } {
-  const msg: string = err?.message || err?.toString() || "Unknown error";
+  let msg: string = err?.message || err?.toString() || "Unknown error";
   const lowerMsg = msg.toLowerCase();
+
+  const isHtmlResponse = lowerMsg.includes("<!doctype") || lowerMsg.includes("<html");
+  const isServerError =
+    isHtmlResponse ||
+    lowerMsg.includes("500 internal server error") ||
+    lowerMsg.includes("status of 500") ||
+    lowerMsg.includes("server error");
+
+  if (isHtmlResponse) {
+    msg =
+      "Server error (500 Internal Server Error): Unable to reach the database backend. The service may be restarting or temporarily overloaded.";
+  }
+
   // Only classify as paused if explicitly reported as paused by Supabase or PostgREST API
   const isPaused =
     lowerMsg.includes("is_paused") ||
@@ -242,7 +256,7 @@ function classifyDbError(err: any): {
     lowerMsg.includes("connection limit exceeded") ||
     lowerMsg.includes("remaining connection slots are reserved");
 
-  return { isPaused, isPoolExhausted, message: msg };
+  return { isPaused, isPoolExhausted, isServerError, message: msg };
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -368,16 +382,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       if (timedOut) return;
       clearTimeout(timeoutId);
-      console.error("Failed to load live database data:", err);
-      const { isPaused, isPoolExhausted, message } = classifyDbError(err);
+      const { isPaused, isPoolExhausted, isServerError, message } = classifyDbError(err);
+      console.error("Failed to load live database data:", message);
       setLoadError(message);
       setIsPausedError(isPaused);
       setIsPoolExhaustedError(isPoolExhausted);
       setLoading(false);
-      // Auto-retry every 10-15 seconds for paused-project or connection pool errors
+      // Auto-retry every 10-15 seconds for paused-project, connection pool errors, or server 500 errors
       if (isPaused) {
         startRetryCountdown(15, attemptLoad);
-      } else if (isPoolExhausted) {
+      } else if (isPoolExhausted || isServerError) {
         startRetryCountdown(10, attemptLoad);
       }
     }
@@ -421,7 +435,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setLastSyncTime(new Date().toLocaleTimeString());
       queryClient.setQueryData(queryKeys.initialData(state.currentUserId), data);
     } catch (err) {
-      console.error("Failed to refresh database data:", err);
+      const { message } = classifyDbError(err);
+      console.error("Failed to refresh database data:", message);
     }
   }, [state.currentUserId]);
 
@@ -1511,12 +1526,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           </div>
 
           {/* Auto-retry countdown bar */}
-          {(isPausedError || isPoolExhaustedError) && retryIn > 0 && (
+          {retryIn > 0 && (
             <div className="space-y-2">
               <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                 <div
                   className="h-full bg-orange-400 rounded-full transition-all duration-1000 ease-linear"
-                  style={{ width: `${(retryIn / (isPoolExhaustedError ? 10 : 15)) * 100}%` }}
+                  style={{ width: `${(retryIn / (isPausedError ? 15 : 10)) * 100}%` }}
                 />
               </div>
               <p className="text-xs text-muted-foreground">

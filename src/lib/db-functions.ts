@@ -214,7 +214,7 @@ export const getInitialData = createServerFn({ method: "GET" })
           (error: any) => {
             if (
               error?.code === "42P01" ||
-              error?.message?.includes("relation \"fees\" does not exist") ||
+              error?.message?.includes('relation "fees" does not exist') ||
               error?.message?.includes("does not exist") ||
               error?.message?.includes("42P01")
             ) {
@@ -225,21 +225,18 @@ export const getInitialData = createServerFn({ method: "GET" })
           },
         );
 
-      const subjectsQuery =
-        sql`SELECT * FROM subjects ORDER BY name ASC`.catch(
-          (error: any) => {
-            if (
-              error?.code === "42P01" ||
-              error?.message?.includes("relation \"subjects\" does not exist") ||
-              error?.message?.includes("does not exist") ||
-              error?.message?.includes("42P01")
-            ) {
-              console.warn("Subjects table does not exist yet; returning an empty subject list.");
-              return [];
-            }
-            throw error;
-          },
-        );
+      const subjectsQuery = sql`SELECT * FROM subjects ORDER BY name ASC`.catch((error: any) => {
+        if (
+          error?.code === "42P01" ||
+          error?.message?.includes('relation "subjects" does not exist') ||
+          error?.message?.includes("does not exist") ||
+          error?.message?.includes("42P01")
+        ) {
+          console.warn("Subjects table does not exist yet; returning an empty subject list.");
+          return [];
+        }
+        throw error;
+      });
 
       const [
         schools,
@@ -323,10 +320,18 @@ export const getInitialData = createServerFn({ method: "GET" })
 
       return await serverCache.cachedFetch(cacheKey, 60, cacheTags, async () => {
         if (data?.userId) {
-          return await sql.begin(async (tx) => {
-            await setRLSContext(tx, data.userId!);
-            return fetchInitialData(tx as unknown as SqlClient);
-          });
+          try {
+            return await sql.begin(async (tx) => {
+              await setRLSContext(tx, data.userId!);
+              return fetchInitialData(tx as unknown as SqlClient);
+            });
+          } catch (rlsErr) {
+            console.warn(
+              "Failed to set RLS context for userId in getInitialData, falling back to uncontextualized query:",
+              rlsErr,
+            );
+            return await fetchInitialData(sql);
+          }
         }
         return await fetchInitialData(sql);
       });
@@ -1175,7 +1180,9 @@ export const markDeparture = createServerFn({ method: "POST" })
 // 6. Marks Functions
 // ----------------------------------------------------
 export const addMark = createServerFn({ method: "POST" })
-  .inputValidator((d: { mark: Omit<Mark, "id" | "recordedBy" | "recordedAt">; actorId: string }) => d)
+  .inputValidator(
+    (d: { mark: Omit<Mark, "id" | "recordedBy" | "recordedAt">; actorId: string }) => d,
+  )
   .handler(async ({ data }) => {
     const { mark, actorId } = data;
     const id = Math.random().toString(36).slice(2, 10);
