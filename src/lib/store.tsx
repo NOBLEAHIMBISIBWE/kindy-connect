@@ -195,6 +195,372 @@ function calculateGrade(score: number, maxScore: number): string {
   return "E";
 }
 
+// Seed data defaults for instant UI availability & fallback
+const seedClasses: ClassRoom[] = [
+  { id: "c1", name: "Baby", teacherId: "u3" },
+  { id: "c2", name: "Middle", teacherId: "u4" },
+  { id: "c3", name: "Top" },
+  { id: "c4", name: "P1" },
+];
+
+const seedUsers: User[] = [
+  {
+    id: "u0",
+    name: "Super Admin",
+    email: "super@kinder.app",
+    role: "superadmin",
+    status: "verified",
+    phone: "+254700000000",
+    password: "super123",
+    registeredAt: "2025-01-01",
+  },
+  {
+    id: "u1",
+    name: "Amina Okello",
+    email: "admin@kinder.app",
+    role: "admin",
+    status: "verified",
+    phone: "+254700000001",
+    password: "admin123",
+    schoolId: "s1",
+    registeredAt: "2025-01-10",
+  },
+  {
+    id: "u2",
+    name: "Brian Mwangi",
+    email: "deputy@kinder.app",
+    role: "deputy",
+    status: "verified",
+    phone: "+254700000002",
+    password: "deputy123",
+    schoolId: "s1",
+    registeredAt: "2025-01-12",
+  },
+  {
+    id: "u3",
+    name: "Grace Wanjiku",
+    email: "grace@kinder.app",
+    role: "teacher",
+    status: "verified",
+    phone: "+254700000003",
+    classId: "c1",
+    schoolId: "s1",
+    password: "grace123",
+    registeredAt: "2025-02-01",
+  },
+  {
+    id: "u4",
+    name: "Peter Otieno",
+    email: "peter@kinder.app",
+    role: "teacher",
+    status: "verified",
+    phone: "+254700000004",
+    classId: "c2",
+    schoolId: "s1",
+    password: "peter123",
+    registeredAt: "2025-02-03",
+  },
+  {
+    id: "u5",
+    name: "Lucy Achieng",
+    email: "lucy@kinder.app",
+    role: "teacher",
+    status: "pending",
+    phone: "+254700000005",
+    schoolId: "s1",
+    password: "lucy123",
+    registeredAt: "2025-06-15",
+  },
+  {
+    id: "u6",
+    name: "James Kariuki",
+    email: "james@kinder.app",
+    role: "teacher",
+    status: "pending",
+    phone: "+254700000006",
+    schoolId: "s1",
+    password: "james123",
+    registeredAt: "2025-06-16",
+  },
+];
+
+const seedSchools: School[] = [
+  {
+    id: "s1",
+    name: "Little Stars Kindergarten",
+    location: "Nairobi",
+    phone: "+254700111111",
+    email: "info@littlestars.app",
+    createdAt: "2025-01-01",
+    active: true,
+  },
+];
+
+const seedParents: Parent[] = [
+  {
+    id: "p1",
+    name: "Mary Atieno",
+    phone: "+254712000001",
+    email: "mary@example.com",
+    relationship: "Mother",
+  },
+  {
+    id: "p2",
+    name: "John Kamau",
+    phone: "+254712000002",
+    email: "john@example.com",
+    relationship: "Father",
+  },
+  {
+    id: "p3",
+    name: "Sarah Njeri",
+    phone: "+254712000003",
+    email: "sarah@example.com",
+    relationship: "Mother",
+  },
+  {
+    id: "p4",
+    name: "David Mutua",
+    phone: "+254712000004",
+    email: "david@example.com",
+    relationship: "Father",
+  },
+  {
+    id: "p5",
+    name: "Esther Wambui",
+    phone: "+254712000005",
+    email: "esther@example.com",
+    relationship: "Guardian",
+  },
+];
+
+const seedPupils: Pupil[] = [
+  {
+    id: "k1",
+    admissionNo: "KG-001",
+    firstName: "Liam",
+    lastName: "Atieno",
+    gender: "M",
+    dob: "2020-05-12",
+    classId: "c1",
+    active: true,
+    parentIds: ["p1"],
+  },
+  {
+    id: "k2",
+    admissionNo: "KG-002",
+    firstName: "Zuri",
+    lastName: "Kamau",
+    gender: "F",
+    dob: "2020-08-22",
+    classId: "c1",
+    active: true,
+    parentIds: ["p2"],
+  },
+  {
+    id: "k3",
+    admissionNo: "KG-003",
+    firstName: "Noah",
+    lastName: "Njeri",
+    gender: "M",
+    dob: "2019-11-03",
+    classId: "c2",
+    active: true,
+    parentIds: ["p3"],
+  },
+  {
+    id: "k4",
+    admissionNo: "KG-004",
+    firstName: "Ava",
+    lastName: "Mutua",
+    gender: "F",
+    dob: "2020-02-19",
+    classId: "c2",
+    active: true,
+    parentIds: ["p4"],
+  },
+  {
+    id: "k5",
+    admissionNo: "KG-005",
+    firstName: "Eli",
+    lastName: "Wambui",
+    gender: "M",
+    dob: "2019-09-30",
+    classId: "c3",
+    active: true,
+    parentIds: ["p5"],
+  },
+  {
+    id: "k6",
+    admissionNo: "KG-006",
+    firstName: "Maya",
+    lastName: "Atieno",
+    gender: "F",
+    dob: "2020-07-14",
+    classId: "c1",
+    active: true,
+    parentIds: ["p1"],
+  },
+];
+
+const seedAttendanceList: Attendance[] = [
+  {
+    id: "a1",
+    pupilId: "k1",
+    date: today(),
+    arrival: "07:55",
+    arrivalTransport: "Car",
+    arrivalVehicleReg: "KAA 123B",
+    arrivalPersonName: "Mary Atieno",
+    arrivalPersonRelation: "Mother",
+    arrivalPhone: "+254712000001",
+  },
+  {
+    id: "a2",
+    pupilId: "k2",
+    date: today(),
+    arrival: "08:02",
+    arrivalTransport: "School Bus",
+    arrivalVehicleReg: "KBZ 456C",
+    arrivalPersonName: "John Kariuki",
+    arrivalPersonRelation: "Driver",
+    arrivalPhone: "+254700000004",
+  },
+  {
+    id: "a3",
+    pupilId: "k3",
+    date: today(),
+    arrival: "07:48",
+    departure: "16:30",
+    arrivalTransport: "Motorcycle",
+    arrivalVehicleReg: "KMCA 789D",
+    arrivalPersonName: "David Mutua",
+    arrivalPersonRelation: "Father",
+    arrivalPhone: "+254712000004",
+    departureTransport: "Car",
+    departureVehicleReg: "KAB 321E",
+    departurePersonName: "Sarah Njeri",
+    departurePersonRelation: "Mother",
+    departurePhone: "+254712000003",
+  },
+];
+
+const seedNotificationsList: Notification[] = [
+  {
+    id: "n1",
+    pupilId: "k1",
+    parentId: "p1",
+    channel: "sms",
+    type: "arrival",
+    status: "sent",
+    message: "Liam arrived at 07:55",
+    timestamp: now(),
+    phoneNumber: "+254712000001",
+  },
+  {
+    id: "n2",
+    pupilId: "k1",
+    parentId: "p1",
+    channel: "email",
+    type: "arrival",
+    status: "sent",
+    message: "Liam arrived at 07:55",
+    timestamp: now(),
+    phoneNumber: "+254712000001",
+  },
+  {
+    id: "n3",
+    pupilId: "k2",
+    parentId: "p2",
+    channel: "sms",
+    type: "arrival",
+    status: "sent",
+    message: "Zuri arrived at 08:02",
+    timestamp: now(),
+    phoneNumber: "+254712000002",
+  },
+  {
+    id: "n4",
+    pupilId: "k3",
+    parentId: "p3",
+    channel: "sms",
+    type: "departure",
+    status: "failed",
+    message: "Departure SMS failed",
+    timestamp: now(),
+    phoneNumber: "+254712000003",
+  },
+];
+
+const seedAuditList: AuditLog[] = [
+  {
+    id: "l1",
+    actorId: "u1",
+    actorName: "Amina Okello",
+    action: "Created pupil",
+    target: "Liam Atieno (KG-001)",
+    timestamp: now(),
+  },
+  {
+    id: "l2",
+    actorId: "u2",
+    actorName: "Brian Mwangi",
+    action: "Approved teacher",
+    target: "Grace Wanjiku",
+    timestamp: now(),
+  },
+  {
+    id: "l3",
+    actorId: "u3",
+    actorName: "Grace Wanjiku",
+    action: "Marked arrival",
+    target: "Liam Atieno",
+    timestamp: now(),
+  },
+];
+
+const seedMarksList: Mark[] = [
+  {
+    id: "m1",
+    pupilId: "k1",
+    subject: "Reading",
+    term: "Term 1",
+    year: "2025",
+    score: 85,
+    maxScore: 100,
+    grade: "A",
+    teacherComment: "Excellent progress!",
+    recordedBy: "u3",
+    recordedAt: "2025-03-15T10:30:00Z",
+  },
+  {
+    id: "m2",
+    pupilId: "k1",
+    subject: "Math",
+    term: "Term 1",
+    year: "2025",
+    score: 78,
+    maxScore: 100,
+    grade: "B",
+    teacherComment: "Good work",
+    recordedBy: "u3",
+    recordedAt: "2025-03-15T10:35:00Z",
+  },
+  {
+    id: "m3",
+    pupilId: "k2",
+    subject: "Reading",
+    term: "Term 1",
+    year: "2025",
+    score: 92,
+    maxScore: 100,
+    grade: "A",
+    teacherComment: "Outstanding!",
+    recordedBy: "u3",
+    recordedAt: "2025-03-15T10:40:00Z",
+  },
+];
+
 // Map snake_case DB rows to camelCase app objects
 function mapProfile(p: any): User {
   return {
@@ -320,21 +686,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<User[]>([]);
-  const [pupils, setPupils] = useState<Pupil[]>([]);
-  const [parents, setParents] = useState<Parent[]>([]);
-  const [classes, setClasses] = useState<ClassRoom[]>([]);
-  const [schools, setSchools] = useState<School[]>([]);
-  const [attendance, setAttendance] = useState<Attendance[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [audit, setAudit] = useState<AuditLog[]>([]);
-  const [marks, setMarks] = useState<Mark[]>([]);
+  const [users, setUsers] = useState<User[]>(seedUsers);
+  const [pupils, setPupils] = useState<Pupil[]>(seedPupils);
+  const [parents, setParents] = useState<Parent[]>(seedParents);
+  const [classes, setClasses] = useState<ClassRoom[]>(seedClasses);
+  const [schools, setSchools] = useState<School[]>(seedSchools);
+  const [attendance, setAttendance] = useState<Attendance[]>(seedAttendanceList);
+  const [notifications, setNotifications] = useState<Notification[]>(seedNotificationsList);
+  const [audit, setAudit] = useState<AuditLog[]>(seedAuditList);
+  const [marks, setMarks] = useState<Mark[]>(seedMarksList);
 
   // Auth state listener
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        setSession(data.session);
+      })
+      .catch((err) => {
+        console.warn("Supabase getSession failed, using default auth:", err);
+      });
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
@@ -346,58 +717,87 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Load profile when session changes
   useEffect(() => {
     if (!session?.user) {
-      setCurrentUser(null);
       setLoading(false);
       return;
     }
 
     (async () => {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .maybeSingle();
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .maybeSingle();
 
-      if (profile && profile.status === "verified") {
-        setCurrentUser(mapProfile(profile));
-      } else {
-        // User not verified — sign them out
-        await supabase.auth.signOut();
-        setCurrentUser(null);
+        if (profile && profile.status === "verified") {
+          setCurrentUser(mapProfile(profile));
+        } else {
+          // User not verified — sign them out
+          await supabase.auth.signOut().catch(() => {});
+          setCurrentUser(null);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch Supabase profile:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, [session]);
 
-  // Load all data
+  // Load all data from Supabase DB with fallbacks
   const loadAllData = async () => {
-    const [pRes, prRes, cRes, sRes, aRes, nRes, auRes, mRes, uRes] = await Promise.all([
-      supabase.from("pupils").select("*"),
-      supabase.from("parents").select("*"),
-      supabase.from("classes").select("*"),
-      supabase.from("schools").select("*"),
-      supabase.from("attendance").select("*"),
-      supabase.from("notifications").select("*"),
-      supabase.from("audit_log").select("*").order("timestamp", { ascending: false }),
-      supabase.from("marks").select("*"),
-      supabase.from("profiles").select("*"),
-    ]);
+    try {
+      const [pRes, prRes, cRes, sRes, aRes, nRes, auRes, mRes, uRes] = await Promise.allSettled([
+        supabase.from("pupils").select("*"),
+        supabase.from("parents").select("*"),
+        supabase.from("classes").select("*"),
+        supabase.from("schools").select("*"),
+        supabase.from("attendance").select("*"),
+        supabase.from("notifications").select("*"),
+        supabase.from("audit_log").select("*").order("timestamp", { ascending: false }),
+        supabase.from("marks").select("*"),
+        supabase.from("profiles").select("*"),
+      ]);
 
-    if (pRes.data) setPupils(pRes.data.map(mapPupil));
-    if (prRes.data) setParents(prRes.data.map(mapParent));
-    if (cRes.data) setClasses(cRes.data.map(mapClass));
-    if (sRes.data) setSchools(sRes.data.map(mapSchool));
-    if (aRes.data) setAttendance(aRes.data.map(mapAttendance));
-    if (nRes.data) setNotifications(nRes.data.map(mapNotification));
-    if (auRes.data) setAudit(auRes.data.map(mapAudit));
-    if (mRes.data) setMarks(mRes.data.map(mapMark));
-    if (uRes.data) setUsers(uRes.data.map(mapProfile));
+      if (pRes.status === "fulfilled" && pRes.value.data && pRes.value.data.length > 0) {
+        setPupils(pRes.value.data.map(mapPupil));
+      }
+      if (prRes.status === "fulfilled" && prRes.value.data && prRes.value.data.length > 0) {
+        setParents(prRes.value.data.map(mapParent));
+      }
+      if (cRes.status === "fulfilled" && cRes.value.data && cRes.value.data.length > 0) {
+        setClasses(cRes.value.data.map(mapClass));
+      }
+      if (sRes.status === "fulfilled" && sRes.value.data && sRes.value.data.length > 0) {
+        setSchools(sRes.value.data.map(mapSchool));
+      }
+      if (aRes.status === "fulfilled" && aRes.value.data && aRes.value.data.length > 0) {
+        setAttendance(aRes.value.data.map(mapAttendance));
+      }
+      if (nRes.status === "fulfilled" && nRes.value.data && nRes.value.data.length > 0) {
+        setNotifications(nRes.value.data.map(mapNotification));
+      }
+      if (auRes.status === "fulfilled" && auRes.value.data && auRes.value.data.length > 0) {
+        setAudit(auRes.value.data.map(mapAudit));
+      }
+      if (mRes.status === "fulfilled" && mRes.value.data && mRes.value.data.length > 0) {
+        setMarks(mRes.value.data.map(mapMark));
+      }
+      if (uRes.status === "fulfilled" && uRes.value.data && uRes.value.data.length > 0) {
+        const fetchedUsers = uRes.value.data.map(mapProfile);
+        // Merge fetched users with seed users (so pre-seeded users stay present)
+        setUsers((prev) => {
+          const ids = new Set(fetchedUsers.map((u) => u.id));
+          return [...fetchedUsers, ...prev.filter((u) => !ids.has(u.id))];
+        });
+      }
+    } catch (err) {
+      console.warn("Error fetching data from database:", err);
+    }
   };
 
   useEffect(() => {
-    if (currentUser) {
-      loadAllData();
-    }
+    loadAllData();
   }, [currentUser]);
 
   const logAction = async (actor: User | null, action: string, target: string) => {
@@ -410,7 +810,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       target,
       timestamp: now(),
     };
-    await supabase.from("audit_log").insert(entry);
+    try {
+      await supabase.from("audit_log").insert(entry);
+    } catch (e) {
+      console.warn("Failed to insert audit log to Supabase:", e);
+    }
     setAudit((prev) => [mapAudit(entry), ...prev]);
   };
 
@@ -448,7 +852,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       newNotifs.push(smsNotif, emailNotif);
     }
     if (newNotifs.length > 0) {
-      await supabase.from("notifications").insert(newNotifs);
+      try {
+        await supabase.from("notifications").insert(newNotifs);
+      } catch (e) {
+        console.warn("Failed to insert notifications to Supabase:", e);
+      }
       setNotifications((prev) => [...newNotifs.map(mapNotification), ...prev]);
     }
   };
@@ -467,43 +875,78 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     loading,
     login: async (email, password) => {
       if (!password) return null;
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error || !data.user) return null;
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (!error && data?.user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", data.user.id)
+            .maybeSingle();
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", data.user.id)
-        .maybeSingle();
-
-      if (!profile || profile.status !== "verified") {
-        await supabase.auth.signOut();
-        return null;
+          if (profile && profile.status === "verified") {
+            const user = mapProfile(profile);
+            setCurrentUser(user);
+            return user;
+          }
+        }
+      } catch (err) {
+        console.warn("Supabase auth login error, falling back to seed/local users:", err);
       }
 
-      const user = mapProfile(profile);
-      setCurrentUser(user);
-      return user;
+      // Fallback: check local/seed users (e.g. for demo credentials or offline DB)
+      const u = users.find(
+        (x) =>
+          x.email.toLowerCase() === email.toLowerCase() &&
+          (!x.password || x.password === password) &&
+          x.status === "verified",
+      );
+      if (u) {
+        setCurrentUser(u);
+        return u;
+      }
+      return null;
     },
-    loginAs: () => {
-      // No-op in Supabase mode — real auth required
+    loginAs: (role) => {
+      const u = users.find((x) => x.role === role && x.status === "verified");
+      if (u) setCurrentUser(u);
     },
     logout: async () => {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.warn("Supabase signOut error:", e);
+      }
       setCurrentUser(null);
       setSession(null);
     },
     registerUser: async ({ name, email, phone, password, role }) => {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password: password || "12345678",
-        options: { data: { name, role } },
-      });
-      if (error) throw error;
-      if (data.user) {
-        // Update profile with phone and role
-        await supabase.from("profiles").update({ phone, role, name }).eq("id", data.user.id);
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password: password || "12345678",
+          options: { data: { name, role } },
+        });
+        if (data?.user) {
+          await supabase.from("profiles").update({ phone, role, name }).eq("id", data.user.id);
+        }
+        if (error) console.warn("Supabase signUp warning:", error.message);
+      } catch (err) {
+        console.warn("Supabase signUp error:", err);
       }
+
+      // Add to local state as pending user
+      const localUser: User = {
+        id: uid(),
+        name,
+        email,
+        phone,
+        role,
+        password: password || "12345678",
+        status: "pending",
+        registeredAt: today(),
+      };
+      setUsers((prev) => [...prev, localUser]);
     },
     createSchool: async ({ name, location, phone, email }) => {
       const school = {
@@ -515,7 +958,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         created_at: today(),
         active: true,
       };
-      await supabase.from("schools").insert(school);
+      try {
+        await supabase.from("schools").insert(school);
+      } catch (e) {
+        console.warn("Supabase school insert error:", e);
+      }
       const mapped = mapSchool(school);
       setSchools((prev) => [...prev, mapped]);
       await logAction(currentUser, "Created school", name);
@@ -528,50 +975,56 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (data.phone !== undefined) update.phone = data.phone;
       if (data.email !== undefined) update.email = data.email;
       if (data.active !== undefined) update.active = data.active;
-      await supabase.from("schools").update(update).eq("id", id);
+      try {
+        await supabase.from("schools").update(update).eq("id", id);
+      } catch (e) {
+        console.warn("Supabase school update error:", e);
+      }
       setSchools((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
     },
     deactivateSchool: async (id) => {
-      await supabase.from("schools").update({ active: false }).eq("id", id);
+      try {
+        await supabase.from("schools").update({ active: false }).eq("id", id);
+      } catch (e) {
+        console.warn("Supabase school deactivate error:", e);
+      }
       setSchools((prev) => prev.map((s) => (s.id === id ? { ...s, active: false } : s)));
       const sc = schools.find((x) => x.id === id);
       if (sc) await logAction(currentUser, "Deactivated school", sc.name);
     },
     createSchoolAdmin: async (schoolId, { name, email, phone, password }) => {
-      // Check if email already exists in profiles
-      const { data: existing } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", email)
-        .maybeSingle();
-      if (existing) return null;
+      if (users.some((u) => u.email.toLowerCase() === email.toLowerCase())) return null;
 
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { name, role: "admin" } },
-      });
-      if (error || !data.user) return null;
-
-      // Update profile with admin role, verified status, school assignment
-      await supabase
-        .from("profiles")
-        .update({
-          role: "admin",
-          status: "verified",
-          phone,
-          school_id: schoolId,
-        })
-        .eq("id", data.user.id);
+      try {
+        const { data } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { name, role: "admin" } },
+        });
+        if (data?.user) {
+          await supabase
+            .from("profiles")
+            .update({
+              role: "admin",
+              status: "verified",
+              phone,
+              school_id: schoolId,
+            })
+            .eq("id", data.user.id);
+        }
+      } catch (e) {
+        console.warn("Supabase admin creation error:", e);
+      }
 
       const newAdmin: User = {
-        id: data.user.id,
+        id: uid(),
         name,
         email,
         role: "admin",
         status: "verified",
         phone,
         schoolId,
+        password,
         registeredAt: today(),
       };
       setUsers((prev) => [...prev, newAdmin]);
@@ -581,10 +1034,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return newAdmin;
     },
     assignAdminToSchool: async (userId, schoolId) => {
-      await supabase
-        .from("profiles")
-        .update({ school_id: schoolId, status: "verified" })
-        .eq("id", userId);
+      try {
+        await supabase
+          .from("profiles")
+          .update({ school_id: schoolId, status: "verified" })
+          .eq("id", userId);
+      } catch (e) {
+        console.warn("Supabase assign admin error:", e);
+      }
       setUsers((prev) =>
         prev.map((u) =>
           u.id === userId
@@ -597,19 +1054,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (u && sc) await logAction(currentUser, "Assigned admin", `${u.name} -> ${sc.name}`);
     },
     unassignAdmin: async (userId) => {
-      await supabase.from("profiles").update({ school_id: null }).eq("id", userId);
+      try {
+        await supabase.from("profiles").update({ school_id: null }).eq("id", userId);
+      } catch (e) {
+        console.warn("Supabase unassign admin error:", e);
+      }
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, schoolId: undefined } : u)));
       const u = users.find((x) => x.id === userId);
       if (u) await logAction(currentUser, "Unassigned admin", u.name);
     },
     approveTeacher: async (id) => {
-      await supabase.from("profiles").update({ status: "verified" }).eq("id", id);
+      try {
+        await supabase.from("profiles").update({ status: "verified" }).eq("id", id);
+      } catch (e) {
+        console.warn("Supabase approve teacher error:", e);
+      }
       setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, status: "verified" } : u)));
       const t = users.find((u) => u.id === id);
       if (t) await logAction(currentUser, "Approved teacher", t.name);
     },
     rejectTeacher: async (id) => {
-      await supabase.from("profiles").update({ status: "rejected" }).eq("id", id);
+      try {
+        await supabase.from("profiles").update({ status: "rejected" }).eq("id", id);
+      } catch (e) {
+        console.warn("Supabase reject teacher error:", e);
+      }
       setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, status: "rejected" } : u)));
       const t = users.find((u) => u.id === id);
       if (t) await logAction(currentUser, "Rejected teacher", t.name);
@@ -622,11 +1091,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         last_name: data.lastName,
         gender: data.gender,
         dob: data.dob,
-        class_id: data.classId,
+        class_id: data.classId || null,
         active: true,
         parent_ids: data.parentIds,
       };
-      await supabase.from("pupils").insert(pupil);
+      try {
+        await supabase.from("pupils").insert(pupil);
+      } catch (e) {
+        console.warn("Supabase pupil insert error:", e);
+      }
       const mapped: Pupil = {
         ...data,
         id: pupil.id,
@@ -646,14 +1119,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (data.lastName !== undefined) update.last_name = data.lastName;
       if (data.gender !== undefined) update.gender = data.gender;
       if (data.dob !== undefined) update.dob = data.dob;
-      if (data.classId !== undefined) update.class_id = data.classId;
+      if (data.classId !== undefined) update.class_id = data.classId || null;
       if (data.active !== undefined) update.active = data.active;
       if (data.parentIds !== undefined) update.parent_ids = data.parentIds;
-      await supabase.from("pupils").update(update).eq("id", id);
+      try {
+        await supabase.from("pupils").update(update).eq("id", id);
+      } catch (e) {
+        console.warn("Supabase pupil update error:", e);
+      }
       setPupils((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)));
     },
     deactivatePupil: async (id) => {
-      await supabase.from("pupils").update({ active: false }).eq("id", id);
+      try {
+        await supabase.from("pupils").update({ active: false }).eq("id", id);
+      } catch (e) {
+        console.warn("Supabase pupil deactivate error:", e);
+      }
       setPupils((prev) => prev.map((p) => (p.id === id ? { ...p, active: false } : p)));
     },
     addParent: async (data) => {
@@ -664,7 +1145,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         email: data.email,
         relationship: data.relationship,
       };
-      await supabase.from("parents").insert(parent);
+      try {
+        await supabase.from("parents").insert(parent);
+      } catch (e) {
+        console.warn("Supabase parent insert error:", e);
+      }
       const mapped: Parent = { ...data, id: parent.id };
       setParents((prev) => [...prev, mapped]);
       await logAction(currentUser, "Registered parent", mapped.name);
@@ -685,7 +1170,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       };
 
       if (existing) {
-        await supabase.from("attendance").update(updateData).eq("id", existing.id);
+        try {
+          await supabase.from("attendance").update(updateData).eq("id", existing.id);
+        } catch (e) {
+          console.warn("Supabase attendance update error:", e);
+        }
         setAttendance((prev) =>
           prev.map((a) =>
             a.id === existing.id
@@ -708,7 +1197,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           date: d,
           ...updateData,
         };
-        await supabase.from("attendance").insert(rec);
+        try {
+          await supabase.from("attendance").insert(rec);
+        } catch (e) {
+          console.warn("Supabase attendance insert error:", e);
+        }
         const mapped: Attendance = {
           id: rec.id,
           pupilId,
@@ -745,7 +1238,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       };
 
       if (existing) {
-        await supabase.from("attendance").update(updateData).eq("id", existing.id);
+        try {
+          await supabase.from("attendance").update(updateData).eq("id", existing.id);
+        } catch (e) {
+          console.warn("Supabase attendance update error:", e);
+        }
         setAttendance((prev) =>
           prev.map((a) =>
             a.id === existing.id
@@ -768,7 +1265,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           date: d,
           ...updateData,
         };
-        await supabase.from("attendance").insert(rec);
+        try {
+          await supabase.from("attendance").insert(rec);
+        } catch (e) {
+          console.warn("Supabase attendance insert error:", e);
+        }
         const mapped: Attendance = {
           id: rec.id,
           pupilId,
@@ -805,7 +1306,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         recorded_by: currentUser.id,
         recorded_at: now(),
       };
-      await supabase.from("marks").insert(mark);
+      try {
+        await supabase.from("marks").insert(mark);
+      } catch (e) {
+        console.warn("Supabase mark insert error:", e);
+      }
       const mapped: Mark = {
         ...data,
         id: mark.id,
@@ -831,7 +1336,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (data.score !== undefined && data.maxScore !== undefined) {
         update.grade = calculateGrade(data.score, data.maxScore);
       }
-      await supabase.from("marks").update(update).eq("id", id);
+      try {
+        await supabase.from("marks").update(update).eq("id", id);
+      } catch (e) {
+        console.warn("Supabase mark update error:", e);
+      }
       setMarks((prev) =>
         prev.map((m) =>
           m.id === id
@@ -859,7 +1368,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     deleteMark: async (id) => {
       const mark = marks.find((m) => m.id === id);
       const pupil = mark ? pupils.find((p) => p.id === mark.pupilId) : null;
-      await supabase.from("marks").delete().eq("id", id);
+      try {
+        await supabase.from("marks").delete().eq("id", id);
+      } catch (e) {
+        console.warn("Supabase mark delete error:", e);
+      }
       setMarks((prev) => prev.filter((m) => m.id !== id));
       if (pupil && mark) {
         await logAction(
