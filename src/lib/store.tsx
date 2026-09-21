@@ -354,24 +354,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const data = (await getInitialData({
         data: { userId: state.currentUserId ?? undefined },
       })) as any;
-      if (data?.error) {
+      if (data?.error && (!data?.users || data.users.length === 0)) {
         throw new Error(data.error);
       }
       if (timedOut) return; // already shown error, ignore late response
       clearTimeout(timeoutId);
       setState((s) => ({
         ...s,
-        schools: data.schools?.length ? data.schools : s.schools,
-        users: data.users?.length ? data.users : s.users,
-        pupils: data.pupils ?? s.pupils,
-        parents: data.parents ?? s.parents,
-        classes: data.classes ?? s.classes,
-        attendance: data.attendance ?? s.attendance,
-        notifications: data.notifications ?? s.notifications,
-        audit: data.audit ?? s.audit,
-        marks: data.marks ?? s.marks,
-        subjects: data.subjects ?? s.subjects,
-        fees: data.fees ?? s.fees,
+        schools: data?.schools?.length ? data.schools : s.schools,
+        users: data?.users?.length ? data.users : s.users,
+        pupils: data?.pupils ?? s.pupils,
+        parents: data?.parents ?? s.parents,
+        classes: data?.classes ?? s.classes,
+        attendance: data?.attendance ?? s.attendance,
+        notifications: data?.notifications ?? s.notifications,
+        audit: data?.audit ?? s.audit,
+        marks: data?.marks ?? s.marks,
+        subjects: data?.subjects ?? s.subjects,
+        fees: data?.fees ?? s.fees,
       }));
       setLastSyncTime(new Date().toLocaleTimeString());
       queryClient.setQueryData(queryKeys.initialData(state.currentUserId), data);
@@ -412,7 +412,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const data = (await getInitialData({
         data: { userId: state.currentUserId ?? undefined },
       })) as any;
-      if (!data || data.error || !data.users || data.users.length === 0) {
+      if (!data || (data.error && (!data.users || data.users.length === 0))) {
         console.warn(
           "refreshData returned error or empty users, preserving existing state:",
           data?.error,

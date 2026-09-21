@@ -29,7 +29,7 @@ const isInvalidConnectionString =
   connectionString.includes("placeholder") ||
   connectionString.includes("[PROJECT_ID]");
 
-if (!connectionString && typeof process !== "undefined") {
+if (!connectionString && typeof process !== "undefined" && typeof window === "undefined") {
   console.warn(
     "⚠️  WARNING: DATABASE_URL is not defined. Running in mock data mode for development.\n" +
       "To use a real database, set DATABASE_URL in your .env file.",
@@ -61,32 +61,36 @@ function getPostgresClient() {
     return globalForDb.__postgres_sql__;
   }
 
-  const postgres = require("postgres");
+  try {
+    const postgres = require("postgres");
 
-  const client = postgres(connectionString, {
-    // Keep max connections per process small (default 3 in production/serverless)
-    // so multiple concurrent serverless instances do not exceed PgBouncer's 15 client limit
-    max: defaultMaxPool,
-    // Close idle connections quickly (10s) to free up PgBouncer connection slots
-    idle_timeout: 10,
-    // Allow 30 seconds for connection — Supabase free tier can take up to 20s to wake
-    connect_timeout: 30,
-    // Recycle connections every 10 minutes
-    max_lifetime: 60 * 10,
-    // REQUIRED for Supabase PgBouncer in transaction mode (default pooler)
-    // Without this, prepared statements fail on pooled connections
-    prepare: false,
-    ssl:
-      typeof process !== "undefined" &&
-      (process.env.NODE_ENV === "production" || process.env.VERCEL === "1")
-        ? { rejectUnauthorized: false }
-        : false,
-    // Suppress notices
-    onnotice: () => {},
-  });
+    const isLocal =
+      connectionString.includes("localhost") || connectionString.includes("127.0.0.1");
 
-  globalForDb.__postgres_sql__ = client;
-  return client;
+    const client = postgres(connectionString, {
+      // Keep max connections per process small (default 3 in production/serverless)
+      // so multiple concurrent serverless instances do not exceed PgBouncer's 15 client limit
+      max: defaultMaxPool,
+      // Close idle connections quickly (10s) to free up PgBouncer connection slots
+      idle_timeout: 10,
+      // Allow 30 seconds for connection — Supabase free tier can take up to 20s to wake
+      connect_timeout: 30,
+      // Recycle connections every 10 minutes
+      max_lifetime: 60 * 10,
+      // REQUIRED for Supabase PgBouncer in transaction mode (default pooler)
+      // Without this, prepared statements fail on pooled connections
+      prepare: false,
+      ssl: isLocal ? false : { rejectUnauthorized: false },
+      // Suppress notices
+      onnotice: () => {},
+    });
+
+    globalForDb.__postgres_sql__ = client;
+    return client;
+  } catch (err) {
+    console.error("Failed to initialize PostgreSQL client:", err);
+    return null;
+  }
 }
 
 export const sql = getPostgresClient();
