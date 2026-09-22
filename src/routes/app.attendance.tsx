@@ -30,7 +30,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
-import { Car, Info, Calendar, Users, CheckCircle, XCircle, Clock, Lock } from "lucide-react";
+import { Car, Info, Calendar, Users, CheckCircle, XCircle, Clock, Lock, Download, TrendingUp, AlertTriangle, BarChart3, FileText, UserCheck } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { format, subDays, isToday, parseISO } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/app/attendance")({
@@ -52,6 +60,70 @@ function AttendancePage() {
   } = useStore();
   const today = new Date().toISOString().slice(0, 10);
   const isTeacher = currentUser?.role === "teacher";
+
+  // Enhanced attendance analytics
+  const getAttendanceHistory = (pupilId: string, days: number = 7) => {
+    const endDate = new Date();
+    const startDate = subDays(endDate, days);
+    return attendance.filter(att => 
+      att.pupilId === pupilId && 
+      new Date(att.date) >= startDate && 
+      new Date(att.date) <= endDate
+    );
+  };
+
+  const calculateAttendanceRate = (pupilId: string, days: number = 7) => {
+    const history = getAttendanceHistory(pupilId, days);
+    const presentDays = history.filter(att => att.arrival).length;
+    return days > 0 ? Math.round((presentDays / days) * 100) : 0;
+  };
+
+  const exportAttendanceData = () => {
+    const attendanceData = displayedPupils.map(p => {
+      const att = dayAtt.find(a => a.pupilId === p.id);
+      const rate7Days = calculateAttendanceRate(p.id, 7);
+      return [
+        p.firstName + " " + p.lastName,
+        p.admissionNo,
+        classes.find(c => c.id === p.classId)?.name || "-",
+        att?.arrival || "Absent",
+        att?.departure || "-",
+        att?.arrivalTransport || "-",
+        att?.departureTransport || "-",
+        att?.arrivalPersonName || "-",
+        att?.departurePersonName || "-",
+        rate7Days + "%"
+      ];
+    });
+
+    const csvContent = [
+      ["Pupil Name", "Admission No", "Class", "Arrival Time", "Departure Time", "Arrival Transport", "Departure Transport", "Brought By", "Picked By", "7-Day Rate"],
+      ...attendanceData
+    ].map(row => row.join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `attendance_${date}_${classes.find(c => c.id === classId)?.name || 'class'}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Attendance data exported successfully");
+  };
+
+  const markAllPresent = () => {
+    const absentPupils = classPupils.filter(p => !dayAtt.find(a => a.pupilId === p.id)?.arrival);
+    
+    if (absentPupils.length === 0) {
+      toast.info("All pupils are already marked as present");
+      return;
+    }
+
+    absentPupils.forEach(pupil => markArrival(pupil.id));
+    toast.success(`Marked ${absentPupils.length} pupils as present`);
+  };
 
   // Super Admin School filtering
   const [superSchoolId, setSuperSchoolId] = useState<string>(schools?.[0]?.id ?? "");
@@ -107,7 +179,7 @@ function AttendancePage() {
   const classPupils = pupils.filter((p) => p.classId === classId && p.active);
   const dayAtt = attendance.filter((a) => a.date === date);
 
-  // Statistics
+  // Enhanced Statistics
   const totalCount = classPupils.length;
   const presentCount = useMemo(() => {
     return classPupils.filter((p) => {
@@ -116,6 +188,40 @@ function AttendancePage() {
     }).length;
   }, [classPupils, dayAtt]);
   const absentCount = totalCount - presentCount;
+  
+  // Calculate attendance rate for the class over the last 7 days
+  const classAttendanceRate = useMemo(() => {
+    if (totalCount === 0) return 0;
+    const last7Days = Array.from({length: 7}, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return date.toISOString().slice(0, 10);
+    });
+    
+    const totalPossibleAttendance = totalCount * 7;
+    const actualAttendance = last7Days.reduce((total, dateStr) => {
+      return total + attendance.filter(att => 
+        att.date === dateStr && 
+        classPupils.some(p => p.id === att.pupilId) && 
+        att.arrival
+      ).length;
+    }, 0);
+    
+    return Math.round((actualAttendance / totalPossibleAttendance) * 100);
+  }, [classPupils, attendance, totalCount]);
+
+  // Get pupils with attendance concerns (less than 80% in last 7 days)
+  const concernPupils = useMemo(() => {
+    return classPupils.filter(p => calculateAttendanceRate(p.id, 7) < 80);
+  }, [classPupils]);
+
+  // Count departed pupils
+  const departedCount = useMemo(() => {
+    return classPupils.filter((p) => {
+      const att = dayAtt.find((a) => a.pupilId === p.id);
+      return !!att?.departure;
+    }).length;
+  }, [classPupils, dayAtt]);
 
   // Filtered pupils list
   const displayedPupils = useMemo(() => {
@@ -253,8 +359,8 @@ function AttendancePage() {
 
   return (
     <AppShell title="Attendance">
-      {/* Attendance Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {/* Enhanced Attendance Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <Card className="border shadow-sm bg-card hover:bg-accent/10 transition-colors">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
@@ -270,10 +376,13 @@ function AttendancePage() {
         <Card className="border shadow-sm bg-card hover:bg-accent/10 transition-colors">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Present</p>
+              <p className="text-sm font-medium text-muted-foreground">Present Today</p>
               <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                 {presentCount}
               </h3>
+              <p className="text-xs text-muted-foreground">
+                {totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0}% of class
+              </p>
             </div>
             <div className="p-2 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-full">
               <CheckCircle className="h-6 w-6" />
@@ -284,15 +393,79 @@ function AttendancePage() {
         <Card className="border shadow-sm bg-card hover:bg-accent/10 transition-colors">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Absent</p>
+              <p className="text-sm font-medium text-muted-foreground">Absent Today</p>
               <h3 className="text-2xl font-bold text-rose-600 dark:text-rose-400">{absentCount}</h3>
+              <p className="text-xs text-muted-foreground">
+                {totalCount > 0 ? Math.round((absentCount / totalCount) * 100) : 0}% of class
+              </p>
             </div>
             <div className="p-2 bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 rounded-full">
               <XCircle className="h-6 w-6" />
             </div>
           </CardContent>
         </Card>
+
+        <Card className="border shadow-sm bg-card hover:bg-accent/10 transition-colors">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Departed</p>
+              <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400">{departedCount}</h3>
+              <p className="text-xs text-muted-foreground">
+                Gone home today
+              </p>
+            </div>
+            <div className="p-2 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-full">
+              <UserCheck className="h-6 w-6" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border shadow-sm bg-card hover:bg-accent/10 transition-colors">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">7-Day Rate</p>
+              <h3 className={`text-2xl font-bold ${classAttendanceRate >= 90 ? 'text-emerald-600' : classAttendanceRate >= 80 ? 'text-amber-600' : 'text-rose-600'}`}>
+                {classAttendanceRate}%
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Class average
+              </p>
+            </div>
+            <div className={`p-2 rounded-full ${classAttendanceRate >= 90 ? 'bg-emerald-100 text-emerald-600' : classAttendanceRate >= 80 ? 'bg-amber-100 text-amber-600' : 'bg-rose-100 text-rose-600'}`}>
+              <TrendingUp className="h-6 w-6" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Attendance Concerns Alert */}
+      {concernPupils.length > 0 && (
+        <Card className="border-l-4 border-l-amber-500 bg-amber-50 dark:bg-amber-950/10 mb-6">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-medium text-amber-800 dark:text-amber-200">Attendance Concerns</h4>
+                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                  {concernPupils.length} pupil{concernPupils.length > 1 ? 's have' : ' has'} attendance below 80% in the last 7 days:
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {concernPupils.slice(0, 5).map(pupil => (
+                    <Badge key={pupil.id} variant="outline" className="text-amber-800 border-amber-300">
+                      {pupil.firstName} {pupil.lastName} ({calculateAttendanceRate(pupil.id, 7)}%)
+                    </Badge>
+                  ))}
+                  {concernPupils.length > 5 && (
+                    <Badge variant="outline" className="text-amber-800 border-amber-300">
+                      +{concernPupils.length - 5} more
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border-0 shadow-sm">
         <CardContent className="p-5">
@@ -351,8 +524,10 @@ function AttendancePage() {
               </div>
             </div>
 
+            </div>
+            
             {/* Quick Filters */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mt-3 lg:mt-0">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">
                 Filter:
               </span>
@@ -388,13 +563,58 @@ function AttendancePage() {
               >
                 Absent ({absentCount})
               </Button>
-            </div>
+
+              {/* Quick Actions and Export */}
+              <div className="flex items-center gap-2 ml-4 pl-4 border-l">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={exportAttendanceData}
+                        className="flex items-center gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        <span className="hidden sm:inline">Export</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Export attendance data to CSV</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                {isToday(new Date(date)) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <BarChart3 className="h-4 w-4 mr-1" />
+                        Quick Actions
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={markAllPresent} disabled={absentCount === 0}>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Mark All Present ({absentCount} pupils)
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => toast.info("Feature coming soon!")}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Generate Report
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+
           </div>
 
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Pupil</TableHead>
+                <TableHead>7-Day Rate</TableHead>
                 <TableHead>Arrival</TableHead>
                 <TableHead>Transport In</TableHead>
                 <TableHead>Departure</TableHead>
@@ -407,10 +627,32 @@ function AttendancePage() {
               {displayedPupils.map((p) => {
                 const att = dayAtt.find((a) => a.pupilId === p.id);
                 const isToday = date === today;
+                const rate7Days = calculateAttendanceRate(p.id, 7);
+                const rateColor = rate7Days >= 90 ? 'text-emerald-600' : rate7Days >= 80 ? 'text-amber-600' : 'text-rose-600';
+                
                 return (
                   <TableRow key={p.id}>
                     <TableCell className="font-medium">
-                      {p.firstName} {p.lastName}
+                      <div className="flex items-center gap-2">
+                        <span>{p.firstName} {p.lastName}</span>
+                        {rate7Days < 80 && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Attendance concern: {rate7Days}% in last 7 days</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`font-medium ${rateColor}`}>
+                        {rate7Days}%
+                      </Badge>
                     </TableCell>
                     <TableCell>{att?.arrival ?? "-"}</TableCell>
                     <TableCell>
@@ -509,7 +751,7 @@ function AttendancePage() {
                         size="sm"
                         disabled={!isToday || !!att?.arrival}
                         onClick={() => openArrivalDialog(p)}
-                        className="bg-amber-500 hover:bg-amber-600 text-white font-medium"
+                        className="bg-amber-500 hover:bg-amber-600 text-white font-medium disabled:opacity-50"
                       >
                         Arrival
                       </Button>
@@ -518,6 +760,7 @@ function AttendancePage() {
                         variant="secondary"
                         disabled={!isToday || !att?.arrival || !!att?.departure}
                         onClick={() => openDepartureDialog(p)}
+                        className="disabled:opacity-50"
                       >
                         Departure
                       </Button>
@@ -527,8 +770,22 @@ function AttendancePage() {
               })}
               {displayedPupils.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    No pupils found matching the "{filter}" filter.
+                  <TableCell colSpan={8} className="text-center py-12">
+                    <div className="flex flex-col items-center justify-center">
+                      <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No pupils found</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {totalCount === 0 
+                          ? "No pupils in this class" 
+                          : `No pupils found matching the "${filter}" filter.`
+                        }
+                      </p>
+                      {totalCount === 0 && (
+                        <Button variant="outline" onClick={() => {/* Navigate to pupils */}}>
+                          Add Pupils to Class
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               )}

@@ -14,7 +14,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "db:test": "node test-database-connection.js",
-    "db:setup": "node setup-database.js"
+    "db:setup": "node setup-database.js",
+    "db:mode": "node scripts/db-mode.js"
   },
   "dependencies": {
     "@fontsource/fredoka": "^5.2.10",
@@ -77,12 +78,12 @@
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@types/bcrypt": "^6.0.0",
-    "dotenv": "^16.4.7",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
     "cross-env": "^10.1.0",
+    "dotenv": "^16.4.7",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",

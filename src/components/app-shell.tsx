@@ -16,19 +16,28 @@ import {
   Phone,
   Mail,
   WalletCards,
+  Database,
+  TestTube,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SchoolSelector } from "@/components/school-selector";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
-  const { currentUser, users = [], logout, schools = [], loading = false } = useStore();
+  const { currentUser, users = [], logout, schools = [], loading = false, loadError } = useStore();
   const { isLocked } = useStore() as any;
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const [isInMockMode, setIsInMockMode] = useState(false);
+
+  // Check if we're in mock mode by looking for the mock mode indicator
+  useEffect(() => {
+    // If there's no load error and we have schools, but specific mock data, we're in mock mode
+    setIsInMockMode(!loadError && schools.some(s => s.name === "Little Stars Primary School"));
+  }, [loadError, schools]);
 
   useEffect(() => {
     if (!loading && !currentUser) {
@@ -128,6 +137,19 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
           })}
         </nav>
         <div className="border-t p-3 space-y-3">
+          {/* Database Mode Indicator */}
+          {isInMockMode && (
+            <div className="rounded-lg bg-orange-500/10 border border-orange-500/20 p-2.5 text-xs space-y-1">
+              <div className="flex items-center gap-1.5 font-medium text-orange-700 dark:text-orange-400">
+                <TestTube className="h-3 w-3" />
+                <span>Mock Mode</span>
+              </div>
+              <div className="text-orange-600/80 dark:text-orange-400/80 text-[10px] leading-tight">
+                Using sample data. Run <code className="bg-orange-500/20 px-1 rounded">npm run db:mode</code> to switch to database mode.
+              </div>
+            </div>
+          )}
+          
           <div className="rounded-lg bg-muted/40 p-2.5 text-xs space-y-1">
             <div className="font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">
               For Inquiries

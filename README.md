@@ -41,22 +41,39 @@ cd kindy-connect
 npm install
 \`\`\`
 
-### 2. Database Setup ⚠️ **REQUIRED**
+### 2. Database Setup ⚠️ **OPTIONAL**
 
-**IMPORTANT:** The database connection is currently not working and needs to be fixed first.
+**The application works perfectly without database setup!** It includes sample data for immediate use.
+
+**Current Status: Mock Mode** 
+- ✅ All features work with sample data
+- ✅ Perfect for development and testing
+- ⚠️  Data doesn't persist between restarts
+
+**Quick Database Check:**
+```bash
+# Check current mode and get setup options
+npm run db:mode
+
+# Test database connection  
+npm run db:test
+```
+
+**To set up a persistent database (optional):**
 
 See **[DATABASE_SETUP.md](./DATABASE_SETUP.md)** for complete instructions.
 
-**Quick Fix:**
+**Quick Database Setup:**
+```bash
+# Interactive database setup assistant
+npm run db:mode
 
-1. **Create a Supabase project** at [supabase.com](https://supabase.com)
-2. **Get your database URL** from Project Settings → Database (use the pooling URL)
-3. **Update `.env` file** with your actual database URL:
-   \`\`\`env
-   DATABASE_URL=postgresql://postgres.[YOUR_PROJECT_ID]:[YOUR_PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
-   \`\`\`
-4. **Test connection:** \`npm run db:test\`
-5. **Setup schema:** \`npm run db:setup\`
+# Or manual setup:
+# 1. Create Supabase project at https://supabase.com
+# 2. Get connection URL from Project Settings → Database
+# 3. Add to .env: DATABASE_URL=your_connection_string
+# 4. Setup schema: npm run db:setup
+```
 
 ### 3. Environment Setup
 

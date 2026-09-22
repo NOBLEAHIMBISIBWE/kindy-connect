@@ -36,8 +36,28 @@ import {
   Mail,
   Phone,
   Info,
+  Download,
+  RefreshCw,
+  Lock,
+  Unlock,
+  Calendar,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  MoreHorizontal,
+  Edit,
+  UserPlus,
 } from "lucide-react";
 import { useState, useMemo } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/users")({
@@ -52,16 +72,88 @@ function UsersPage() {
     schools = [],
     registerUser,
     deleteUser,
+    updateUser,
     loading = false,
   } = useStore();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
   // Local filters
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const isSuperAdmin = currentUser?.role === "super_admin";
+
+  // Enhanced analytics
+  const userAnalytics = useMemo(() => {
+    const allUsers = users || [];
+    const activeUsers = allUsers.filter(u => u.status === "verified");
+    const pendingUsers = allUsers.filter(u => u.status === "pending");
+    const recentUsers = allUsers.filter(u => {
+      const registeredDate = parseISO(u.registeredAt);
+      const daysSince = differenceInDays(new Date(), registeredDate);
+      return daysSince <= 30;
+    });
+
+    // Role counts
+    const superAdminCount = allUsers.filter(u => u.role === "super_admin").length;
+    const adminCount = allUsers.filter(u => u.role === "admin").length;
+    const deputyCount = allUsers.filter(u => u.role === "deputy").length;
+    const teacherCount = allUsers.filter(u => u.role === "teacher").length;
+
+    // Schools with no admin
+    const schoolsWithoutAdmin = schools.filter(school => 
+      !allUsers.some(user => user.schoolId === school.id && (user.role === "admin" || user.role === "deputy"))
+    );
+
+    return {
+      total: allUsers.length,
+      active: activeUsers.length,
+      pending: pendingUsers.length,
+      recent: recentUsers.length,
+      superAdminCount,
+      adminCount,
+      deputyCount,
+      teacherCount,
+      schoolsWithoutAdmin
+    };
+  }, [users, schools]);
+
+  // Export functionality
+  const exportUsersData = () => {
+    const exportData = filteredUsersList.map(user => {
+      const school = schools.find(s => s.id === user.schoolId);
+      return [
+        user.id,
+        user.name,
+        user.email,
+        user.phone || '',
+        user.role,
+        user.status,
+        school?.name || (user.role === 'super_admin' ? 'System Wide' : 'Unassigned'),
+        user.registeredAt,
+      ];
+    });
+
+    const csvContent = [
+      ["User ID", "Full Name", "Email", "Phone", "Role", "Status", "School", "Registered Date"],
+      ...exportData
+    ].map(row => row.join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `users_report_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Users data exported successfully");
+  };
 
   // Create User Form State
   const [form, setForm] = useState({
@@ -72,6 +164,16 @@ function UsersPage() {
     role: "teacher" as Role,
     schoolId: schools?.[0]?.id ?? "",
     password: "",
+  });
+
+  // Edit User Form State
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    role: "teacher" as Role,
+    schoolId: "",
+    password: "", // Optional password update
   });
 
   const resetForm = () => {
@@ -89,6 +191,29 @@ function UsersPage() {
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
     resetForm();
+  };
+
+  const openEditDialog = (user: User) => {
+    setEditingUser(user);
+    setEditForm({
+      name: user.name,
+      email: user.email,
+      phone: user.phone || "",
+      role: user.role,
+      schoolId: user.schoolId || schools?.[0]?.id || "",
+      password: "",
+    });
+    setEditOpen(true);
+  };
+
+  const resetPassword = async (userId: string, userName: string) => {
+    const newPassword = `temp${Math.random().toString(36).slice(2, 8)}`;
+    try {
+      await updateUser(userId, { password: newPassword });
+      toast.success(`Password reset for ${userName}. New password: ${newPassword}`);
+    } catch (error: any) {
+      toast.error("Failed to reset password");
+    }
   };
 
   const togglePasswordVisibility = (userId: string) => {
@@ -118,8 +243,13 @@ function UsersPage() {
       list = list.filter((u) => u?.role === roleFilter);
     }
 
+    // Filter by status
+    if (statusFilter !== "all") {
+      list = list.filter((u) => u?.status === statusFilter);
+    }
+
     return list;
-  }, [users, q, roleFilter]);
+  }, [users, q, roleFilter, statusFilter]);
 
   const submitCreateUser = async () => {
     const userId = form.id.trim();
@@ -213,24 +343,19 @@ function UsersPage() {
     );
   }
 
-  // Get role counts for metrics
-  const superAdminCount = (users || []).filter((u) => u?.role === "super_admin").length;
-  const adminCount = (users || []).filter((u) => u?.role === "admin").length;
-  const deputyCount = (users || []).filter((u) => u?.role === "deputy").length;
-  const teacherCount = (users || []).filter((u) => u?.role === "teacher").length;
-
+  // Enhanced metrics display using userAnalytics instead of basic counts
   return (
     <AppShell title="User Directory">
       <div className="space-y-6">
-        {/* Metrics Grid */}
-        <div className="grid gap-4 sm:grid-cols-4">
+        {/* Enhanced Metrics Grid */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <Card className="border-0 shadow-sm bg-gradient-to-br from-indigo-500/10 to-transparent">
             <CardContent className="p-5 flex items-center gap-4">
               <div className="h-12 w-12 rounded-2xl bg-indigo-500/15 text-indigo-600 flex items-center justify-center dark:text-indigo-400">
                 <Shield className="h-6 w-6" />
               </div>
               <div>
-                <div className="text-3xl font-bold">{superAdminCount}</div>
+                <div className="text-3xl font-bold">{userAnalytics.superAdminCount}</div>
                 <div className="text-sm text-muted-foreground">Super Admins</div>
               </div>
             </CardContent>
@@ -241,7 +366,7 @@ function UsersPage() {
                 <School className="h-6 w-6" />
               </div>
               <div>
-                <div className="text-3xl font-bold">{adminCount}</div>
+                <div className="text-3xl font-bold">{userAnalytics.adminCount}</div>
                 <div className="text-sm text-muted-foreground">School Admins</div>
               </div>
             </CardContent>
@@ -252,7 +377,7 @@ function UsersPage() {
                 <UserCheck className="h-6 w-6" />
               </div>
               <div>
-                <div className="text-3xl font-bold">{deputyCount}</div>
+                <div className="text-3xl font-bold">{userAnalytics.deputyCount}</div>
                 <div className="text-sm text-muted-foreground">Deputies</div>
               </div>
             </CardContent>
@@ -263,12 +388,39 @@ function UsersPage() {
                 <Key className="h-6 w-6" />
               </div>
               <div>
-                <div className="text-3xl font-bold">{teacherCount}</div>
+                <div className="text-3xl font-bold">{userAnalytics.teacherCount}</div>
                 <div className="text-sm text-muted-foreground">Teachers</div>
               </div>
             </CardContent>
           </Card>
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-amber-500/10 to-transparent">
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-amber-500/15 text-amber-600 flex items-center justify-center dark:text-amber-400">
+                <Clock className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="text-3xl font-bold">{userAnalytics.pending}</div>
+                <div className="text-sm text-muted-foreground">Pending Approval</div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Alerts for schools without admin */}
+        {userAnalytics.schoolsWithoutAdmin.length > 0 && (
+          <Card className="border-amber-200 bg-amber-50 dark:bg-amber-900/20">
+            <CardContent className="p-4 flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <h4 className="font-semibold text-amber-800 dark:text-amber-200">Schools Missing Administrators</h4>
+                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                  The following schools don't have assigned administrators: {" "}
+                  <strong>{userAnalytics.schoolsWithoutAdmin.map(s => s.name).join(", ")}</strong>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* User Console */}
         <Card className="border-0 shadow-sm">
