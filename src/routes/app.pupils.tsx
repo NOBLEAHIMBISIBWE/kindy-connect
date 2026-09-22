@@ -57,33 +57,6 @@ function PupilsPage() {
     }
   };
 
-  const exportPupilsData = () => {
-    const csvContent = [
-      ["Admission No", "First Name", "Last Name", "Gender", "Date of Birth", "Age", "Class", "Status", "Parents Count"],
-      ...filtered.map(p => [
-        p.admissionNo,
-        p.firstName,
-        p.lastName,
-        p.gender === "M" ? "Male" : "Female",
-        p.dob,
-        calculateAge(p.dob).toString(),
-        classes.find(c => c.id === p.classId)?.name || "-",
-        p.active ? "Active" : "Inactive",
-        p.parentIds.length.toString()
-      ])
-    ].map(row => row.join(",")).join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `pupils_${new Date().toISOString().slice(0, 10)}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("Pupils data exported successfully");
-  };
   const {
     currentUser,
     pupils = [],
@@ -210,6 +183,34 @@ function PupilsPage() {
       .includes(q.toLowerCase());
     return matchesClass && matchesStatus && matchesGender && matchesQuery;
   });
+
+  const exportPupilsData = () => {
+    const csvContent = [
+      ["Admission No", "First Name", "Last Name", "Gender", "Date of Birth", "Age", "Class", "Status", "Parents Count"],
+      ...filtered.map(p => [
+        p.admissionNo,
+        p.firstName,
+        p.lastName,
+        p.gender === "M" ? "Male" : "Female",
+        p.dob,
+        calculateAge(p.dob).toString(),
+        classes.find(c => c.id === p.classId)?.name || "-",
+        p.active ? "Active" : "Inactive",
+        p.parentIds.length.toString()
+      ])
+    ].map(row => row.join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `pupils_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Pupils data exported successfully");
+  };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
