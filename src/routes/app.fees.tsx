@@ -78,6 +78,13 @@ const paymentMethods = [
   "Card Payment"
 ];
 
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat("en-UG", {
+    style: "currency",
+    currency: "UGX",
+    maximumFractionDigits: 0,
+  }).format(amount);
+
 const outstandingAmount = (amountDue: number, amountPaid: number) =>
   Math.max(0, amountDue - amountPaid);
 
@@ -109,6 +116,7 @@ function FeesPage() {
   const [payment, setPayment] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [form, setForm] = useState(emptyForm);
+  const [pupilSearch, setPupilSearch] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [hasUserActivity, setHasUserActivity] = useState(true);
@@ -176,9 +184,9 @@ function FeesPage() {
         fee.description,
         fee.term,
         fee.year,
-        fee.amountDue.toFixed(2),
-        fee.amountPaid.toFixed(2),
-        outstanding.toFixed(2),
+        fee.amountDue,
+        fee.amountPaid,
+        outstanding,
         fee.dueDate || '-',
         daysOverdue > 0 ? daysOverdue.toString() : '0',
         status,
@@ -187,7 +195,7 @@ function FeesPage() {
     });
 
     const csvContent = [
-      ["Pupil Name", "Admission No", "Description", "Term", "Year", "Amount Due", "Amount Paid", "Outstanding", "Due Date", "Days Overdue", "Status", "Notes"],
+      ["Pupil Name", "Admission No", "Description", "Term", "Year", "Amount Due (UGX)", "Amount Paid (UGX)", "Outstanding (UGX)", "Due Date", "Days Overdue", "Status", "Notes"],
       ...exportData
     ].map(row => row.join(",")).join("\n");
 
@@ -318,6 +326,17 @@ function FeesPage() {
     [pupilNameMap],
   );
 
+  const searchablePupils = useMemo(() => {
+    const search = pupilSearch.trim().toLowerCase();
+    return pupils.filter((pupil) => {
+      if (!pupil.active) return false;
+      if (!search) return true;
+      return `${pupil.firstName} ${pupil.lastName} ${pupil.admissionNo}`
+        .toLowerCase()
+        .includes(search);
+    });
+  }, [pupils, pupilSearch]);
+
   const visibleFees = useMemo(
     () =>
       fees.filter((fee) => {
@@ -380,11 +399,11 @@ function FeesPage() {
         amountPaid: fee.amountPaid + amount,
         // In a real app, you'd track payment method and date
         notes: fee.notes 
-          ? `${fee.notes} | Payment: ${amount.toFixed(2)} (${paymentMethod}) on ${format(new Date(), 'MMM d, yyyy')}`
-          : `Payment: ${amount.toFixed(2)} (${paymentMethod}) on ${format(new Date(), 'MMM d, yyyy')}`
+          ? `${fee.notes} | Payment: ${formatCurrency(amount)} (${paymentMethod}) on ${format(new Date(), 'MMM d, yyyy')}`
+          : `Payment: ${formatCurrency(amount)} (${paymentMethod}) on ${format(new Date(), 'MMM d, yyyy')}`
       });
       
-      toast.success(`Payment of ${amount.toFixed(2)} recorded successfully`);
+      toast.success(`Payment of ${formatCurrency(amount)} recorded successfully`);
       setPaymentId(null);
       setPayment("");
       setPaymentMethod("Cash");
@@ -435,7 +454,7 @@ function FeesPage() {
             <CardContent className="p-4 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Billed</p>
-                <h3 className="text-2xl font-bold">{feeAnalytics.totalDue.toLocaleString()}</h3>
+                <h3 className="text-2xl font-bold">{formatCurrency(feeAnalytics.totalDue)}</h3>
                 <p className="text-xs text-muted-foreground">Current year</p>
               </div>
               <div className="p-2 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-full">
@@ -448,7 +467,7 @@ function FeesPage() {
             <CardContent className="p-4 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Collected</p>
-                <h3 className="text-2xl font-bold text-emerald-600">{feeAnalytics.totalPaid.toLocaleString()}</h3>
+                <h3 className="text-2xl font-bold text-emerald-600">{formatCurrency(feeAnalytics.totalPaid)}</h3>
                 <p className="text-xs text-muted-foreground">{feeAnalytics.collectionRate}% collection rate</p>
               </div>
               <div className="p-2 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-full">
@@ -461,7 +480,7 @@ function FeesPage() {
             <CardContent className="p-4 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Outstanding</p>
-                <h3 className="text-2xl font-bold text-amber-600">{feeAnalytics.totalOutstanding.toLocaleString()}</h3>
+                <h3 className="text-2xl font-bold text-amber-600">{formatCurrency(feeAnalytics.totalOutstanding)}</h3>
                 <p className="text-xs text-muted-foreground">Pending collection</p>
               </div>
               <div className="p-2 bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 rounded-full">
@@ -612,11 +631,17 @@ function FeesPage() {
                           <SelectValue placeholder="Select pupil" />
                         </SelectTrigger>
                         <SelectContent>
-                          {pupils
-                            .filter((pupil) => pupil.active)
-                            .map((pupil) => (
+                          <div className="p-2">
+                            <Input
+                              placeholder="Search name or admission number..."
+                              value={pupilSearch}
+                              onChange={(event) => setPupilSearch(event.target.value)}
+                              onKeyDown={(event) => event.stopPropagation()}
+                            />
+                          </div>
+                          {searchablePupils.map((pupil) => (
                               <SelectItem key={pupil.id} value={pupil.id}>
-                                {pupil.firstName} {pupil.lastName}
+                                {pupil.firstName} {pupil.lastName} ({pupil.admissionNo})
                               </SelectItem>
                             ))}
                         </SelectContent>
@@ -630,7 +655,7 @@ function FeesPage() {
                       />
                     </div>
                     <div>
-                      <Label>Amount</Label>
+                      <Label>Amount (UGX)</Label>
                       <Input
                         type="number"
                         min="0.01"
@@ -769,13 +794,13 @@ function FeesPage() {
                       <TableCell>
                         {fee.term} {fee.year}
                       </TableCell>
-                      <TableCell>{fee.amountDue.toLocaleString()}</TableCell>
+                      <TableCell>{formatCurrency(fee.amountDue)}</TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span>{fee.amountPaid.toLocaleString()}</span>
+                          <span>{formatCurrency(fee.amountPaid)}</span>
                           {dueAmount > 0 && (
                             <span className="text-xs text-muted-foreground">
-                              {dueAmount.toLocaleString()} remaining
+                              {formatCurrency(dueAmount)} remaining
                             </span>
                           )}
                         </div>
@@ -846,7 +871,7 @@ function FeesPage() {
                   <div className="text-sm">
                     <p><strong>Pupil:</strong> {pupilName(fee.pupilId)}</p>
                     <p><strong>Fee:</strong> {fee.description} ({fee.term} {fee.year})</p>
-                    <p><strong>Outstanding:</strong> {outstanding.toLocaleString()}</p>
+                    <p><strong>Outstanding:</strong> {formatCurrency(outstanding)}</p>
                   </div>
                 </div>
               ) : null;
@@ -897,7 +922,7 @@ function Summary({ title, value, tone = "" }: { title: string; value: number; to
     <Card className="border-0 shadow-sm">
       <CardContent className="p-5">
         <p className="text-sm text-muted-foreground">{title}</p>
-        <p className={`mt-1 text-2xl font-semibold ${tone}`}>{value.toFixed(2)}</p>
+        <p className={`mt-1 text-2xl font-semibold ${tone}`}>{formatCurrency(value)}</p>
       </CardContent>
     </Card>
   );
