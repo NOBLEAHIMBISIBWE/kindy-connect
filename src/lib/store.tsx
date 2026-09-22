@@ -1620,7 +1620,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           {/* Text */}
           <div className="text-center space-y-1">
             <p className="text-base font-semibold text-foreground">Noble Edu</p>
-            <p className="text-sm text-muted-foreground animate-pulse">Connecting to database…</p>
+            <p className="text-sm text-muted-foreground animate-pulse">Preparing your workspace…</p>
           </div>
 
           {/* Dots loader */}
