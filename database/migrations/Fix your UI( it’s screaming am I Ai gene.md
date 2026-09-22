@@ -1,1 +1,0 @@
-Fix your UI( it’s screaming am I Ai generates with those emoji stars) and add a landing page for your app

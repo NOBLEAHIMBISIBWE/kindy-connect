@@ -95,7 +95,7 @@ async function switchToMockMode() {
 async function switchToDatabaseMode() {
   console.log("\n🔄 Switching to Database Mode...");
   console.log("You'll need a Supabase database URL.");
-  console.log("📖 See DATABASE_SETUP.md for detailed setup instructions.");
+  console.log("📖 See README.md for detailed setup instructions.");
   
   const hasUrl = await question("\nDo you already have a Supabase database URL? (y/N): ");
   
@@ -135,7 +135,7 @@ async function switchToDatabaseMode() {
     console.log("   3. Get your connection string");
     console.log("   4. Run this script again");
     console.log("");
-    console.log("📋 See DATABASE_SETUP.md for detailed instructions");
+    console.log("📋 See README.md for detailed instructions");
   }
 }
 
@@ -152,7 +152,7 @@ async function main() {
       console.log("2. Switch to Mock Mode (sample data)");
     }
     
-    console.log("3. View setup guide (DATABASE_SETUP.md)");
+    console.log("3. View setup guidance in README.md");
     console.log("4. Test current database connection");
     
     const choice = await question("\nEnter your choice (1-4): ");
@@ -171,12 +171,7 @@ async function main() {
         break;
         
       case "3":
-        console.log("\n📖 Opening DATABASE_SETUP.md...");
-        if (fs.existsSync("DATABASE_SETUP.md")) {
-          console.log("📄 Please check the DATABASE_SETUP.md file for detailed instructions.");
-        } else {
-          console.log("❌ DATABASE_SETUP.md not found in current directory.");
-        }
+        console.log("\n📖 Please check README.md for detailed database instructions.");
         break;
         
       case "4":

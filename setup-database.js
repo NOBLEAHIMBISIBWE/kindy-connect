@@ -16,7 +16,7 @@ console.log("========================");
 if (!DATABASE_URL) {
   console.error("❌ ERROR: DATABASE_URL not found in environment variables");
   console.error("Please set DATABASE_URL in your .env file");
-  console.error("See DATABASE_SETUP.md for instructions");
+  console.error("See README.md for instructions");
   process.exit(1);
 }
 
@@ -27,7 +27,7 @@ if (
 ) {
   console.error("❌ ERROR: DATABASE_URL contains placeholder values");
   console.error("Please replace placeholders with actual values");
-  console.error("See DATABASE_SETUP.md for instructions");
+  console.error("See README.md for instructions");
   process.exit(1);
 }
 

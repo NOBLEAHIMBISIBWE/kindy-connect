@@ -61,7 +61,7 @@ npm run db:test
 
 **To set up a persistent database (optional):**
 
-See **[DATABASE_SETUP.md](./DATABASE_SETUP.md)** for complete instructions.
+See the database setup and environment sections below for complete instructions.
 
 **Quick Database Setup:**
 ```bash
