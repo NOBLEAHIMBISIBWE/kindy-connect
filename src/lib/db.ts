@@ -1,3 +1,5 @@
+import postgres from "postgres";
+
 // Ensure process.env.DATABASE_URL is populated in local development
 if (typeof window === "undefined" && typeof process !== "undefined" && !process.env.DATABASE_URL) {
   if (typeof process.loadEnvFile === "function") {
@@ -60,8 +62,6 @@ function getPostgresClient() {
   if (globalForDb.__postgres_sql__) {
     return globalForDb.__postgres_sql__;
   }
-
-  const postgres = require("postgres");
 
   const client = postgres(connectionString, {
     // Keep max connections per process small (default 3 in production/serverless)
