@@ -359,6 +359,30 @@ function FeesPage() {
       }),
     [fees, pupils, pupilNameMap, query, status, selectedTerm, selectedClass],
   );
+
+  const classStudentBalances = useMemo(() => {
+    if (selectedClass === "all") return [];
+    const search = query.trim().toLowerCase();
+
+    return pupils
+      .filter((pupil) => {
+        if (pupil.classId !== selectedClass) return false;
+        if (!search) return true;
+        return `${pupil.firstName} ${pupil.lastName} ${pupil.admissionNo}`
+          .toLowerCase()
+          .includes(search);
+      })
+      .map((pupil) => {
+        const pupilFees = fees.filter(
+          (fee) => fee.pupilId === pupil.id && (selectedTerm === "all" || fee.term === selectedTerm),
+        );
+        const pending = pupilFees.reduce(
+          (total, fee) => total + outstandingAmount(fee.amountDue, fee.amountPaid),
+          0,
+        );
+        return { pupil, pending, feeCount: pupilFees.length };
+      });
+  }, [fees, pupils, query, selectedClass, selectedTerm]);
   // Remove the old totals calculation since we now use feeAnalytics
 
   const submit = async () => {
@@ -542,6 +566,45 @@ function FeesPage() {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        )}
+        {selectedClass !== "all" && (
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle>Class student balances</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Pending dues for every student in the selected class.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Student</TableHead>
+                    <TableHead>Admission No.</TableHead>
+                    <TableHead>Fee records</TableHead>
+                    <TableHead>Pending dues</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {classStudentBalances.map(({ pupil, pending, feeCount }) => (
+                    <TableRow key={pupil.id}>
+                      <TableCell className="font-medium">
+                        {pupil.firstName} {pupil.lastName}
+                      </TableCell>
+                      <TableCell>{pupil.admissionNo}</TableCell>
+                      <TableCell>{feeCount}</TableCell>
+                      <TableCell>{formatCurrency(pending)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {!classStudentBalances.length && (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  No students match this class search.
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
