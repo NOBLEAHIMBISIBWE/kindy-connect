@@ -1516,6 +1516,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 Could not reach the database. Check your connection and try again.
               </p>
             )}
+            <p className="text-sm font-medium text-foreground">
+              Please contact your administrator if the problem continues.
+            </p>
           </div>
 
           {/* Auto-retry countdown bar */}

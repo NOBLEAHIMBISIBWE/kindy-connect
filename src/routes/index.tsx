@@ -75,7 +75,7 @@ function Landing() {
       navigate({ to: "/app/dashboard" });
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("Failed to sign in. Please try again.");
+      toast.error("Technical problem signing in. Please contact your administrator.");
       setIsLoading(false);
     }
   };
