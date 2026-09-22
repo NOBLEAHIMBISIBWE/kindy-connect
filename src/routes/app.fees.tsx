@@ -625,6 +625,22 @@ function FeesPage() {
                   </DialogHeader>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="sm:col-span-2">
+                      <Label>Class</Label>
+                      <Select value={selectedClass} onValueChange={setSelectedClass}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select class" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All classes</SelectItem>
+                          {classes.map((classroom) => (
+                            <SelectItem key={classroom.id} value={classroom.id}>
+                              {classroom.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="sm:col-span-2">
                       <Label>Pupil</Label>
                       <Select
                         value={form.pupilId}
@@ -642,6 +658,11 @@ function FeesPage() {
                               onKeyDown={(event) => event.stopPropagation()}
                             />
                           </div>
+                          {!searchablePupils.length && (
+                            <p className="px-3 py-2 text-sm text-muted-foreground">
+                              No students found in this class.
+                            </p>
+                          )}
                           {searchablePupils.map((pupil) => (
                               <SelectItem key={pupil.id} value={pupil.id}>
                                 {pupil.firstName} {pupil.lastName} ({pupil.admissionNo})
