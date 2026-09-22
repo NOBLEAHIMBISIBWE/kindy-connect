@@ -107,10 +107,11 @@ const getPaymentStatus = (fee: any) => {
 };
 
 function FeesPage() {
-  const { fees, pupils, addFee, updateFee, refreshData, lastSyncTime, loading } = useStore();
+  const { fees, pupils, classes, addFee, updateFee, refreshData, lastSyncTime, loading } = useStore();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedTerm, setSelectedTerm] = useState("all");
+  const [selectedClass, setSelectedClass] = useState("all");
   const [open, setOpen] = useState(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [payment, setPayment] = useState("");
@@ -329,12 +330,13 @@ function FeesPage() {
   const searchablePupils = useMemo(() => {
     const search = pupilSearch.trim().toLowerCase();
     return pupils.filter((pupil) => {
+      if (selectedClass !== "all" && pupil.classId !== selectedClass) return false;
       if (!search) return true;
       return `${pupil.firstName} ${pupil.lastName} ${pupil.admissionNo}`
         .toLowerCase()
         .includes(search);
     });
-  }, [pupils, pupilSearch]);
+  }, [pupils, pupilSearch, selectedClass]);
 
   const visibleFees = useMemo(
     () =>
@@ -350,10 +352,12 @@ function FeesPage() {
           (status === "outstanding" && dueAmount > 0) ||
           (status === "overdue" && dueAmount > 0 && getDaysOverdue(fee.dueDate) > 0);
         const matchesTerm = selectedTerm === "all" || fee.term === selectedTerm;
+        const pupil = pupils.find((item) => item.id === fee.pupilId);
+        const matchesClass = selectedClass === "all" || pupil?.classId === selectedClass;
         
-        return matchesQuery && matchesStatus && matchesTerm;
+        return matchesQuery && matchesStatus && matchesTerm && matchesClass;
       }),
-    [fees, pupilNameMap, query, status, selectedTerm],
+    [fees, pupils, pupilNameMap, query, status, selectedTerm, selectedClass],
   );
   // Remove the old totals calculation since we now use feeAnalytics
 
@@ -744,6 +748,20 @@ function FeesPage() {
                   <SelectItem value="Term 1">Term 1</SelectItem>
                   <SelectItem value="Term 2">Term 2</SelectItem>
                   <SelectItem value="Term 3">Term 3</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger className="sm:w-48">
+                  <SelectValue placeholder="All classes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All classes</SelectItem>
+                  {classes.map((classroom) => (
+                    <SelectItem key={classroom.id} value={classroom.id}>
+                      {classroom.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
