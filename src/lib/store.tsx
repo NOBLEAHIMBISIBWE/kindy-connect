@@ -215,7 +215,6 @@ interface Store {
 
 const Ctx = createContext<Store | null>(null);
 
-const SESSION_KEY = "kinder.currentUserId";
 const SCHOOL_CONTEXT_KEY = "kinder.selectedSchoolId";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -295,16 +294,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     fees: [] as Fee[],
   }));
 
-  // Hydrate saved session on client post-mount to prevent SSR hydration mismatch (Error #418)
+  // Restore only the school display context; authentication must happen on every visit.
   useEffect(() => {
     try {
-      const savedUserId = localStorage.getItem(SESSION_KEY);
       const savedSchoolId = sessionStorage.getItem(SCHOOL_CONTEXT_KEY);
-      if (savedUserId || savedSchoolId) {
+      if (savedSchoolId) {
         setState((s) => ({
           ...s,
-          ...(savedUserId ? { currentUserId: savedUserId } : {}),
-          ...(savedSchoolId ? { selectedSchoolId: savedSchoolId } : {}),
+          selectedSchoolId: savedSchoolId,
         }));
       }
     } catch {}
@@ -399,12 +396,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [startRetryCountdown, state.currentUserId]);
 
   useEffect(() => {
+    if (!state.currentUserId) {
+      setLoading(false);
+      return;
+    }
     attemptLoad();
     return () => {
       if (retryTimerRef.current) clearInterval(retryTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [attemptLoad, state.currentUserId]);
 
   // Refresh function to reload data from database
   const refreshData = useCallback(async () => {
@@ -438,17 +438,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const { message } = classifyDbError(err);
       console.error("Failed to refresh database data:", message);
     }
-  }, [state.currentUserId]);
-
-  // Sync user session to local storage
-  useEffect(() => {
-    try {
-      if (state.currentUserId) {
-        localStorage.setItem(SESSION_KEY, state.currentUserId);
-      } else {
-        localStorage.removeItem(SESSION_KEY);
-      }
-    } catch {}
   }, [state.currentUserId]);
 
   // ── Inactivity / Auto-lock logic ───────────────────────────────────────────
@@ -696,7 +685,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     login: async (id, password) => {
       const u = await loginUser({ data: { id, password } });
       if (u) {
-        setState((s) => ({ ...s, currentUserId: u.id }));
+        setState((s) => ({
+          ...s,
+          currentUserId: u.id,
+          users: s.users.some((user) => user.id === u.id) ? s.users : [...s.users, u],
+        }));
       }
       return u;
     },
