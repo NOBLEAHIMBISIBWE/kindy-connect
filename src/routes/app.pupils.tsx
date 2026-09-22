@@ -50,12 +50,31 @@ export const Route = createFileRoute("/app/pupils")({
 
 function PupilsPage() {
   // Helper functions
-  const calculateAge = (dob: string) => {
+  const toDate = (value: unknown) => {
     try {
-      return differenceInYears(new Date(), parseISO(dob));
+      const date =
+        value instanceof Date
+          ? value
+          : typeof value === "string"
+            ? parseISO(value)
+            : typeof value === "number"
+              ? new Date(value)
+              : null;
+      if (date && !Number.isNaN(date.getTime())) return date;
+      return null;
     } catch {
-      return 0;
+      return null;
     }
+  };
+
+  const calculateAge = (dob: unknown) => {
+    const date = toDate(dob);
+    return date ? differenceInYears(new Date(), date) : 0;
+  };
+
+  const formatDate = (value: unknown, dateFormat: string) => {
+    const date = toDate(value);
+    return date ? format(date, dateFormat) : "-";
   };
 
   const {
@@ -767,7 +786,7 @@ function PupilsPage() {
                       <div className="flex flex-col">
                         <span>{p.firstName} {p.lastName}</span>
                         <span className="text-xs text-muted-foreground">
-                          Born: {format(parseISO(p.dob), "MMM d, yyyy")}
+                          Born: {formatDate(p.dob, "MMM d, yyyy")}
                         </span>
                       </div>
                     </TableCell>
@@ -1015,7 +1034,7 @@ function PupilsPage() {
                     </div>
                     <div>
                       <span className="text-muted-foreground">Date of Birth:</span>
-                      <div>{format(parseISO(viewingPupil.dob), "MMMM d, yyyy")}</div>
+                      <div>{formatDate(viewingPupil.dob, "MMMM d, yyyy")}</div>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Class:</span>
