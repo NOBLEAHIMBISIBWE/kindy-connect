@@ -88,15 +88,30 @@ function UsersPage() {
 
   const isSuperAdmin = currentUser?.role === "super_admin";
 
+  const toRegisteredDate = (value: unknown) => {
+    try {
+      const date =
+        value instanceof Date
+          ? value
+          : typeof value === "string"
+            ? parseISO(value)
+            : typeof value === "number"
+              ? new Date(value)
+              : null;
+      return date && !Number.isNaN(date.getTime()) ? date : null;
+    } catch {
+      return null;
+    }
+  };
+
   // Enhanced analytics
   const userAnalytics = useMemo(() => {
     const allUsers = users || [];
     const activeUsers = allUsers.filter(u => u.status === "verified");
     const pendingUsers = allUsers.filter(u => u.status === "pending");
     const recentUsers = allUsers.filter(u => {
-      const registeredDate = parseISO(u.registeredAt);
-      const daysSince = differenceInDays(new Date(), registeredDate);
-      return daysSince <= 30;
+      const registeredDate = toRegisteredDate(u.registeredAt);
+      return registeredDate ? differenceInDays(new Date(), registeredDate) <= 30 : false;
     });
 
     // Role counts
