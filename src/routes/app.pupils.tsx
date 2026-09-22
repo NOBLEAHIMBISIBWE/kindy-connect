@@ -102,6 +102,16 @@ function PupilsPage() {
   const [selectedGenderFilter, setSelectedGenderFilter] = useState<string>("all");
   const [superSchoolId, setSuperSchoolId] = useState<string>(schools?.[0]?.id ?? "");
 
+  const filteredClasses = useMemo(() => {
+    if (currentUser?.role === "super_admin") {
+      return (classes || []).filter((c) => c?.schoolId === superSchoolId);
+    }
+    if (currentUser?.schoolId) {
+      return (classes || []).filter((c) => c?.schoolId === currentUser?.schoolId);
+    }
+    return classes || [];
+  }, [classes, currentUser, superSchoolId]);
+
   // Statistics
   const stats = useMemo(() => {
     const activePupils = pupils.filter(p => p.active);
@@ -121,16 +131,6 @@ function PupilsPage() {
       classStats
     };
   }, [pupils, filteredClasses]);
-
-  const filteredClasses = useMemo(() => {
-    if (currentUser?.role === "super_admin") {
-      return (classes || []).filter((c) => c?.schoolId === superSchoolId);
-    }
-    if (currentUser?.schoolId) {
-      return (classes || []).filter((c) => c?.schoolId === currentUser?.schoolId);
-    }
-    return classes || [];
-  }, [classes, currentUser, superSchoolId]);
 
   const [open, setOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
