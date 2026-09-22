@@ -329,7 +329,6 @@ function FeesPage() {
   const searchablePupils = useMemo(() => {
     const search = pupilSearch.trim().toLowerCase();
     return pupils.filter((pupil) => {
-      if (!pupil.active) return false;
       if (!search) return true;
       return `${pupil.firstName} ${pupil.lastName} ${pupil.admissionNo}`
         .toLowerCase()
