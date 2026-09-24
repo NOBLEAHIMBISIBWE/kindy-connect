@@ -639,15 +639,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const filteredMarks = useMemo(() => {
     if (!currentUser) return [];
+    const visibleMarks =
+      currentUser.role === "teacher"
+        ? state.marks.filter((m) => currentUser.subjects?.includes(m.subject) ?? false)
+        : state.marks;
     if (currentUser.role === "super_admin") {
       if (state.selectedSchoolId) {
-        return state.marks.filter(
+        return visibleMarks.filter(
           (m) => state.pupils.find((p) => p.id === m.pupilId)?.schoolId === state.selectedSchoolId,
         );
       }
-      return state.marks;
+      return visibleMarks;
     }
-    return state.marks.filter(
+    return visibleMarks.filter(
       (m) => state.pupils.find((p) => p.id === m.pupilId)?.schoolId === currentUser.schoolId,
     );
   }, [state.marks, state.pupils, currentUser, state.selectedSchoolId]);
@@ -1386,7 +1390,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         : subjectsList;
 
       if (schoolSubjects.length > 0) {
-        return schoolSubjects;
+        return currentUser?.role === "teacher"
+          ? schoolSubjects.filter((subject) => currentUser.subjects?.includes(subject.name) ?? false)
+          : schoolSubjects;
       }
 
       const defaultList = [
@@ -1402,12 +1408,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         { name: "Luganda", code: "LUG" },
         { name: "Religious Education", code: "RE" },
       ];
-      return defaultList.map((item, idx) => ({
+      const defaults = defaultList.map((item, idx) => ({
         id: `default_${idx}_${item.name.toLowerCase()}`,
         schoolId: effectiveSchoolId || "default",
         name: item.name,
         code: item.code,
       }));
+      return currentUser?.role === "teacher"
+        ? defaults.filter((subject) => currentUser.subjects?.includes(subject.name) ?? false)
+        : defaults;
     },
 
     refreshData,

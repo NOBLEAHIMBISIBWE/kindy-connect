@@ -266,6 +266,22 @@ export const getInitialData = createServerFn({ method: "GET" })
         feesQuery,
       ]);
 
+      const currentUser = (users as any[]).find((user) => user.id === data?.userId);
+      const assignedSubjects = new Set<string>(currentUser?.subjects || []);
+      const visibleMarks =
+        currentUser?.role === "teacher"
+          ? (marks as any[]).filter(
+              (mark) =>
+                assignedSubjects.has(mark.subject) &&
+                (pupilsRaw as any[]).find((pupil) => pupil.id === mark.pupil_id)?.class_id ===
+                  currentUser.class_id,
+            )
+          : marks;
+      const visibleSubjects =
+        currentUser?.role === "teacher"
+          ? (subjects as any[]).filter((subject) => assignedSubjects.has(subject.name))
+          : subjects;
+
       const parentMap: Record<string, string[]> = {};
       for (const link of pupilParents as any[]) {
         if (!parentMap[link.pupil_id]) {
@@ -296,8 +312,8 @@ export const getInitialData = createServerFn({ method: "GET" })
         attendance: toCamel<Attendance[]>(attendance),
         notifications: toCamel<Notification[]>(notifications),
         audit: toCamel<AuditLog[]>(audit),
-        marks: toCamel<Mark[]>(marks),
-        subjects: toCamel<Subject[]>(subjects),
+        marks: toCamel<Mark[]>(visibleMarks),
+        subjects: toCamel<Subject[]>(visibleSubjects),
         fees: parsedFees,
       };
     };
@@ -1434,10 +1450,27 @@ export const saveBulkMarks = createServerFn({ method: "POST" })
       return [];
     }
 
+    const actor = await sql`SELECT role, class_id, subjects FROM users WHERE id = ${actorId}`;
+    if (actor.length === 0) {
+      throw new Error("Unauthorized: User not found");
+    }
+    const user = toCamel<User>(actor[0]);
+
     const recordedAt = new Date().toISOString();
     const results: Mark[] = [];
 
     for (const item of markItems) {
+      if (user.role === "teacher") {
+        if (!user.subjects?.includes(item.subject)) {
+          throw new Error(`Unauthorized: You are not assigned to teach ${item.subject}`);
+        }
+
+        const pupil = await sql`SELECT class_id FROM pupils WHERE id = ${item.pupilId}`;
+        if (pupil.length === 0 || user.classId !== pupil[0].class_id) {
+          throw new Error("Unauthorized: You can only save marks for pupils in your assigned class");
+        }
+      }
+
       const percentage = (item.score / item.maxScore) * 100;
       let grade = "E";
       if (percentage >= 90) grade = "A";
