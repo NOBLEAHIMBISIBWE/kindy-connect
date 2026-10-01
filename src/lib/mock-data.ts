@@ -46,6 +46,7 @@ export const mockUsers: User[] = [
     phone: "+256-700-111111",
     registeredAt: "2024-01-01",
     schoolId: "school-1",
+    password: "admin123",
   },
   // Teacher
   {
@@ -59,6 +60,7 @@ export const mockUsers: User[] = [
     schoolId: "school-1",
     classId: "class-1",
     subjects: ["Mathematics", "Science"],
+    password: "admin123",
   },
   // Deputy head teacher
   {
@@ -70,6 +72,7 @@ export const mockUsers: User[] = [
     phone: "+256-700-333333",
     registeredAt: "2024-01-02",
     schoolId: "school-1",
+    password: "admin123",
   },
 ];
 

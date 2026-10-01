@@ -18,15 +18,37 @@ async function getServerEntry(): Promise<ServerEntry> {
   return serverEntryPromise;
 }
 
+function isApiOrServerFn(request?: Request): boolean {
+  if (!request) return false;
+  const url = request.url || "";
+  const accept = request.headers?.get("accept") || "";
+  const contentType = request.headers?.get("content-type") || "";
+  return (
+    request.headers?.has("x-server-fn") ||
+    request.headers?.has("x-tanstack-start-server-fn") ||
+    url.includes("/_server") ||
+    url.includes("intent=serverFn") ||
+    accept.includes("application/json") ||
+    contentType.includes("application/json")
+  );
+}
+
 // h3 swallows in-handler throws into a normal 500 Response with body
 // {"unhandled":true,"message":"HTTPError"} — try/catch alone never fires for those.
-async function normalizeCatastrophicSsrResponse(response: Response): Promise<Response> {
+async function normalizeCatastrophicSsrResponse(
+  response: Response,
+  request: Request,
+): Promise<Response> {
   if (response.status < 500) return response;
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) return response;
 
   const body = await response.clone().text();
   if (!body.includes('"unhandled":true') || !body.includes('"message":"HTTPError"')) {
+    return response;
+  }
+
+  if (isApiOrServerFn(request)) {
     return response;
   }
 
@@ -47,9 +69,20 @@ export default {
 
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return await normalizeCatastrophicSsrResponse(response, request);
     } catch (error) {
       console.error("Catastrophic server fetch error:", error);
+      if (isApiOrServerFn(request)) {
+        return new Response(
+          JSON.stringify({
+            error: error instanceof Error ? error.message : "Internal Server Error",
+          }),
+          {
+            status: 500,
+            headers: { "content-type": "application/json" },
+          },
+        );
+      }
       return new Response(renderErrorPage(), {
         status: 500,
         headers: { "content-type": "text/html; charset=utf-8" },
