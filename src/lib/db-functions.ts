@@ -375,7 +375,18 @@ export const getInitialData = createServerFn({ method: "GET" })
 export const loginUser = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string; password: string }) => d)
   .handler(async ({ data }) => {
-    const db = requireDatabase();
+    if (!sql) {
+      const { mockUsers } = await import("./mock-data");
+      const { id, password } = data;
+      const user = mockUsers.find(
+        (u) => u.id.toLowerCase() === id.trim().toLowerCase() && u.password === password,
+      );
+      if (!user) return null;
+      if (user.role === "teacher" && user.status !== "verified") return null;
+      return user;
+    }
+
+    const db = sql;
     const { id, password } = data;
     try {
       const results = await db`
@@ -435,7 +446,60 @@ export const registerUser = createServerFn({ method: "POST" })
     ) => d,
   )
   .handler(async ({ data }) => {
-    const db = requireDatabase();
+    if (!sql) {
+      const { mockUsers, mockSchools } = await import("./mock-data");
+      const id = data.id.trim();
+      const password = data.password.trim();
+      const status = data.status || (data.role === "admin" ? "verified" : "pending");
+      const registeredAt = new Date().toISOString().slice(0, 10);
+
+      if (!password) {
+        throw new Error("Password is required");
+      }
+
+      if (mockUsers.some((u) => u.id.toLowerCase() === id.toLowerCase())) {
+        throw new Error("Assigned ID already used");
+      }
+      if (mockUsers.some((u) => u.email.toLowerCase() === data.email.toLowerCase())) {
+        throw new Error("Email already used");
+      }
+      if (data.phone && mockUsers.some((u) => u.phone === data.phone)) {
+        throw new Error("Phone number already used");
+      }
+
+      let finalSchoolId = data.schoolId;
+      let newSchool: any = null;
+
+      if (data.schoolId === "new" && data.newSchoolName) {
+        finalSchoolId = "s-" + Math.random().toString(36).slice(2, 10);
+        newSchool = {
+          id: finalSchoolId,
+          name: data.newSchoolName,
+          registeredAt,
+        };
+        mockSchools.push(newSchool);
+      }
+
+      const newUser: User = {
+        id,
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        role: data.role,
+        status,
+        registeredAt,
+        password,
+        schoolId: finalSchoolId || undefined,
+        classId: data.classId || undefined,
+        subjects: data.subjects || undefined,
+        photo: data.photo || undefined,
+      };
+
+      mockUsers.push(newUser);
+      return { user: newUser, school: newSchool };
+    }
+
+    const db = sql;
     const id = data.id.trim();
     const password = data.password.trim();
     const status = data.status || (data.role === "admin" ? "verified" : "pending");
