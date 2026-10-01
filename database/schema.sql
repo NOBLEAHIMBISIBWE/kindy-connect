@@ -5,8 +5,8 @@ DROP TABLE IF EXISTS marks CASCADE;
 DROP TABLE IF EXISTS audit_logs CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS attendance CASCADE;
-DROP TABLE IF EXISTS pupil_parents CASCADE;
-DROP TABLE IF EXISTS pupils CASCADE;
+DROP TABLE IF EXISTS student_parents CASCADE;
+DROP TABLE IF EXISTS students CASCADE;
 DROP TABLE IF EXISTS parents CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS classes CASCADE;
@@ -59,8 +59,8 @@ CREATE TABLE parents (
     CONSTRAINT unq_parents_school_phone UNIQUE (school_id, phone)
 );
 
--- 4. Pupils Table
-CREATE TABLE pupils (
+-- 4. Students Table
+CREATE TABLE students (
     id VARCHAR(50) PRIMARY KEY,
     admission_no VARCHAR(50) NOT NULL UNIQUE,
     first_name VARCHAR(100) NOT NULL,
@@ -73,17 +73,17 @@ CREATE TABLE pupils (
     school_id VARCHAR(50) NOT NULL
 );
 
--- 5. Pupil-Parents Join Table (Many-to-Many relationship)
-CREATE TABLE pupil_parents (
-    pupil_id VARCHAR(50) NOT NULL,
+-- 5. Student-Parents Join Table (Many-to-Many relationship)
+CREATE TABLE student_parents (
+    student_id VARCHAR(50) NOT NULL,
     parent_id VARCHAR(50) NOT NULL,
-    PRIMARY KEY (pupil_id, parent_id)
+    PRIMARY KEY (student_id, parent_id)
 );
 
 -- 6. Attendance Table
 CREATE TABLE attendance (
     id VARCHAR(50) PRIMARY KEY,
-    pupil_id VARCHAR(50) NOT NULL,
+    student_id VARCHAR(50) NOT NULL,
     date DATE NOT NULL DEFAULT CURRENT_DATE,
     arrival TIME,
     departure TIME,
@@ -97,13 +97,13 @@ CREATE TABLE attendance (
     departure_person_name VARCHAR(255),
     departure_person_relation VARCHAR(100),
     departure_phone VARCHAR(50),
-    CONSTRAINT unq_attendance_pupil_date UNIQUE (pupil_id, date)
+    CONSTRAINT unq_attendance_student_date UNIQUE (student_id, date)
 );
 
 -- 7. Notifications Table
 CREATE TABLE notifications (
     id VARCHAR(50) PRIMARY KEY,
-    pupil_id VARCHAR(50) NOT NULL,
+    student_id VARCHAR(50) NOT NULL,
     parent_id VARCHAR(50) NOT NULL,
     channel VARCHAR(50) NOT NULL CHECK (channel IN ('sms', 'email')),
     type VARCHAR(50) NOT NULL CHECK (type IN ('arrival', 'departure')),
@@ -126,7 +126,7 @@ CREATE TABLE audit_logs (
 -- 9. Marks Table
 CREATE TABLE marks (
     id VARCHAR(50) PRIMARY KEY,
-    pupil_id VARCHAR(50) NOT NULL,
+    student_id VARCHAR(50) NOT NULL,
     subject VARCHAR(255) NOT NULL,
     term VARCHAR(50) NOT NULL,
     year VARCHAR(4) NOT NULL,
@@ -137,7 +137,7 @@ CREATE TABLE marks (
     recorded_by VARCHAR(50) NOT NULL,
     recorded_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_score_limit CHECK (score <= max_score),
-    CONSTRAINT unq_marks_pupil_subject_term_year UNIQUE (pupil_id, subject, term, year)
+    CONSTRAINT unq_marks_student_subject_term_year UNIQUE (student_id, subject, term, year)
 );
 
 -- 10. Subjects Table
@@ -153,7 +153,7 @@ CREATE TABLE subjects (
 -- 11. Fees Table
 CREATE TABLE fees (
     id VARCHAR(50) PRIMARY KEY,
-    pupil_id VARCHAR(50) NOT NULL,
+    student_id VARCHAR(50) NOT NULL,
     school_id VARCHAR(50) NOT NULL,
     description VARCHAR(255) NOT NULL,
     term VARCHAR(50) NOT NULL,
@@ -166,7 +166,7 @@ CREATE TABLE fees (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_fee_paid_limit CHECK (amount_paid <= amount_due),
-    CONSTRAINT unq_fee_pupil_description_term_year UNIQUE (pupil_id, description, term, year)
+    CONSTRAINT unq_fee_student_description_term_year UNIQUE (student_id, description, term, year)
 );
 
 -- Add Foreign Key Constraints (separately to resolve circular dependency at table creation)
@@ -178,7 +178,7 @@ ALTER TABLE subjects
     ADD CONSTRAINT fk_subjects_school FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE;
 
 ALTER TABLE fees
-    ADD CONSTRAINT fk_fees_pupil FOREIGN KEY (pupil_id) REFERENCES pupils(id) ON DELETE CASCADE,
+    ADD CONSTRAINT fk_fees_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
     ADD CONSTRAINT fk_fees_school FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE,
     ADD CONSTRAINT fk_fees_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT;
 
@@ -186,29 +186,29 @@ ALTER TABLE users
     ADD CONSTRAINT fk_users_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL,
     ADD CONSTRAINT fk_users_school FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE SET NULL;
 
-ALTER TABLE pupils 
-    ADD CONSTRAINT fk_pupils_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE RESTRICT,
-    ADD CONSTRAINT fk_pupils_school FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE;
+ALTER TABLE students
+    ADD CONSTRAINT fk_students_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE RESTRICT,
+    ADD CONSTRAINT fk_students_school FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE;
 
 ALTER TABLE parents 
     ADD CONSTRAINT fk_parents_school FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE;
 
-ALTER TABLE pupil_parents 
-    ADD CONSTRAINT fk_pupil_parents_pupil FOREIGN KEY (pupil_id) REFERENCES pupils(id) ON DELETE CASCADE,
-    ADD CONSTRAINT fk_pupil_parents_parent FOREIGN KEY (parent_id) REFERENCES parents(id) ON DELETE CASCADE;
+ALTER TABLE student_parents
+    ADD CONSTRAINT fk_student_parents_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+    ADD CONSTRAINT fk_student_parents_parent FOREIGN KEY (parent_id) REFERENCES parents(id) ON DELETE CASCADE;
 
 ALTER TABLE attendance 
-    ADD CONSTRAINT fk_attendance_pupil FOREIGN KEY (pupil_id) REFERENCES pupils(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_attendance_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE;
 
 ALTER TABLE notifications 
-    ADD CONSTRAINT fk_notifications_pupil FOREIGN KEY (pupil_id) REFERENCES pupils(id) ON DELETE CASCADE,
+    ADD CONSTRAINT fk_notifications_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
     ADD CONSTRAINT fk_notifications_parent FOREIGN KEY (parent_id) REFERENCES parents(id) ON DELETE CASCADE;
 
 ALTER TABLE audit_logs 
     ADD CONSTRAINT fk_audit_actor FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE CASCADE;
 
 ALTER TABLE marks 
-    ADD CONSTRAINT fk_marks_pupil FOREIGN KEY (pupil_id) REFERENCES pupils(id) ON DELETE CASCADE,
+    ADD CONSTRAINT fk_marks_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
     ADD CONSTRAINT fk_marks_recorded FOREIGN KEY (recorded_by) REFERENCES users(id) ON DELETE RESTRICT;
 
 -- Create Indexes for performance
@@ -217,11 +217,11 @@ CREATE INDEX idx_users_phone ON users(phone);
 CREATE INDEX idx_users_school ON users(school_id);
 CREATE INDEX idx_classes_school ON classes(school_id);
 CREATE INDEX idx_subjects_school ON subjects(school_id);
-CREATE INDEX idx_pupils_class ON pupils(class_id);
-CREATE INDEX idx_pupils_school ON pupils(school_id);
+CREATE INDEX idx_students_class ON students(class_id);
+CREATE INDEX idx_students_school ON students(school_id);
 CREATE INDEX idx_parents_school ON parents(school_id);
-CREATE INDEX idx_attendance_pupil_date ON attendance(pupil_id, date);
-CREATE INDEX idx_marks_pupil ON marks(pupil_id);
-CREATE INDEX idx_notifications_pupil ON notifications(pupil_id);
+CREATE INDEX idx_attendance_student_date ON attendance(student_id, date);
+CREATE INDEX idx_marks_student ON marks(student_id);
+CREATE INDEX idx_notifications_student ON notifications(student_id);
 CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp);
 

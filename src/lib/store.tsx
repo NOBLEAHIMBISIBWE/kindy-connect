@@ -16,10 +16,10 @@ import {
   rejectTeacher as rejectTeacherDb,
   deleteUser as deleteUserDb,
   updateUser as updateUserDb,
-  addPupil as addPupilDb,
-  bulkAddPupils as bulkAddPupilsDb,
-  updatePupil as updatePupilDb,
-  deactivatePupil as deactivatePupilDb,
+  addStudent as addStudentDb,
+  bulkAddStudents as bulkAddStudentsDb,
+  updateStudent as updateStudentDb,
+  deactivateStudent as deactivateStudentDb,
   addParent as addParentDb,
   markArrival as markArrivalDb,
   markDeparture as markDepartureDb,
@@ -43,7 +43,7 @@ import {
   type Role,
   type TeacherStatus,
   type User,
-  type Pupil,
+  type Student,
   type Parent,
   type ClassRoom,
   type Attendance,
@@ -61,7 +61,7 @@ export type {
   Role,
   TeacherStatus,
   User,
-  Pupil,
+  Student,
   Parent,
   ClassRoom,
   Attendance,
@@ -77,7 +77,7 @@ interface Store {
   currentUser: User | null;
   selectedSchoolId: string | null;
   users: User[];
-  pupils: Pupil[];
+  students: Student[];
   parents: Parent[];
   classes: ClassRoom[];
   attendance: Attendance[];
@@ -111,10 +111,12 @@ interface Store {
     id: string,
     data: Partial<Omit<User, "id" | "registeredAt">> & { password?: string },
   ) => Promise<void>;
-  addPupil: (data: Omit<Pupil, "id" | "active"> & { parent?: Omit<Parent, "id"> }) => Promise<void>;
-  bulkAddPupils: (
-    pupils: Array<{
-      pupil: Omit<Pupil, "id" | "active">;
+  addStudent: (
+    data: Omit<Student, "id" | "active"> & { parent?: Omit<Parent, "id"> },
+  ) => Promise<void>;
+  bulkAddStudents: (
+    students: Array<{
+      student: Omit<Student, "id" | "active">;
       parent: Omit<Parent, "id">;
     }>,
   ) => Promise<{
@@ -123,17 +125,17 @@ interface Store {
     failCount: number;
     results: Array<{
       success: boolean;
-      pupilId?: string;
+      studentId?: string;
       admissionNo: string;
       name: string;
       error?: string;
     }>;
   }>;
-  updatePupil: (id: string, data: Partial<Pupil>) => Promise<void>;
-  deactivatePupil: (id: string) => Promise<void>;
+  updateStudent: (id: string, data: Partial<Student>) => Promise<void>;
+  deactivateStudent: (id: string) => Promise<void>;
   addParent: (data: Omit<Parent, "id">) => Promise<void>;
   markArrival: (
-    pupilId: string,
+    studentId: string,
     transportDetails?: {
       transport?: string;
       vehicleReg?: string;
@@ -143,7 +145,7 @@ interface Store {
     },
   ) => Promise<void>;
   markDeparture: (
-    pupilId: string,
+    studentId: string,
     transportDetails?: {
       transport?: string;
       vehicleReg?: string;
@@ -161,7 +163,7 @@ interface Store {
   saveBulkMarks: (
     marks: Array<{
       id?: string;
-      pupilId: string;
+      studentId: string;
       subject: string;
       term: string;
       year: string;
@@ -282,7 +284,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     currentUserId: null as string | null,
     selectedSchoolId: null as string | null,
     users: [] as User[],
-    pupils: [] as Pupil[],
+    students: [] as Student[],
     parents: [] as Parent[],
     classes: [] as ClassRoom[],
     attendance: [] as Attendance[],
@@ -360,7 +362,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ...s,
         schools: data.schools?.length ? data.schools : s.schools,
         users: data.users?.length ? data.users : s.users,
-        pupils: data.pupils ?? s.pupils,
+        students: data.students ?? s.students,
         parents: data.parents ?? s.parents,
         classes: data.classes ?? s.classes,
         attendance: data.attendance ?? s.attendance,
@@ -423,7 +425,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ...s,
         schools: data.schools?.length ? data.schools : s.schools,
         users: data.users?.length ? data.users : s.users,
-        pupils: data.pupils ?? s.pupils,
+        students: data.students ?? s.students,
         parents: data.parents ?? s.parents,
         classes: data.classes ?? s.classes,
         attendance: data.attendance ?? s.attendance,
@@ -563,16 +565,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return state.classes.filter((c) => c.schoolId === currentUser.schoolId);
   }, [state.classes, currentUser, state.selectedSchoolId]);
 
-  const filteredPupils = useMemo(() => {
+  const filteredStudents = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.role === "super_admin") {
       if (state.selectedSchoolId) {
-        return state.pupils.filter((p) => p.schoolId === state.selectedSchoolId);
+        return state.students.filter((p) => p.schoolId === state.selectedSchoolId);
       }
-      return state.pupils;
+      return state.students;
     }
-    return state.pupils.filter((p) => p.schoolId === currentUser.schoolId);
-  }, [state.pupils, currentUser, state.selectedSchoolId]);
+    return state.students.filter((p) => p.schoolId === currentUser.schoolId);
+  }, [state.students, currentUser, state.selectedSchoolId]);
 
   const filteredParents = useMemo(() => {
     if (!currentUser) return [];
@@ -590,30 +592,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (currentUser.role === "super_admin") {
       if (state.selectedSchoolId) {
         return state.attendance.filter(
-          (a) => state.pupils.find((p) => p.id === a.pupilId)?.schoolId === state.selectedSchoolId,
+          (a) =>
+            state.students.find((p) => p.id === a.studentId)?.schoolId === state.selectedSchoolId,
         );
       }
       return state.attendance;
     }
     return state.attendance.filter(
-      (a) => state.pupils.find((p) => p.id === a.pupilId)?.schoolId === currentUser.schoolId,
+      (a) => state.students.find((p) => p.id === a.studentId)?.schoolId === currentUser.schoolId,
     );
-  }, [state.attendance, state.pupils, currentUser, state.selectedSchoolId]);
+  }, [state.attendance, state.students, currentUser, state.selectedSchoolId]);
 
   const filteredNotifications = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.role === "super_admin") {
       if (state.selectedSchoolId) {
         return state.notifications.filter(
-          (n) => state.pupils.find((p) => p.id === n.pupilId)?.schoolId === state.selectedSchoolId,
+          (n) =>
+            state.students.find((p) => p.id === n.studentId)?.schoolId === state.selectedSchoolId,
         );
       }
       return state.notifications;
     }
     return state.notifications.filter(
-      (n) => state.pupils.find((p) => p.id === n.pupilId)?.schoolId === currentUser.schoolId,
+      (n) => state.students.find((p) => p.id === n.studentId)?.schoolId === currentUser.schoolId,
     );
-  }, [state.notifications, state.pupils, currentUser, state.selectedSchoolId]);
+  }, [state.notifications, state.students, currentUser, state.selectedSchoolId]);
 
   const filteredAudit = useMemo(() => {
     if (!currentUser) return [];
@@ -646,15 +650,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (currentUser.role === "super_admin") {
       if (state.selectedSchoolId) {
         return visibleMarks.filter(
-          (m) => state.pupils.find((p) => p.id === m.pupilId)?.schoolId === state.selectedSchoolId,
+          (m) =>
+            state.students.find((p) => p.id === m.studentId)?.schoolId === state.selectedSchoolId,
         );
       }
       return visibleMarks;
     }
     return visibleMarks.filter(
-      (m) => state.pupils.find((p) => p.id === m.pupilId)?.schoolId === currentUser.schoolId,
+      (m) => state.students.find((p) => p.id === m.studentId)?.schoolId === currentUser.schoolId,
     );
-  }, [state.marks, state.pupils, currentUser, state.selectedSchoolId]);
+  }, [state.marks, state.students, currentUser, state.selectedSchoolId]);
 
   const filteredFees = useMemo(() => {
     if (!currentUser) return [];
@@ -670,7 +675,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     currentUser,
     selectedSchoolId: state.selectedSchoolId,
     users: filteredUsers,
-    pupils: filteredPupils,
+    students: filteredStudents,
     parents: filteredParents,
     classes: filteredClasses,
     attendance: filteredAttendance,
@@ -846,13 +851,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
     },
 
-    addPupil: async (pupilData) => {
+    addStudent: async (studentData) => {
       if (!currentUser) return;
-      const { parent, ...pupil } = pupilData as Omit<Pupil, "id" | "active"> & {
+      const { parent, ...student } = studentData as Omit<Student, "id" | "active"> & {
         parent?: Omit<Parent, "id">;
       };
       let createdParent: Parent | undefined;
-      const schoolId = (pupil as any).schoolId || currentUser.schoolId;
+      const schoolId = (student as any).schoolId || currentUser.schoolId;
 
       if (parent) {
         createdParent = await addParentDb({
@@ -864,13 +869,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         });
       }
 
-      const newPupil = await addPupilDb({
+      const newStudent = await addStudentDb({
         data: {
-          pupil: {
-            ...pupil,
+          student: {
+            ...student,
             parentIds: createdParent
-              ? [createdParent.id, ...(pupil.parentIds ?? [])]
-              : (pupil.parentIds ?? []),
+              ? [createdParent.id, ...(student.parentIds ?? [])]
+              : (student.parentIds ?? []),
             schoolId,
           },
           parent: (parent
@@ -885,7 +890,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await refreshData();
     },
 
-    bulkAddPupils: async (pupils) => {
+    bulkAddStudents: async (students) => {
       if (!currentUser)
         return {
           total: 0,
@@ -896,12 +901,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       const schoolId = currentUser.schoolId;
 
-      const result = await bulkAddPupilsDb({
+      const result = await bulkAddStudentsDb({
         data: {
-          pupils: pupils.map(({ pupil, parent }) => ({
-            pupil: {
-              ...pupil,
-              schoolId: schoolId || pupil.schoolId,
+          students: students.map(({ student, parent }) => ({
+            student: {
+              ...student,
+              schoolId: schoolId || student.schoolId,
             },
             parent,
           })),
@@ -910,25 +915,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         },
       });
 
-      // Refresh data from database to show new pupils
+      // Refresh data from database to show new students
       await refreshData();
 
       return result;
     },
 
-    updatePupil: async (id, data) => {
-      await updatePupilDb({ data: { id, data } });
+    updateStudent: async (id, data) => {
+      await updateStudentDb({ data: { id, data } });
       setState((s) => ({
         ...s,
-        pupils: s.pupils.map((p: Pupil) => (p.id === id ? { ...p, ...data } : p)),
+        students: s.students.map((p: Student) => (p.id === id ? { ...p, ...data } : p)),
       }));
     },
 
-    deactivatePupil: async (id) => {
-      await deactivatePupilDb({ data: { id } });
+    deactivateStudent: async (id) => {
+      await deactivateStudentDb({ data: { id } });
       setState((s) => ({
         ...s,
-        pupils: s.pupils.map((p: Pupil) => (p.id === id ? { ...p, active: false } : p)),
+        students: s.students.map((p: Student) => (p.id === id ? { ...p, active: false } : p)),
       }));
     },
 
@@ -959,11 +964,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }));
     },
 
-    markArrival: async (pupilId, transportDetails) => {
+    markArrival: async (studentId, transportDetails) => {
       if (!currentUser) return;
-      const pupil = state.pupils.find((p) => p.id === pupilId);
-      const parent = pupil?.parentIds?.[0]
-        ? state.parents.find((pr) => pr.id === pupil.parentIds[0])
+      const student = state.students.find((p) => p.id === studentId);
+      const parent = student?.parentIds?.[0]
+        ? state.parents.find((pr) => pr.id === student.parentIds[0])
         : null;
 
       const finalDetails = {
@@ -980,7 +985,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Optimistic state update for instant UI feedback across Dashboard & Attendance
       setState((s) => {
         const existingIndex = s.attendance.findIndex(
-          (a) => a.pupilId === pupilId && a.date === date,
+          (a) => a.studentId === studentId && a.date === date,
         );
         let updatedAtt: Attendance;
         if (existingIndex >= 0) {
@@ -996,7 +1001,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         } else {
           updatedAtt = {
             id: Math.random().toString(36).slice(2, 10),
-            pupilId,
+            studentId,
             date,
             arrival: time,
             arrivalTransport: finalDetails.transport,
@@ -1018,7 +1023,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       try {
         const res = await markArrivalDb({
           data: {
-            pupilId,
+            studentId,
             transportDetails: finalDetails,
             actorId: currentUser.id,
             actorName: currentUser.name,
@@ -1048,11 +1053,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     },
 
-    markDeparture: async (pupilId, transportDetails) => {
+    markDeparture: async (studentId, transportDetails) => {
       if (!currentUser) return;
-      const pupil = state.pupils.find((p) => p.id === pupilId);
-      const parent = pupil?.parentIds?.[0]
-        ? state.parents.find((pr) => pr.id === pupil.parentIds[0])
+      const student = state.students.find((p) => p.id === studentId);
+      const parent = student?.parentIds?.[0]
+        ? state.parents.find((pr) => pr.id === student.parentIds[0])
         : null;
 
       const finalDetails = {
@@ -1069,7 +1074,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Optimistic state update
       setState((s) => {
         const existingIndex = s.attendance.findIndex(
-          (a) => a.pupilId === pupilId && a.date === date,
+          (a) => a.studentId === studentId && a.date === date,
         );
         let updatedAtt: Attendance;
         if (existingIndex >= 0) {
@@ -1085,7 +1090,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         } else {
           updatedAtt = {
             id: Math.random().toString(36).slice(2, 10),
-            pupilId,
+            studentId,
             date,
             departure: time,
             departureTransport: finalDetails.transport,
@@ -1107,7 +1112,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       try {
         const res = await markDepartureDb({
           data: {
-            pupilId,
+            studentId,
             transportDetails: finalDetails,
             actorId: currentUser.id,
             actorName: currentUser.name,
@@ -1140,7 +1145,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     addMark: async (markData) => {
       if (!currentUser) return;
       const newMark = await addMarkDb({ data: { mark: markData, actorId: currentUser.id } });
-      const pupil = state.pupils.find((p: Pupil) => p.id === markData.pupilId);
+      const student = state.students.find((p: Student) => p.id === markData.studentId);
 
       setState((s) => ({
         ...s,
@@ -1151,8 +1156,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             actorId: currentUser.id,
             actorName: currentUser.name,
             action: "Added mark",
-            target: pupil
-              ? `${pupil.firstName} ${pupil.lastName} - ${markData.subject} (${markData.score}/${markData.maxScore})`
+            target: student
+              ? `${student.firstName} ${student.lastName} - ${markData.subject} (${markData.score}/${markData.maxScore})`
               : markData.subject,
             timestamp: new Date().toISOString(),
           },
@@ -1167,7 +1172,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       setState((s) => {
         const existingMark = s.marks.find((m) => m.id === id);
-        const pupil = existingMark ? s.pupils.find((p) => p.id === existingMark.pupilId) : null;
+        const student = existingMark
+          ? s.students.find((p) => p.id === existingMark.studentId)
+          : null;
 
         return {
           ...s,
@@ -1179,8 +1186,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               actorName: currentUser.name,
               action: "Updated mark",
               target:
-                pupil && existingMark
-                  ? `${pupil.firstName} ${pupil.lastName} - ${existingMark.subject}`
+                student && existingMark
+                  ? `${student.firstName} ${student.lastName} - ${existingMark.subject}`
                   : "Mark",
               timestamp: new Date().toISOString(),
             },
@@ -1196,7 +1203,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       setState((s) => {
         const existingMark = s.marks.find((m) => m.id === id);
-        const pupil = existingMark ? s.pupils.find((p) => p.id === existingMark.pupilId) : null;
+        const student = existingMark
+          ? s.students.find((p) => p.id === existingMark.studentId)
+          : null;
 
         return {
           ...s,
@@ -1208,8 +1217,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               actorName: currentUser.name,
               action: "Deleted mark",
               target:
-                pupil && existingMark
-                  ? `${pupil.firstName} ${pupil.lastName} - ${existingMark.subject}`
+                student && existingMark
+                  ? `${student.firstName} ${student.lastName} - ${existingMark.subject}`
                   : "Mark",
               timestamp: new Date().toISOString(),
             },
@@ -1289,7 +1298,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         schools: s.schools.filter((sch) => sch.id !== id),
         users: s.users.filter((u) => u.schoolId !== id),
         classes: s.classes.filter((c) => c.schoolId !== id),
-        pupils: s.pupils.filter((p) => p.schoolId !== id),
+        students: s.students.filter((p) => p.schoolId !== id),
       }));
     },
 
@@ -1391,7 +1400,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       if (schoolSubjects.length > 0) {
         return currentUser?.role === "teacher"
-          ? schoolSubjects.filter((subject) => currentUser.subjects?.includes(subject.name) ?? false)
+          ? schoolSubjects.filter(
+              (subject) => currentUser.subjects?.includes(subject.name) ?? false,
+            )
           : schoolSubjects;
       }
 

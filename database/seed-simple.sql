@@ -33,23 +33,23 @@ INSERT INTO parents (id, name, phone, email, relationship, school_id) VALUES
 ('p2', 'John Kamau', '+254712000002', 'john@example.com', 'Father', 's1')
 ON CONFLICT (id) DO NOTHING;
 
--- 6. Insert Pupils (3 pupils in Sunflower class)
-INSERT INTO pupils (id, admission_no, first_name, last_name, gender, dob, class_id, photo, active, school_id) VALUES
+-- 6. Insert Students (3 students in Sunflower class)
+INSERT INTO students (id, admission_no, first_name, last_name, gender, dob, class_id, photo, active, school_id) VALUES
 ('k1', 'KG-001', 'Liam', 'Atieno', 'M', '2020-05-12', 'c1', NULL, TRUE, 's1'),
 ('k2', 'KG-002', 'Zuri', 'Kamau', 'F', '2020-08-22', 'c1', NULL, TRUE, 's1'),
 ('k3', 'KG-003', 'Maya', 'Atieno', 'F', '2020-07-14', 'c1', NULL, TRUE, 's1')
 ON CONFLICT (id) DO NOTHING;
 
--- 7. Link Pupils to Parents
-INSERT INTO pupil_parents (pupil_id, parent_id) VALUES
+-- 7. Link Students to Parents
+INSERT INTO student_parents (student_id, parent_id) VALUES
 ('k1', 'p1'),
 ('k2', 'p2'),
 ('k3', 'p1')
-ON CONFLICT (pupil_id, parent_id) DO NOTHING;
+ON CONFLICT (student_id, parent_id) DO NOTHING;
 
 -- 8. Insert Today's Attendance
 INSERT INTO attendance (
-    id, pupil_id, date, arrival, departure, 
+    id, student_id, date, arrival, departure,
     arrival_transport, arrival_vehicle_reg, arrival_person_name, arrival_person_relation, arrival_phone
 ) VALUES
 ('a1', 'k1', CURRENT_DATE, '07:55', NULL, 'Car', 'KAA 123B', 'Mary Atieno', 'Mother', '+254712000001'),
@@ -57,19 +57,19 @@ INSERT INTO attendance (
 ON CONFLICT (id) DO NOTHING;
 
 -- 9. Insert Notifications
-INSERT INTO notifications (id, pupil_id, parent_id, channel, type, status, message, timestamp, phone_number) VALUES
+INSERT INTO notifications (id, student_id, parent_id, channel, type, status, message, timestamp, phone_number) VALUES
 ('n1', 'k1', 'p1', 'sms', 'arrival', 'sent', 'Dear Mary Atieno, your child Liam Atieno has arrived safely at school today at 07:55.', CURRENT_TIMESTAMP - INTERVAL '2 hours', '+254712000001'),
 ('n2', 'k2', 'p2', 'sms', 'arrival', 'sent', 'Dear John Kamau, your child Zuri Kamau has arrived safely at school today at 08:02.', CURRENT_TIMESTAMP - INTERVAL '1 hour', '+254712000002')
 ON CONFLICT (id) DO NOTHING;
 
 -- 10. Insert Audit Logs
 INSERT INTO audit_logs (id, actor_id, actor_name, action, target, timestamp) VALUES
-('l1', 'u1', 'Amina Okello', 'Created pupil', 'Liam Atieno (KG-001)', CURRENT_TIMESTAMP - INTERVAL '5 days'),
+('l1', 'u1', 'Amina Okello', 'Created student', 'Liam Atieno (KG-001)', CURRENT_TIMESTAMP - INTERVAL '5 days'),
 ('l2', 'u3', 'Grace Wanjiku', 'Marked arrival', 'Liam Atieno', CURRENT_TIMESTAMP - INTERVAL '2 hours')
 ON CONFLICT (id) DO NOTHING;
 
 -- 11. Insert Marks
-INSERT INTO marks (id, pupil_id, subject, term, year, score, max_score, grade, teacher_comment, recorded_by, recorded_at) VALUES
+INSERT INTO marks (id, student_id, subject, term, year, score, max_score, grade, teacher_comment, recorded_by, recorded_at) VALUES
 ('m1', 'k1', 'Reading', 'Term 1', '2025', 85, 100, 'A', 'Excellent progress!', 'u3', '2025-03-15 10:30:00+03'),
 ('m2', 'k2', 'Math', 'Term 1', '2025', 92, 100, 'A', 'Outstanding!', 'u3', '2025-03-15 10:35:00+03')
 ON CONFLICT (id) DO NOTHING;

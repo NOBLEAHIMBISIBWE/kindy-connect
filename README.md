@@ -6,10 +6,10 @@ A comprehensive school management system built with TanStack Start and Supabase.
 
 - 👥 **User Management** - Multi-role system (Super Admin, Admin, Deputy, Teacher)
 - 🏫 **Multi-School Support** - Manage multiple schools from one system
-- 👶 **Pupil Management** - Complete student records with photos
+- 👶 **Student Management** - Complete student records with photos
 - 📊 **Attendance Tracking** - Arrival/departure logging with guardian info
 - 📝 **Marks & Grading** - Subject-wise assessment tracking
-- 👨‍👩‍👧 **Parent Portal** - Parent-pupil relationship management
+- 👨‍👩‍👧 **Parent Portal** - Parent-student relationship management
 - 📱 **Notifications** - SMS/Email alerts for arrivals and departures
 - 📈 **Reports** - Analytics and performance reports
 - 🔒 **Row Level Security** - School-based data isolation
@@ -45,17 +45,19 @@ npm install
 
 **The application works perfectly without database setup!** It includes sample data for immediate use.
 
-**Current Status: Mock Mode** 
+**Current Status: Mock Mode**
+
 - ✅ All features work with sample data
 - ✅ Perfect for development and testing
-- ⚠️  Data doesn't persist between restarts
+- ⚠️ Data doesn't persist between restarts
 
 **Quick Database Check:**
+
 ```bash
 # Check current mode and get setup options
 npm run db:mode
 
-# Test database connection  
+# Test database connection
 npm run db:test
 ```
 
@@ -64,6 +66,7 @@ npm run db:test
 See the database setup and environment sections below for complete instructions.
 
 **Quick Database Setup:**
+
 ```bash
 # Interactive database setup assistant
 npm run db:mode
@@ -175,7 +178,7 @@ kindy-connect/
 │ ├── routes/ # TanStack Router pages
 │ │ ├── index.tsx # Login page
 │ │ ├── app.dashboard.tsx # Main dashboard
-│ │ ├── app.pupils.tsx # Pupil management
+│ │ ├── app.students.tsx # Student management
 │ │ ├── app.attendance.tsx # Attendance tracking
 │ │ └── ...
 │ ├── router.tsx # Router configuration
@@ -196,9 +199,9 @@ kindy-connect/
 - **schools** - School information
 - **users** - Teachers, admins, deputies
 - **classes** - Class/grade information
-- **pupils** - Student records
+- **students** - Student records
 - **parents** - Guardian information
-- **pupil_parents** - Parent-student relationships
+- **student_parents** - Parent-student relationships
 - **attendance** - Daily attendance logs
 - **marks** - Academic assessments
 - **notifications** - SMS/Email logs

@@ -62,7 +62,7 @@ export const Route = createFileRoute("/app/dashboard")({
 function Dashboard() {
   const {
     currentUser,
-    pupils = [],
+    students = [],
     classes = [],
     users = [],
     attendance = [],
@@ -77,7 +77,7 @@ function Dashboard() {
   } = useStore();
   const [arrivalDialogOpen, setArrivalDialogOpen] = useState(false);
   const [departureDialogOpen, setDepartureDialogOpen] = useState(false);
-  const [selectedPupil, setSelectedPupil] = useState<any>(null);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [arrivalForm, setArrivalForm] = useState({
     transport: "",
     vehicleReg: "",
@@ -112,7 +112,7 @@ function Dashboard() {
       <SuperAdminDashboard
         schools={schools}
         users={users}
-        pupils={pupils}
+        students={students}
         classes={classes}
         audit={audit}
         subjects={subjects}
@@ -134,7 +134,7 @@ function Dashboard() {
 
   const handleArrival = () => {
     if (
-      !selectedPupil ||
+      !selectedStudent ||
       !arrivalForm.transport ||
       !arrivalForm.personName ||
       !arrivalForm.personRelation ||
@@ -144,7 +144,7 @@ function Dashboard() {
       return;
     }
 
-    markArrival(selectedPupil.id, {
+    markArrival(selectedStudent.id, {
       transport: arrivalForm.transport,
       vehicleReg: arrivalForm.vehicleReg,
       personName: arrivalForm.personName,
@@ -152,9 +152,9 @@ function Dashboard() {
       phone: arrivalForm.phone,
     });
 
-    toast.success(`Arrival logged for ${selectedPupil.firstName} ${selectedPupil.lastName}`);
+    toast.success(`Arrival logged for ${selectedStudent.firstName} ${selectedStudent.lastName}`);
     setArrivalDialogOpen(false);
-    setSelectedPupil(null);
+    setSelectedStudent(null);
     setArrivalForm({
       transport: "",
       vehicleReg: "",
@@ -166,7 +166,7 @@ function Dashboard() {
 
   const handleDeparture = () => {
     if (
-      !selectedPupil ||
+      !selectedStudent ||
       !departureForm.transport ||
       !departureForm.personName ||
       !departureForm.personRelation ||
@@ -176,7 +176,7 @@ function Dashboard() {
       return;
     }
 
-    markDeparture(selectedPupil.id, {
+    markDeparture(selectedStudent.id, {
       transport: departureForm.transport,
       vehicleReg: departureForm.vehicleReg,
       personName: departureForm.personName,
@@ -184,9 +184,9 @@ function Dashboard() {
       phone: departureForm.phone,
     });
 
-    toast.success(`Departure logged for ${selectedPupil.firstName} ${selectedPupil.lastName}`);
+    toast.success(`Departure logged for ${selectedStudent.firstName} ${selectedStudent.lastName}`);
     setDepartureDialogOpen(false);
-    setSelectedPupil(null);
+    setSelectedStudent(null);
     setDepartureForm({
       transport: "",
       vehicleReg: "",
@@ -196,14 +196,14 @@ function Dashboard() {
     });
   };
 
-  const handleQuickArrival = (pupil: any) => {
-    markArrival(pupil.id);
-    toast.success(`Arrival logged for ${pupil.firstName} ${pupil.lastName} - parents notified`);
+  const handleQuickArrival = (student: any) => {
+    markArrival(student.id);
+    toast.success(`Arrival logged for ${student.firstName} ${student.lastName} - parents notified`);
   };
 
-  const openArrivalDialog = (pupil: any) => {
-    setSelectedPupil(pupil);
-    const parent = parents.find((pr) => pupil.parentIds?.includes(pr.id));
+  const openArrivalDialog = (student: any) => {
+    setSelectedStudent(student);
+    const parent = parents.find((pr) => student.parentIds?.includes(pr.id));
     setArrivalForm({
       transport: "Car",
       vehicleReg: "",
@@ -214,14 +214,16 @@ function Dashboard() {
     setArrivalDialogOpen(true);
   };
 
-  const handleQuickDeparture = (pupil: any) => {
-    markDeparture(pupil.id);
-    toast.success(`Departure logged for ${pupil.firstName} ${pupil.lastName} - parents notified`);
+  const handleQuickDeparture = (student: any) => {
+    markDeparture(student.id);
+    toast.success(
+      `Departure logged for ${student.firstName} ${student.lastName} - parents notified`,
+    );
   };
 
-  const openDepartureDialog = (pupil: any) => {
-    setSelectedPupil(pupil);
-    const parent = parents.find((pr) => pupil.parentIds?.includes(pr.id));
+  const openDepartureDialog = (student: any) => {
+    setSelectedStudent(student);
+    const parent = parents.find((pr) => student.parentIds?.includes(pr.id));
     setDepartureForm({
       transport: "Car",
       vehicleReg: "",
@@ -234,18 +236,18 @@ function Dashboard() {
   const isStaff = currentUser?.role !== "teacher";
   const today = new Date().toISOString().slice(0, 10);
   const todayAtt = (attendance || []).filter((a) => a && a.date === today);
-  const presentIds = new Set(todayAtt.filter((a) => a && a.arrival).map((a) => a.pupilId));
+  const presentIds = new Set(todayAtt.filter((a) => a && a.arrival).map((a) => a.studentId));
   const pending = (users || []).filter(
     (u) => u && u.role === "teacher" && u.status === "pending",
   ).length;
 
-  const activePupilsCount = (pupils || []).filter((p) => p && p.active).length;
+  const activeStudentsCount = (students || []).filter((p) => p && p.active).length;
 
   const stats = isStaff
     ? [
         {
-          label: "Total pupils",
-          value: activePupilsCount,
+          label: "Total students",
+          value: activeStudentsCount,
           icon: Baby,
           color: "bg-primary/15 text-primary",
         },
@@ -263,26 +265,26 @@ function Dashboard() {
         },
         {
           label: "Absent today",
-          value: Math.max(0, activePupilsCount - presentIds.size),
+          value: Math.max(0, activeStudentsCount - presentIds.size),
           icon: GraduationCap,
           color: "bg-accent/15 text-accent",
         },
       ]
     : [];
 
-  const myClassPupils = (pupils || []).filter(
+  const myClassStudents = (students || []).filter(
     (p) => p && p.classId === currentUser?.classId && p.active,
   );
 
-  const teacherTotalCount = myClassPupils.length;
-  const teacherPresentCount = myClassPupils.filter((p) => {
-    const att = todayAtt.find((a) => a && a.pupilId === p.id);
+  const teacherTotalCount = myClassStudents.length;
+  const teacherPresentCount = myClassStudents.filter((p) => {
+    const att = todayAtt.find((a) => a && a.studentId === p.id);
     return !!att?.arrival;
   }).length;
   const teacherAbsentCount = Math.max(0, teacherTotalCount - teacherPresentCount);
 
-  const filteredTeacherPupils = myClassPupils.filter((p) => {
-    const att = todayAtt.find((a) => a && a.pupilId === p.id);
+  const filteredTeacherStudents = myClassStudents.filter((p) => {
+    const att = todayAtt.find((a) => a && a.studentId === p.id);
     const isPresent = !!att?.arrival;
     if (teacherFilter === "present") return isPresent;
     if (teacherFilter === "absent") return !isPresent;
@@ -344,7 +346,7 @@ function Dashboard() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {todayAtt.slice(0, 6).map((a) => {
-                  const p = pupils.find((x) => x.id === a.pupilId);
+                  const p = students.find((x) => x.id === a.studentId);
                   if (!p) return null;
                   return (
                     <div
@@ -540,7 +542,7 @@ function Dashboard() {
             <Card className="border shadow-sm bg-card hover:bg-accent/10 transition-colors">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Pupils</p>
+                  <p className="text-sm font-medium text-muted-foreground">Total Students</p>
                   <h3 className="text-2xl font-bold">{teacherTotalCount}</h3>
                 </div>
                 <div className="p-2 bg-primary/10 text-primary rounded-full">
@@ -585,7 +587,7 @@ function Dashboard() {
                   My class: {classes.find((c) => c.id === currentUser.classId)?.name ?? "-"}
                 </CardTitle>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Record pupil arrival and departure. Timestamps are automatically captured.
+                  Record student arrival and departure. Timestamps are automatically captured.
                 </p>
               </div>
 
@@ -629,8 +631,8 @@ function Dashboard() {
             </CardHeader>
             <CardContent className="pt-4">
               <div className="grid gap-3 sm:grid-cols-2">
-                {filteredTeacherPupils.map((p) => {
-                  const att = todayAtt.find((a) => a.pupilId === p.id);
+                {filteredTeacherStudents.map((p) => {
+                  const att = todayAtt.find((a) => a.studentId === p.id);
                   const isPresent = !!att?.arrival;
                   return (
                     <div
@@ -707,9 +709,9 @@ function Dashboard() {
                   );
                 })}
 
-                {filteredTeacherPupils.length === 0 && (
+                {filteredTeacherStudents.length === 0 && (
                   <div className="col-span-full py-8 text-center text-sm text-muted-foreground">
-                    No pupils found matching the "{teacherFilter}" filter.
+                    No students found matching the "{teacherFilter}" filter.
                   </div>
                 )}
               </div>
@@ -723,7 +725,7 @@ function Dashboard() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              Mark Arrival - {selectedPupil?.firstName} {selectedPupil?.lastName}
+              Mark Arrival - {selectedStudent?.firstName} {selectedStudent?.lastName}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -839,7 +841,7 @@ function Dashboard() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              Mark Departure - {selectedPupil?.firstName} {selectedPupil?.lastName}
+              Mark Departure - {selectedStudent?.firstName} {selectedStudent?.lastName}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -958,7 +960,7 @@ function Dashboard() {
 function SuperAdminDashboard({
   schools = [],
   users = [],
-  pupils = [],
+  students = [],
   classes = [],
   audit = [],
   subjects = [],
@@ -972,7 +974,7 @@ function SuperAdminDashboard({
   const totalAdmins = (users || []).filter(
     (u: any) => u && (u.role === "admin" || u.role === "deputy") && u.status === "verified",
   ).length;
-  const activePupils = (pupils || []).filter((p: any) => p && p.active).length;
+  const activeStudents = (students || []).filter((p: any) => p && p.active).length;
 
   const stats = [
     {
@@ -990,11 +992,11 @@ function SuperAdminDashboard({
       link: "/app/teachers",
     },
     {
-      label: "Active Pupils",
-      value: activePupils,
+      label: "Active Students",
+      value: activeStudents,
       icon: Baby,
       color: "bg-green-500/15 text-green-600",
-      link: "/app/pupils",
+      link: "/app/students",
     },
     {
       label: "Total Classes",
@@ -1094,7 +1096,7 @@ function SuperAdminDashboard({
                 <TableHeader>
                   <TableRow>
                     <TableHead>School Name</TableHead>
-                    <TableHead>Pupils</TableHead>
+                    <TableHead>Students</TableHead>
                     <TableHead>Classes</TableHead>
                     <TableHead>Staff</TableHead>
                     <TableHead>Status</TableHead>
@@ -1103,7 +1105,7 @@ function SuperAdminDashboard({
                 <TableBody>
                   {(schools || []).map((s: any) => {
                     if (!s) return null;
-                    const pupilsCount = (pupils || []).filter(
+                    const studentsCount = (students || []).filter(
                       (p: any) => p && p.schoolId === s.id && p.active,
                     ).length;
                     const classesCount = (classes || []).filter(
@@ -1112,13 +1114,13 @@ function SuperAdminDashboard({
                     const staffCount = (users || []).filter(
                       (u: any) => u && u.schoolId === s.id && u.status === "verified",
                     ).length;
-                    const status = pupilsCount > 0 ? "Active" : "New";
+                    const status = studentsCount > 0 ? "Active" : "New";
                     return (
                       <TableRow key={s.id || Math.random().toString()}>
                         <TableCell className="font-semibold">
                           {s.name || "Unnamed School"}
                         </TableCell>
-                        <TableCell className="text-muted-foreground">{pupilsCount}</TableCell>
+                        <TableCell className="text-muted-foreground">{studentsCount}</TableCell>
                         <TableCell className="text-muted-foreground">{classesCount}</TableCell>
                         <TableCell className="text-muted-foreground">{staffCount}</TableCell>
                         <TableCell>

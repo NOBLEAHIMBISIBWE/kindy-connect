@@ -16,14 +16,14 @@ TO authenticated
 USING (
     EXISTS (
         SELECT 1 FROM users 
-        JOIN pupils ON pupils.id = marks.pupil_id
+        JOIN students ON students.id = marks.student_id
         WHERE users.id = auth.uid()::text 
         AND users.status = 'verified'
         AND (
             users.role IN ('admin', 'deputy')
             OR (
                 users.role = 'teacher' 
-                AND users.class_id = pupils.class_id
+                AND users.class_id = students.class_id
                 AND marks.subject = ANY(users.subjects)
             )
         )
@@ -37,14 +37,14 @@ TO authenticated
 WITH CHECK (
     EXISTS (
         SELECT 1 FROM users 
-        JOIN pupils ON pupils.id = marks.pupil_id
+        JOIN students ON students.id = marks.student_id
         WHERE users.id = auth.uid()::text 
         AND users.status = 'verified'
         AND (
             users.role IN ('admin', 'deputy')
             OR (
                 users.role = 'teacher' 
-                AND users.class_id = pupils.class_id
+                AND users.class_id = students.class_id
                 AND marks.subject = ANY(users.subjects)
             )
         )
@@ -58,14 +58,14 @@ TO authenticated
 USING (
     EXISTS (
         SELECT 1 FROM users 
-        JOIN pupils ON pupils.id = marks.pupil_id
+        JOIN students ON students.id = marks.student_id
         WHERE users.id = auth.uid()::text 
         AND users.status = 'verified'
         AND (
             users.role IN ('admin', 'deputy')
             OR (
                 users.role = 'teacher' 
-                AND users.class_id = pupils.class_id
+                AND users.class_id = students.class_id
                 AND marks.subject = ANY(users.subjects)
             )
         )

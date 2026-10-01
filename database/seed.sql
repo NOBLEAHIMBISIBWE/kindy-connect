@@ -57,8 +57,8 @@ INSERT INTO parents (id, name, phone, email, relationship, school_id) VALUES
 ('p11', 'Sunshine Parent', '+254712000011', 'sunshineparent@example.com', 'Mother', 's2')
 ON CONFLICT (id) DO NOTHING;
 
--- 5. Insert Pupils
-INSERT INTO pupils (id, admission_no, first_name, last_name, gender, dob, class_id, photo, active, school_id) VALUES
+-- 5. Insert Students
+INSERT INTO students (id, admission_no, first_name, last_name, gender, dob, class_id, photo, active, school_id) VALUES
 -- Baby Class (s1)
 ('k1', 'KG-001', 'Liam', 'Atieno', 'M', '2020-05-12', 'c1', NULL, TRUE, 's1'),
 ('k2', 'KG-002', 'Emma', 'Ochieng', 'F', '2020-06-18', 'c1', NULL, TRUE, 's1'),
@@ -77,8 +77,8 @@ INSERT INTO pupils (id, admission_no, first_name, last_name, gender, dob, class_
 ('k11', 'KG-011', 'Sunny', 'Boy', 'M', '2020-01-01', 'c6', NULL, TRUE, 's2')
 ON CONFLICT (id) DO NOTHING;
 
--- 6. Insert Pupil-Parents Join Relationships (Many-to-Many mapping)
-INSERT INTO pupil_parents (pupil_id, parent_id) VALUES
+-- 6. Insert Student-Parents Join Relationships (Many-to-Many mapping)
+INSERT INTO student_parents (student_id, parent_id) VALUES
 ('k1', 'p1'),
 ('k2', 'p6'),
 ('k3', 'p8'),
@@ -90,11 +90,11 @@ INSERT INTO pupil_parents (pupil_id, parent_id) VALUES
 ('k9', 'p9'),
 ('k10', 'p7'),
 ('k11', 'p11')
-ON CONFLICT (pupil_id, parent_id) DO NOTHING;
+ON CONFLICT (student_id, parent_id) DO NOTHING;
 
 -- 7. Insert Attendance Records for today
 INSERT INTO attendance (
-    id, pupil_id, date, arrival, departure, 
+    id, student_id, date, arrival, departure,
     arrival_transport, arrival_vehicle_reg, arrival_person_name, arrival_person_relation, arrival_phone,
     departure_transport, departure_vehicle_reg, departure_person_name, departure_person_relation, departure_phone
 ) VALUES
@@ -109,7 +109,7 @@ INSERT INTO attendance (
 ON CONFLICT (id) DO NOTHING;
 
 -- 8. Insert Notification Records
-INSERT INTO notifications (id, pupil_id, parent_id, channel, type, status, message, timestamp, phone_number) VALUES
+INSERT INTO notifications (id, student_id, parent_id, channel, type, status, message, timestamp, phone_number) VALUES
 -- Today's notifications
 ('n1', 'k8', 'p2', 'sms', 'arrival', 'sent', 'Dear John Kamau, your child Zuri Kamau has arrived safely at school today at 07:55.', CURRENT_TIMESTAMP - INTERVAL '2 hours', '+254712000002'),
 ('n2', 'k8', 'p2', 'email', 'arrival', 'sent', 'Dear John Kamau, your child Zuri Kamau has arrived safely at school today at 07:55.', CURRENT_TIMESTAMP - INTERVAL '2 hours', NULL),
@@ -122,8 +122,8 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 9. Insert Audit Logs
 INSERT INTO audit_logs (id, actor_id, actor_name, action, target, timestamp) VALUES
-('l1', 'u1', 'Amina Okello', 'Created pupil', 'Liam Atieno (KG-001)', CURRENT_TIMESTAMP - INTERVAL '5 days'),
-('l2', 'u1', 'Amina Okello', 'Created pupil', 'Zuri Kamau (KG-008)', CURRENT_TIMESTAMP - INTERVAL '5 days'),
+('l1', 'u1', 'Amina Okello', 'Created student', 'Liam Atieno (KG-001)', CURRENT_TIMESTAMP - INTERVAL '5 days'),
+('l2', 'u1', 'Amina Okello', 'Created student', 'Zuri Kamau (KG-008)', CURRENT_TIMESTAMP - INTERVAL '5 days'),
 ('l3', 'u2', 'Brian Mwangi', 'Approved teacher', 'Grace Wanjiku', CURRENT_TIMESTAMP - INTERVAL '3 days'),
 ('l4', 'u3', 'Grace Wanjiku', 'Marked arrival', 'Zuri Kamau', CURRENT_TIMESTAMP - INTERVAL '2 hours'),
 ('l5', 'u3', 'Grace Wanjiku', 'Marked departure', 'Ethan Wangari', CURRENT_TIMESTAMP - INTERVAL '30 minutes'),
@@ -132,7 +132,7 @@ INSERT INTO audit_logs (id, actor_id, actor_name, action, target, timestamp) VAL
 ON CONFLICT (id) DO NOTHING;
 
 -- 10. Insert Marks
-INSERT INTO marks (id, pupil_id, subject, term, year, score, max_score, grade, teacher_comment, recorded_by, recorded_at) VALUES
+INSERT INTO marks (id, student_id, subject, term, year, score, max_score, grade, teacher_comment, recorded_by, recorded_at) VALUES
 -- Term 1 Marks
 ('m1', 'k8', 'Reading', 'Term 1', '2025', 85, 100, 'A', 'Excellent progress! Zuri shows great enthusiasm for reading.', 'u3', '2025-03-15 10:30:00+03'),
 ('m2', 'k8', 'Math', 'Term 1', '2025', 78, 100, 'B', 'Good work on numbers and counting.', 'u3', '2025-03-15 10:35:00+03'),
