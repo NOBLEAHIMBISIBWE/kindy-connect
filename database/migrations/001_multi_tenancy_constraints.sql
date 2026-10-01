@@ -19,8 +19,8 @@ CREATE INDEX IF NOT EXISTS idx_users_school ON users(school_id);
 -- Classes school_id index (should already exist as idx_classes_school)
 CREATE INDEX IF NOT EXISTS idx_classes_school ON classes(school_id);
 
--- Pupils school_id index (should already exist as idx_pupils_school)
-CREATE INDEX IF NOT EXISTS idx_pupils_school ON pupils(school_id);
+-- Students school_id index (should already exist as idx_students_school)
+CREATE INDEX IF NOT EXISTS idx_students_school ON students(school_id);
 
 -- Parents school_id index (should already exist as idx_parents_school)
 CREATE INDEX IF NOT EXISTS idx_parents_school ON parents(school_id);
@@ -29,13 +29,13 @@ CREATE INDEX IF NOT EXISTS idx_parents_school ON parents(school_id);
 -- These are already defined in schema.sql:
 -- - classes.school_id → schools.id
 -- - users.school_id → schools.id
--- - pupils.school_id → schools.id
+-- - students.school_id → schools.id
 -- - parents.school_id → schools.id
 
 -- 4. Add index for audit logs filtering by actor's school (via user join)
 CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs(actor_id);
 
--- 5. Add composite index for attendance filtering by pupil and date
--- (should already exist as idx_attendance_pupil_date)
-CREATE INDEX IF NOT EXISTS idx_attendance_pupil_date ON attendance(pupil_id, date);
+-- 5. Add composite index for attendance filtering by student and date
+-- (should already exist as idx_attendance_student_date)
+CREATE INDEX IF NOT EXISTS idx_attendance_student_date ON attendance(student_id, date);
 

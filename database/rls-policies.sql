@@ -4,8 +4,8 @@
 ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE parents ENABLE ROW LEVEL SECURITY;
-ALTER TABLE pupils ENABLE ROW LEVEL SECURITY;
-ALTER TABLE pupil_parents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE student_parents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
@@ -27,15 +27,15 @@ DROP POLICY IF EXISTS "parents_insert_policy" ON parents;
 DROP POLICY IF EXISTS "parents_update_policy" ON parents;
 DROP POLICY IF EXISTS "parents_delete_policy" ON parents;
 
-DROP POLICY IF EXISTS "pupils_select_policy" ON pupils;
-DROP POLICY IF EXISTS "pupils_insert_policy" ON pupils;
-DROP POLICY IF EXISTS "pupils_update_policy" ON pupils;
-DROP POLICY IF EXISTS "pupils_delete_policy" ON pupils;
+DROP POLICY IF EXISTS "students_select_policy" ON students;
+DROP POLICY IF EXISTS "students_insert_policy" ON students;
+DROP POLICY IF EXISTS "students_update_policy" ON students;
+DROP POLICY IF EXISTS "students_delete_policy" ON students;
 
-DROP POLICY IF EXISTS "pupil_parents_select_policy" ON pupil_parents;
-DROP POLICY IF EXISTS "pupil_parents_insert_policy" ON pupil_parents;
-DROP POLICY IF EXISTS "pupil_parents_update_policy" ON pupil_parents;
-DROP POLICY IF EXISTS "pupil_parents_delete_policy" ON pupil_parents;
+DROP POLICY IF EXISTS "student_parents_select_policy" ON student_parents;
+DROP POLICY IF EXISTS "student_parents_insert_policy" ON student_parents;
+DROP POLICY IF EXISTS "student_parents_update_policy" ON student_parents;
+DROP POLICY IF EXISTS "student_parents_delete_policy" ON student_parents;
 
 DROP POLICY IF EXISTS "attendance_select_policy" ON attendance;
 DROP POLICY IF EXISTS "attendance_insert_policy" ON attendance;
@@ -216,11 +216,11 @@ USING (
 );
 
 -- ===========================================
--- PUPILS TABLE POLICIES
+-- STUDENTS TABLE POLICIES
 -- ===========================================
 
--- SELECT: Teachers can see their class pupils, admins/deputies see all
-CREATE POLICY "pupils_select_policy" ON pupils
+-- SELECT: Teachers can see their class students, admins/deputies see all
+CREATE POLICY "students_select_policy" ON students
 FOR SELECT
 TO authenticated
 USING (
@@ -230,13 +230,13 @@ USING (
         AND users.status = 'verified'
         AND (
             users.role IN ('admin', 'deputy')
-            OR (users.role = 'teacher' AND users.class_id = pupils.class_id)
+            OR (users.role = 'teacher' AND users.class_id = students.class_id)
         )
     )
 );
 
--- INSERT: Admins and deputies can create pupils
-CREATE POLICY "pupils_insert_policy" ON pupils
+-- INSERT: Admins and deputies can create students
+CREATE POLICY "students_insert_policy" ON students
 FOR INSERT
 TO authenticated
 WITH CHECK (
@@ -248,8 +248,8 @@ WITH CHECK (
     )
 );
 
--- UPDATE: Admins and deputies can update pupils
-CREATE POLICY "pupils_update_policy" ON pupils
+-- UPDATE: Admins and deputies can update students
+CREATE POLICY "students_update_policy" ON students
 FOR UPDATE
 TO authenticated
 USING (
@@ -261,8 +261,8 @@ USING (
     )
 );
 
--- DELETE: Only admins can delete pupils
-CREATE POLICY "pupils_delete_policy" ON pupils
+-- DELETE: Only admins can delete students
+CREATE POLICY "students_delete_policy" ON students
 FOR DELETE
 TO authenticated
 USING (
@@ -275,11 +275,11 @@ USING (
 );
 
 -- ===========================================
--- PUPIL_PARENTS TABLE POLICIES
+-- STUDENT_PARENTS TABLE POLICIES
 -- ===========================================
 
--- SELECT: All verified staff can view pupil-parent relationships
-CREATE POLICY "pupil_parents_select_policy" ON pupil_parents
+-- SELECT: All verified staff can view student-parent relationships
+CREATE POLICY "student_parents_select_policy" ON student_parents
 FOR SELECT
 TO authenticated
 USING (
@@ -290,8 +290,8 @@ USING (
     )
 );
 
--- INSERT: Admins and deputies can link pupils to parents
-CREATE POLICY "pupil_parents_insert_policy" ON pupil_parents
+-- INSERT: Admins and deputies can link students to parents
+CREATE POLICY "student_parents_insert_policy" ON student_parents
 FOR INSERT
 TO authenticated
 WITH CHECK (
@@ -304,7 +304,7 @@ WITH CHECK (
 );
 
 -- UPDATE: Admins and deputies can update relationships
-CREATE POLICY "pupil_parents_update_policy" ON pupil_parents
+CREATE POLICY "student_parents_update_policy" ON student_parents
 FOR UPDATE
 TO authenticated
 USING (
@@ -317,7 +317,7 @@ USING (
 );
 
 -- DELETE: Admins and deputies can remove relationships
-CREATE POLICY "pupil_parents_delete_policy" ON pupil_parents
+CREATE POLICY "student_parents_delete_policy" ON student_parents
 FOR DELETE
 TO authenticated
 USING (
@@ -340,12 +340,12 @@ TO authenticated
 USING (
     EXISTS (
         SELECT 1 FROM users 
-        JOIN pupils ON pupils.id = attendance.pupil_id
+        JOIN students ON students.id = attendance.student_id
         WHERE users.id = auth.uid()::text 
         AND users.status = 'verified'
         AND (
             users.role IN ('admin', 'deputy')
-            OR (users.role = 'teacher' AND users.class_id = pupils.class_id)
+            OR (users.role = 'teacher' AND users.class_id = students.class_id)
         )
     )
 );
@@ -357,12 +357,12 @@ TO authenticated
 WITH CHECK (
     EXISTS (
         SELECT 1 FROM users 
-        JOIN pupils ON pupils.id = attendance.pupil_id
+        JOIN students ON students.id = attendance.student_id
         WHERE users.id = auth.uid()::text 
         AND users.status = 'verified'
         AND (
             users.role IN ('admin', 'deputy')
-            OR (users.role = 'teacher' AND users.class_id = pupils.class_id)
+            OR (users.role = 'teacher' AND users.class_id = students.class_id)
         )
     )
 );
@@ -374,12 +374,12 @@ TO authenticated
 USING (
     EXISTS (
         SELECT 1 FROM users 
-        JOIN pupils ON pupils.id = attendance.pupil_id
+        JOIN students ON students.id = attendance.student_id
         WHERE users.id = auth.uid()::text 
         AND users.status = 'verified'
         AND (
             users.role IN ('admin', 'deputy')
-            OR (users.role = 'teacher' AND users.class_id = pupils.class_id)
+            OR (users.role = 'teacher' AND users.class_id = students.class_id)
         )
     )
 );
@@ -464,14 +464,14 @@ TO authenticated
 USING (
     EXISTS (
         SELECT 1 FROM users 
-        JOIN pupils ON pupils.id = marks.pupil_id
+        JOIN students ON students.id = marks.student_id
         WHERE users.id = auth.uid()::text 
         AND users.status = 'verified'
         AND (
             users.role IN ('admin', 'deputy')
             OR (
                 users.role = 'teacher' 
-                AND users.class_id = pupils.class_id
+                AND users.class_id = students.class_id
                 AND marks.subject = ANY(users.subjects)
             )
         )
@@ -485,14 +485,14 @@ TO authenticated
 WITH CHECK (
     EXISTS (
         SELECT 1 FROM users 
-        JOIN pupils ON pupils.id = marks.pupil_id
+        JOIN students ON students.id = marks.student_id
         WHERE users.id = auth.uid()::text 
         AND users.status = 'verified'
         AND (
             users.role IN ('admin', 'deputy')
             OR (
                 users.role = 'teacher' 
-                AND users.class_id = pupils.class_id
+                AND users.class_id = students.class_id
                 AND marks.subject = ANY(users.subjects)
             )
         )
@@ -506,14 +506,14 @@ TO authenticated
 USING (
     EXISTS (
         SELECT 1 FROM users 
-        JOIN pupils ON pupils.id = marks.pupil_id
+        JOIN students ON students.id = marks.student_id
         WHERE users.id = auth.uid()::text 
         AND users.status = 'verified'
         AND (
             users.role IN ('admin', 'deputy')
             OR (
                 users.role = 'teacher' 
-                AND users.class_id = pupils.class_id
+                AND users.class_id = students.class_id
                 AND marks.subject = ANY(users.subjects)
             )
         )

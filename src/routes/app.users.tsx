@@ -107,22 +107,26 @@ function UsersPage() {
   // Enhanced analytics
   const userAnalytics = useMemo(() => {
     const allUsers = users || [];
-    const activeUsers = allUsers.filter(u => u.status === "verified");
-    const pendingUsers = allUsers.filter(u => u.status === "pending");
-    const recentUsers = allUsers.filter(u => {
+    const activeUsers = allUsers.filter((u) => u.status === "verified");
+    const pendingUsers = allUsers.filter((u) => u.status === "pending");
+    const recentUsers = allUsers.filter((u) => {
       const registeredDate = toRegisteredDate(u.registeredAt);
       return registeredDate ? differenceInDays(new Date(), registeredDate) <= 30 : false;
     });
 
     // Role counts
-    const superAdminCount = allUsers.filter(u => u.role === "super_admin").length;
-    const adminCount = allUsers.filter(u => u.role === "admin").length;
-    const deputyCount = allUsers.filter(u => u.role === "deputy").length;
-    const teacherCount = allUsers.filter(u => u.role === "teacher").length;
+    const superAdminCount = allUsers.filter((u) => u.role === "super_admin").length;
+    const adminCount = allUsers.filter((u) => u.role === "admin").length;
+    const deputyCount = allUsers.filter((u) => u.role === "deputy").length;
+    const teacherCount = allUsers.filter((u) => u.role === "teacher").length;
 
     // Schools with no admin
-    const schoolsWithoutAdmin = schools.filter(school => 
-      !allUsers.some(user => user.schoolId === school.id && (user.role === "admin" || user.role === "deputy"))
+    const schoolsWithoutAdmin = schools.filter(
+      (school) =>
+        !allUsers.some(
+          (user) =>
+            user.schoolId === school.id && (user.role === "admin" || user.role === "deputy"),
+        ),
     );
 
     return {
@@ -134,30 +138,32 @@ function UsersPage() {
       adminCount,
       deputyCount,
       teacherCount,
-      schoolsWithoutAdmin
+      schoolsWithoutAdmin,
     };
   }, [users, schools]);
 
   // Export functionality
   const exportUsersData = () => {
-    const exportData = filteredUsersList.map(user => {
-      const school = schools.find(s => s.id === user.schoolId);
+    const exportData = filteredUsersList.map((user) => {
+      const school = schools.find((s) => s.id === user.schoolId);
       return [
         user.id,
         user.name,
         user.email,
-        user.phone || '',
+        user.phone || "",
         user.role,
         user.status,
-        school?.name || (user.role === 'super_admin' ? 'System Wide' : 'Unassigned'),
+        school?.name || (user.role === "super_admin" ? "System Wide" : "Unassigned"),
         user.registeredAt,
       ];
     });
 
     const csvContent = [
       ["User ID", "Full Name", "Email", "Phone", "Role", "Status", "School", "Registered Date"],
-      ...exportData
-    ].map(row => row.join(",")).join("\n");
+      ...exportData,
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
@@ -428,10 +434,12 @@ function UsersPage() {
             <CardContent className="p-4 flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
               <div className="flex-1">
-                <h4 className="font-semibold text-amber-800 dark:text-amber-200">Schools Missing Administrators</h4>
+                <h4 className="font-semibold text-amber-800 dark:text-amber-200">
+                  Schools Missing Administrators
+                </h4>
                 <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                  The following schools don't have assigned administrators: {" "}
-                  <strong>{userAnalytics.schoolsWithoutAdmin.map(s => s.name).join(", ")}</strong>
+                  The following schools don't have assigned administrators:{" "}
+                  <strong>{userAnalytics.schoolsWithoutAdmin.map((s) => s.name).join(", ")}</strong>
                 </p>
               </div>
             </CardContent>

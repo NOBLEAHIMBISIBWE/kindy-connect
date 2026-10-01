@@ -135,14 +135,14 @@ async function run() {
       process.exit(0);
     }
 
-    // 2. Fetch maximum pupil admission number or existing pupils to avoid duplicate IDs/admission numbers
-    const existingPupils = await sql`SELECT id, admission_no FROM pupils`;
-    const existingIds = new Set(existingPupils.map((p) => p.id));
-    const existingAdmNos = new Set(existingPupils.map((p) => p.admission_no));
+    // 2. Fetch maximum student admission number or existing students to avoid duplicate IDs/admission numbers
+    const existingStudents = await sql`SELECT id, admission_no FROM students`;
+    const existingIds = new Set(existingStudents.map((p) => p.id));
+    const existingAdmNos = new Set(existingStudents.map((p) => p.admission_no));
 
-    console.log(`Existing pupils count: ${existingPupils.length}`);
+    console.log(`Existing students count: ${existingStudents.length}`);
 
-    let totalPupilsAdded = 0;
+    let totalStudentsAdded = 0;
     let totalParentsAdded = 0;
 
     let counter = 100;
@@ -152,19 +152,19 @@ async function run() {
 
       for (let i = 1; i <= 5; i++) {
         counter++;
-        let pupilId = `p_auto_${cls.id}_${i}_${counter}`;
+        let studentId = `p_auto_${cls.id}_${i}_${counter}`;
         let admNo = `ADM-${cls.id.toUpperCase()}-${counter}`;
 
-        while (existingIds.has(pupilId)) {
+        while (existingIds.has(studentId)) {
           counter++;
-          pupilId = `p_auto_${cls.id}_${i}_${counter}`;
+          studentId = `p_auto_${cls.id}_${i}_${counter}`;
         }
         while (existingAdmNos.has(admNo)) {
           counter++;
           admNo = `ADM-${cls.id.toUpperCase()}-${counter}`;
         }
 
-        existingIds.add(pupilId);
+        existingIds.add(studentId);
         existingAdmNos.add(admNo);
 
         const isMale = Math.random() > 0.5;
@@ -180,16 +180,16 @@ async function run() {
         const day = String(Math.floor(Math.random() * 28) + 1).padStart(2, "0");
         const dob = `${year}-${month}-${day}`;
 
-        // Insert pupil
+        // Insert student
         await sql`
-          INSERT INTO pupils (id, admission_no, first_name, last_name, gender, dob, class_id, active, school_id)
-          VALUES (${pupilId}, ${admNo}, ${firstName}, ${lastName}, ${gender}, ${dob}, ${cls.id}, TRUE, ${cls.school_id})
+          INSERT INTO students (id, admission_no, first_name, last_name, gender, dob, class_id, active, school_id)
+          VALUES (${studentId}, ${admNo}, ${firstName}, ${lastName}, ${gender}, ${dob}, ${cls.id}, TRUE, ${cls.school_id})
           ON CONFLICT (id) DO NOTHING
         `;
-        totalPupilsAdded++;
+        totalStudentsAdded++;
 
         // Create Parent
-        const parentId = `parent_${pupilId}`;
+        const parentId = `parent_${studentId}`;
         const parentRelation =
           PARENT_RELATIONS[Math.floor(Math.random() * PARENT_RELATIONS.length)];
         const parentName = `${parentRelation === "Mother" ? "Mary" : parentRelation === "Father" ? "John" : "Grace"} ${lastName}`;
@@ -203,21 +203,21 @@ async function run() {
         `;
         totalParentsAdded++;
 
-        // Link Pupil & Parent
+        // Link Student & Parent
         await sql`
-          INSERT INTO pupil_parents (pupil_id, parent_id)
-          VALUES (${pupilId}, ${parentId})
-          ON CONFLICT (pupil_id, parent_id) DO NOTHING
+          INSERT INTO student_parents (student_id, parent_id)
+          VALUES (${studentId}, ${parentId})
+          ON CONFLICT (student_id, parent_id) DO NOTHING
         `;
 
         console.log(
-          `   + Added Pupil: ${firstName} ${lastName} (${admNo}) [ID: ${pupilId}] with Parent: ${parentName}`,
+          `   + Added Student: ${firstName} ${lastName} (${admNo}) [ID: ${studentId}] with Parent: ${parentName}`,
         );
       }
     }
 
     console.log(
-      `\nSuccessfully added ${totalPupilsAdded} pupils and ${totalParentsAdded} parents across ${classes.length} classes!`,
+      `\nSuccessfully added ${totalStudentsAdded} students and ${totalParentsAdded} parents across ${classes.length} classes!`,
     );
     process.exit(0);
   } catch (err) {

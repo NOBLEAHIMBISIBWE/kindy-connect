@@ -36,7 +36,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
   // Check if we're in mock mode by looking for the mock mode indicator
   useEffect(() => {
     // If there's no load error and we have schools, but specific mock data, we're in mock mode
-    setIsInMockMode(!loadError && schools.some(s => s.name === "Little Stars Primary School"));
+    setIsInMockMode(!loadError && schools.some((s) => s.name === "Little Stars Primary School"));
   }, [loadError, schools]);
 
   useEffect(() => {
@@ -80,7 +80,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
     : isStaff
       ? [
           { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
-          { to: "/app/pupils", label: "Pupils", icon: Baby },
+          { to: "/app/students", label: "Students", icon: Baby },
           { to: "/app/parents", label: "Parents", icon: Users },
           { to: "/app/teachers", label: "Teachers", icon: GraduationCap, badge: pendingCount },
           { to: "/app/classes", label: "Classes", icon: BookOpen },
@@ -145,11 +145,13 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
                 <span>Mock Mode</span>
               </div>
               <div className="text-orange-600/80 dark:text-orange-400/80 text-[10px] leading-tight">
-                Using sample data. Run <code className="bg-orange-500/20 px-1 rounded">npm run db:mode</code> to switch to database mode.
+                Using sample data. Run{" "}
+                <code className="bg-orange-500/20 px-1 rounded">npm run db:mode</code> to switch to
+                database mode.
               </div>
             </div>
           )}
-          
+
           <div className="rounded-lg bg-muted/40 p-2.5 text-xs space-y-1">
             <div className="font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">
               For Inquiries

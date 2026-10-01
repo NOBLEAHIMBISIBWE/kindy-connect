@@ -1,6 +1,6 @@
 /**
- * Bulk Upload Pupils Dialog Component
- * Allows uploading multiple pupils via CSV file with column comparison & merging capabilities
+ * Bulk Upload Students Dialog Component
+ * Allows uploading multiple students via CSV file with column comparison & merging capabilities
  */
 
 import { useState, useRef } from "react";
@@ -51,20 +51,20 @@ import {
   downloadCSVTemplate,
   checkDuplicates,
   type ParseResult,
-  type PupilCSVRow,
+  type StudentCSVRow,
   type ColumnComparisonResult,
   type ExpectedHeader,
 } from "@/lib/csv-utils";
 
-interface BulkUploadPupilsDialogProps {
+interface BulkUploadStudentsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 type UploadStage = "select" | "validate" | "compare" | "review" | "uploading" | "complete";
 
-export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsDialogProps) {
-  const { pupils, classes, bulkAddPupils, currentUser } = useStore();
+export function BulkUploadStudentsDialog({ open, onOpenChange }: BulkUploadStudentsDialogProps) {
+  const { students, classes, bulkAddStudents, currentUser } = useStore();
   const [stage, setStage] = useState<UploadStage>("select");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadedHeaders, setUploadedHeaders] = useState<string[]>([]);
@@ -78,7 +78,7 @@ export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsD
     failCount: number;
     results: Array<{
       success: boolean;
-      pupilId?: string;
+      studentId?: string;
       admissionNo: string;
       name: string;
       error?: string;
@@ -121,7 +121,7 @@ export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsD
 
       // Check for duplicate admission numbers if parse data is available
       if (result.data.length > 0) {
-        const existingAdmissionNos = pupils.map((p) => p.admissionNo);
+        const existingAdmissionNos = students.map((p) => p.admissionNo);
         const duplicates = checkDuplicates(result.data, existingAdmissionNos);
 
         if (duplicates.length > 0) {
@@ -179,7 +179,7 @@ export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsD
     setUploadProgress(0);
 
     try {
-      const pupilsToUpload = parseResult.data.map((row: PupilCSVRow) => {
+      const studentsToUpload = parseResult.data.map((row: StudentCSVRow) => {
         const classRoom = classes.find(
           (c) => c.name.trim().toLowerCase() === row.className.trim().toLowerCase(),
         );
@@ -189,7 +189,7 @@ export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsD
         }
 
         return {
-          pupil: {
+          student: {
             admissionNo: row.admissionNo,
             firstName: row.firstName,
             lastName: row.lastName,
@@ -210,17 +210,17 @@ export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsD
       });
 
       setUploadProgress(30);
-      const result = await bulkAddPupils(pupilsToUpload);
+      const result = await bulkAddStudents(studentsToUpload);
 
       setUploadProgress(100);
       setUploadResult(result);
       setStage("complete");
 
       if (result.successCount > 0) {
-        toast.success(`Successfully uploaded ${result.successCount} pupils`);
+        toast.success(`Successfully uploaded ${result.successCount} students`);
       }
       if (result.failCount > 0) {
-        toast.error(`Failed to upload ${result.failCount} pupils`);
+        toast.error(`Failed to upload ${result.failCount} students`);
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Upload failed");
@@ -252,10 +252,10 @@ export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsD
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <Upload className="h-5 w-5 text-primary" /> Bulk Upload Pupils
+            <Upload className="h-5 w-5 text-primary" /> Bulk Upload Students
           </DialogTitle>
           <DialogDescription>
-            Download template, compare & map columns, and bulk import pupils safely.
+            Download template, compare & map columns, and bulk import students safely.
           </DialogDescription>
 
           {/* Stepper Header */}
@@ -304,7 +304,7 @@ export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsD
             <Alert className="bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
               <FileText className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-900 dark:text-blue-200 text-xs">
-                Download the official CSV template first, fill in pupil details, then upload. The
+                Download the official CSV template first, fill in student details, then upload. The
                 system will compare your file columns against the standard template before allowing
                 upload.
               </AlertDescription>
@@ -317,7 +317,7 @@ export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsD
               <div className="text-center space-y-1">
                 <p className="text-base font-semibold">Upload your CSV File</p>
                 <p className="text-xs text-muted-foreground">
-                  Select or drag & drop a .csv file containing pupil records
+                  Select or drag & drop a .csv file containing student records
                 </p>
               </div>
               <input
@@ -638,7 +638,7 @@ export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsD
               <div className="space-y-0.5">
                 <p className="text-sm font-semibold">{selectedFile?.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {parseResult.data.length} valid pupil records found
+                  {parseResult.data.length} valid student records found
                 </p>
               </div>
               <Button
@@ -659,7 +659,7 @@ export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsD
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{parseResult.data.length}</p>
-                  <p className="text-xs text-muted-foreground">Total Pupils</p>
+                  <p className="text-xs text-muted-foreground">Total Students</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 border rounded-xl bg-card">
@@ -720,7 +720,7 @@ export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsD
             {parseResult.data.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                  Preview Parsed Data (First 5 Pupils)
+                  Preview Parsed Data (First 5 Students)
                 </p>
                 <div className="border rounded-xl overflow-hidden max-h-60 overflow-y-auto">
                   <Table>
@@ -756,7 +756,7 @@ export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsD
                 </div>
                 {parseResult.data.length > 5 && (
                   <p className="text-xs text-muted-foreground text-center">
-                    ... and {parseResult.data.length - 5} more pupils ready for upload
+                    ... and {parseResult.data.length - 5} more students ready for upload
                   </p>
                 )}
               </div>
@@ -769,7 +769,7 @@ export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsD
           <div className="space-y-6 py-12">
             <div className="flex flex-col items-center justify-center space-y-4">
               <RefreshCw className="h-12 w-12 text-primary animate-spin" />
-              <p className="text-base font-semibold">Uploading pupils to database...</p>
+              <p className="text-base font-semibold">Uploading students to database...</p>
               <Progress value={uploadProgress} className="w-full max-w-md" />
               <p className="text-xs text-muted-foreground">{uploadProgress}% complete</p>
             </div>
@@ -792,7 +792,8 @@ export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsD
               <div className="text-center space-y-1">
                 <p className="text-lg font-bold">Bulk Upload Complete</p>
                 <p className="text-xs text-muted-foreground">
-                  {uploadResult.successCount} of {uploadResult.total} pupils successfully registered
+                  {uploadResult.successCount} of {uploadResult.total} students successfully
+                  registered
                 </p>
               </div>
             </div>
@@ -884,7 +885,7 @@ export function BulkUploadPupilsDialog({ open, onOpenChange }: BulkUploadPupilsD
                 disabled={!parseResult?.success || parseResult.data.length === 0}
                 className="gap-2"
               >
-                <Upload className="h-4 w-4" /> Upload {parseResult?.data.length || 0} Pupils
+                <Upload className="h-4 w-4" /> Upload {parseResult?.data.length || 0} Students
               </Button>
             </>
           )}

@@ -269,8 +269,8 @@ function Landing() {
               <div className="grid gap-4 md:grid-cols-2">
                 <FeatureCard
                   icon={Users}
-                  title="Classes and pupils"
-                  description="Keep classrooms, pupil records, and parent contacts in a single source of truth."
+                  title="Classes and students"
+                  description="Keep classrooms, student records, and parent contacts in a single source of truth."
                 />
                 <FeatureCard
                   icon={BellRing}

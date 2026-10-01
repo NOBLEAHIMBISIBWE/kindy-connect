@@ -49,12 +49,12 @@ CREATE POLICY school_scoped_classes ON classes
 
 
 -- ====================
--- 3. PUPILS TABLE
+-- 3. STUDENTS TABLE
 -- ====================
-ALTER TABLE pupils ENABLE ROW LEVEL SECURITY;
+ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 
--- Policy: Super Admin sees all pupils
-CREATE POLICY super_admin_all_pupils ON pupils
+-- Policy: Super Admin sees all students
+CREATE POLICY super_admin_all_students ON students
     FOR ALL
     USING (
         EXISTS (
@@ -64,8 +64,8 @@ CREATE POLICY super_admin_all_pupils ON pupils
         )
     );
 
--- Policy: School-scoped users see only their school's pupils
-CREATE POLICY school_scoped_pupils ON pupils
+-- Policy: School-scoped users see only their school's students
+CREATE POLICY school_scoped_students ON students
     FOR ALL
     USING (
         school_id = current_setting('app.school_id', true)::VARCHAR
@@ -111,14 +111,14 @@ CREATE POLICY super_admin_all_attendance ON attendance
         )
     );
 
--- Policy: School-scoped users see only attendance for pupils in their school
+-- Policy: School-scoped users see only attendance for students in their school
 CREATE POLICY school_scoped_attendance ON attendance
     FOR ALL
     USING (
         EXISTS (
-            SELECT 1 FROM pupils
-            WHERE pupils.id = attendance.pupil_id
-            AND pupils.school_id = current_setting('app.school_id', true)::VARCHAR
+            SELECT 1 FROM students
+            WHERE students.id = attendance.student_id
+            AND students.school_id = current_setting('app.school_id', true)::VARCHAR
         )
     );
 
@@ -138,14 +138,14 @@ CREATE POLICY super_admin_all_notifications ON notifications
         )
     );
 
--- Policy: School-scoped users see only notifications for pupils in their school
+-- Policy: School-scoped users see only notifications for students in their school
 CREATE POLICY school_scoped_notifications ON notifications
     FOR ALL
     USING (
         EXISTS (
-            SELECT 1 FROM pupils
-            WHERE pupils.id = notifications.pupil_id
-            AND pupils.school_id = current_setting('app.school_id', true)::VARCHAR
+            SELECT 1 FROM students
+            WHERE students.id = notifications.student_id
+            AND students.school_id = current_setting('app.school_id', true)::VARCHAR
         )
     );
 
@@ -166,14 +166,14 @@ CREATE POLICY super_admin_all_marks ON marks
         )
     );
 
--- Policy: School-scoped users see only marks for pupils in their school
+-- Policy: School-scoped users see only marks for students in their school
 CREATE POLICY school_scoped_marks ON marks
     FOR ALL
     USING (
         EXISTS (
-            SELECT 1 FROM pupils
-            WHERE pupils.id = marks.pupil_id
-            AND pupils.school_id = current_setting('app.school_id', true)::VARCHAR
+            SELECT 1 FROM students
+            WHERE students.id = marks.student_id
+            AND students.school_id = current_setting('app.school_id', true)::VARCHAR
         )
     );
 

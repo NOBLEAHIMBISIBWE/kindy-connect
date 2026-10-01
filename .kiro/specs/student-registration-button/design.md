@@ -1,14 +1,14 @@
-# Design Document: Pupil Registration Button
+# Design Document: Student Registration Button
 
 ## Overview
 
-The pupil registration button feature enables authorized users to submit the pupil registration form and persist new pupil records to the system database. This feature encompasses form validation, data persistence, error handling, access control, and user feedback mechanisms.
+The student registration button feature enables authorized users to submit the student registration form and persist new student records to the system database. This feature encompasses form validation, data persistence, error handling, access control, and user feedback mechanisms.
 
 ### Key Objectives
 
-- Provide a clear, accessible submit mechanism for the pupil registration form
+- Provide a clear, accessible submit mechanism for the student registration form
 - Validate all form inputs before submission to ensure data integrity
-- Persist pupil and parent/guardian information to the database
+- Persist student and parent/guardian information to the database
 - Provide real-time feedback during submission (loading states, success/error messages)
 - Enforce authentication and authorization requirements
 - Maintain form state during errors to support retry without data loss
@@ -31,7 +31,7 @@ The pupil registration button feature enables authorized users to submit the pup
 
 ```mermaid
 graph TD
-    A[PupilsPage Component] --> B[Dialog Component]
+    A[StudentsPage Component] --> B[Dialog Component]
     B --> C[RegistrationForm]
     C --> D[FormFields]
     C --> E[RegisterButton]
@@ -64,8 +64,8 @@ sequenceDiagram
         F->>T: Show error toast
         B->>B: Re-enable button
     else Validation Succeeds
-        V->>S: Submit pupil data
-        S->>DB: INSERT pupil record
+        V->>S: Submit student data
+        S->>DB: INSERT student record
         S->>DB: INSERT parent record
         alt Database Success
             DB-->>S: Return created records
@@ -100,7 +100,7 @@ graph LR
 
 ### 1. Register Button Component
 
-**Location**: `src/routes/app.pupils.tsx` (within Dialog component)
+**Location**: `src/routes/app.students.tsx` (within Dialog component)
 
 **Props Interface**:
 
@@ -129,12 +129,12 @@ const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
 ### 2. Validation Service
 
-**Location**: `src/lib/validation/pupil-registration.ts` (new file)
+**Location**: `src/lib/validation/student-registration.ts` (new file)
 
 **Interface**:
 
 ```typescript
-interface PupilFormData {
+interface StudentFormData {
   admissionNo: string;
   firstName: string;
   lastName: string;
@@ -153,9 +153,9 @@ interface ValidationResult {
 }
 
 interface ValidationService {
-  validateForm(data: PupilFormData, existingPupils: Pupil[]): ValidationResult;
-  validateRequiredFields(data: PupilFormData): ValidationResult;
-  validateAdmissionNumber(admissionNo: string, existingPupils: Pupil[]): ValidationResult;
+  validateForm(data: StudentFormData, existingStudents: Student[]): ValidationResult;
+  validateRequiredFields(data: StudentFormData): ValidationResult;
+  validateAdmissionNumber(admissionNo: string, existingStudents: Student[]): ValidationResult;
   validateEmail(email: string): ValidationResult;
   validatePhoneNumber(phone: string): ValidationResult;
 }
@@ -169,7 +169,7 @@ import { z } from "zod";
 const phoneRegex = /^\+?\d{10,15}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export const pupilRegistrationSchema = z.object({
+export const studentRegistrationSchema = z.object({
   admissionNo: z.string().min(1, "Admission number is required"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
@@ -182,19 +182,19 @@ export const pupilRegistrationSchema = z.object({
   parentRelationship: z.string().min(1, "Relationship is required"),
 });
 
-export type PupilRegistrationData = z.infer<typeof pupilRegistrationSchema>;
+export type StudentRegistrationData = z.infer<typeof studentRegistrationSchema>;
 ```
 
 ### 3. Submission Handler
 
-**Location**: `src/lib/handlers/pupil-registration.ts` (new file)
+**Location**: `src/lib/handlers/student-registration.ts` (new file)
 
 **Interface**:
 
 ```typescript
 interface SubmissionHandler {
   handleRegistration(
-    formData: PupilFormData,
+    formData: StudentFormData,
     store: MockStore,
     options: {
       onSuccess: () => void;
@@ -216,39 +216,39 @@ interface RegistrationError extends Error {
 
 ```typescript
 interface Store {
-  addPupil(
-    data: Omit<Pupil, "id" | "active"> & {
+  addStudent(
+    data: Omit<Student, "id" | "active"> & {
       parent?: Omit<Parent, "id">;
     },
   ): Promise<void>;
   currentUser: User | null;
-  pupils: Pupil[];
+  students: Student[];
   parents: Parent[];
   classes: ClassRoom[];
 }
 ```
 
 **Store Method Enhancement**:
-The existing `addPupil` method will be utilized without modification. It already:
+The existing `addStudent` method will be utilized without modification. It already:
 
 - Creates parent record if provided
-- Creates pupil record with parent association
+- Creates student record with parent association
 - Logs audit trail
 - Updates local state
 - Handles errors from database layer
 
 ### 5. Access Control Component
 
-**Location**: Inline within `PupilsPage` component
+**Location**: Inline within `StudentsPage` component
 
 **Interface**:
 
 ```typescript
 interface AccessControl {
-  canRegisterPupils(user: User | null): boolean;
+  canRegisterStudents(user: User | null): boolean;
 }
 
-const canRegisterPupils = (user: User | null): boolean => {
+const canRegisterStudents = (user: User | null): boolean => {
   if (!user) return false;
 
   const allowedRoles: Role[] = ["super_admin", "school_admin", "teacher"];
@@ -258,14 +258,14 @@ const canRegisterPupils = (user: User | null): boolean => {
 
 ## Data Models
 
-### Pupil Record
+### Student Record
 
 ```typescript
-interface Pupil {
+interface Student {
   id: string; // Unique identifier (UUID)
   admissionNo: string; // Unique admission number
-  firstName: string; // Pupil first name
-  lastName: string; // Pupil last name
+  firstName: string; // Student first name
+  lastName: string; // Student last name
   gender: "M" | "F"; // Gender
   dob: string; // Date of birth (ISO 8601)
   classId: string; // Foreign key to ClassRoom
@@ -283,7 +283,7 @@ interface Parent {
   name: string; // Full name
   phone: string; // Phone number
   email: string; // Email address
-  relationship: string; // Relationship to pupil (Mother/Father/Guardian)
+  relationship: string; // Relationship to student (Mother/Father/Guardian)
   schoolId: string; // Foreign key to School
 }
 ```
@@ -291,7 +291,7 @@ interface Parent {
 ### Form State
 
 ```typescript
-interface PupilRegistrationFormState {
+interface StudentRegistrationFormState {
   admissionNo: string;
   firstName: string;
   lastName: string;
@@ -304,7 +304,7 @@ interface PupilRegistrationFormState {
   parentRelationship: string;
 }
 
-const defaultFormState: PupilRegistrationFormState = {
+const defaultFormState: StudentRegistrationFormState = {
   admissionNo: "",
   firstName: "",
   lastName: "",
@@ -339,13 +339,13 @@ _A property is a characteristic or behavior that should hold true across all val
 
 ### Property 1: Required Field Validation Completeness
 
-_For any_ pupil registration form submission, if any required field (admissionNo, firstName, lastName, dob, classId, parentName, parentPhone, parentEmail, parentRelationship) is empty or missing, the validation SHALL fail and return an error identifying all missing required fields.
+_For any_ student registration form submission, if any required field (admissionNo, firstName, lastName, dob, classId, parentName, parentPhone, parentEmail, parentRelationship) is empty or missing, the validation SHALL fail and return an error identifying all missing required fields.
 
 **Validates: Requirements 2.1, 2.2**
 
 ### Property 2: Admission Number Uniqueness Validation
 
-_For any_ admission number and list of existing pupils, if the admission number already exists in the system, the validation SHALL fail with an error message indicating the admission number is already in use, and if the admission number is unique, validation SHALL pass this check.
+_For any_ admission number and list of existing students, if the admission number already exists in the system, the validation SHALL fail with an error message indicating the admission number is already in use, and if the admission number is unique, validation SHALL pass this check.
 
 **Validates: Requirements 2.3, 2.4**
 
@@ -404,14 +404,14 @@ toast.error("Please correct the validation errors");
 **User Experience**:
 
 ```typescript
-toast.error("Failed to save pupil record. Please try again.");
+toast.error("Failed to save student record. Please try again.");
 // Form data preserved for retry
 ```
 
 **Error Logging**:
 
 ```typescript
-console.error("[PupilRegistration] Database error:", {
+console.error("[StudentRegistration] Database error:", {
   error: error.message,
   code: error.code,
   timestamp: new Date().toISOString(),
@@ -446,18 +446,18 @@ toast.error("Connection problem. Please check your internet and try again.");
 **Examples**:
 
 - User not authenticated
-- User lacks pupil registration permission
+- User lacks student registration permission
 - Session expired
 
 **User Experience**:
 
 ```typescript
 // For unauthenticated
-toast.error("Please log in to register pupils");
+toast.error("Please log in to register students");
 router.navigate({ to: "/login" });
 
 // For unauthorized
-toast.error("You don't have permission to register pupils");
+toast.error("You don't have permission to register students");
 ```
 
 ### Error Recovery Patterns
@@ -465,8 +465,8 @@ toast.error("You don't have permission to register pupils");
 #### Form State Preservation
 
 ```typescript
-const [form, setForm] = useState<PupilRegistrationFormState>(defaultFormState);
-const [preservedForm, setPreservedForm] = useState<PupilRegistrationFormState | null>(null);
+const [form, setForm] = useState<StudentRegistrationFormState>(defaultFormState);
+const [preservedForm, setPreservedForm] = useState<StudentRegistrationFormState | null>(null);
 
 const handleError = (error: RegistrationError) => {
   // Preserve current form state
@@ -548,7 +548,7 @@ This feature requires a dual testing approach combining example-based tests for 
 
 #### Property Test 1: Required Field Validation Completeness
 
-**Feature: pupil-registration-button, Property 1: Required field validation SHALL identify all missing required fields**
+**Feature: student-registration-button, Property 1: Required field validation SHALL identify all missing required fields**
 
 ```typescript
 import fc from "fast-check";
@@ -587,7 +587,7 @@ describe("Property 1: Required Field Validation", () => {
 
 #### Property Test 2: Admission Number Uniqueness Validation
 
-**Feature: pupil-registration-button, Property 2: Admission number uniqueness SHALL be correctly validated**
+**Feature: student-registration-button, Property 2: Admission number uniqueness SHALL be correctly validated**
 
 ```typescript
 describe("Property 2: Admission Number Uniqueness", () => {
@@ -601,9 +601,9 @@ describe("Property 2: Admission Number Uniqueness", () => {
             admissionNo: fc.string({ minLength: 1, maxLength: 20 }),
           }),
         ),
-        (testAdmissionNo, existingPupils) => {
-          const isDuplicate = existingPupils.some((p) => p.admissionNo === testAdmissionNo);
-          const result = validateAdmissionNumber(testAdmissionNo, existingPupils);
+        (testAdmissionNo, existingStudents) => {
+          const isDuplicate = existingStudents.some((p) => p.admissionNo === testAdmissionNo);
+          const result = validateAdmissionNumber(testAdmissionNo, existingStudents);
 
           if (isDuplicate) {
             expect(result.isValid).toBe(false);
@@ -622,7 +622,7 @@ describe("Property 2: Admission Number Uniqueness", () => {
 
 #### Property Test 3: Email Format Validation
 
-**Feature: pupil-registration-button, Property 3: Email format validation SHALL correctly identify valid and invalid emails**
+**Feature: student-registration-button, Property 3: Email format validation SHALL correctly identify valid and invalid emails**
 
 ```typescript
 describe("Property 3: Email Format Validation", () => {
@@ -658,7 +658,7 @@ describe("Property 3: Email Format Validation", () => {
 
 #### Property Test 4: Phone Number Format Validation
 
-**Feature: pupil-registration-button, Property 4: Phone number format validation SHALL correctly identify valid and invalid phone numbers**
+**Feature: student-registration-button, Property 4: Phone number format validation SHALL correctly identify valid and invalid phone numbers**
 
 ```typescript
 describe("Property 4: Phone Number Format Validation", () => {
@@ -701,8 +701,8 @@ describe("Property 4: Phone Number Format Validation", () => {
 
 **Successful Registration**:
 
-- Test with 2-3 example pupils
-- Verify pupil record created with all fields
+- Test with 2-3 example students
+- Verify student record created with all fields
 - Verify parent record created and associated
 - Verify unique ID assigned
 - Verify success message displayed
@@ -738,7 +738,7 @@ describe("Property 4: Phone Number Format Validation", () => {
 4. Verify loading state
 5. Verify success message
 6. Verify form reset
-7. Verify new pupil in list
+7. Verify new student in list
 
 **Multiple Sequential Registrations** (Requirement 6.3):
 
@@ -746,14 +746,14 @@ describe("Property 4: Phone Number Format Validation", () => {
 2. Immediately start second registration
 3. Verify form is ready for new data
 4. Complete second registration
-5. Verify both pupils created
+5. Verify both students created
 
 ### Test Data Generation
 
-**Valid Test Pupils**:
+**Valid Test Students**:
 
 ```typescript
-const validPupilData: PupilFormData[] = [
+const validStudentData: StudentFormData[] = [
   {
     admissionNo: "ADM001",
     firstName: "John",
@@ -836,10 +836,10 @@ The validation logic will be extracted into a separate validation service to:
 
 ### Existing Code Integration
 
-The register button functionality is currently implemented inline within the `PupilsPage` component. The refactoring will:
+The register button functionality is currently implemented inline within the `StudentsPage` component. The refactoring will:
 
-1. Extract validation logic to `src/lib/validation/pupil-registration.ts`
-2. Extract submission handler to `src/lib/handlers/pupil-registration.ts`
+1. Extract validation logic to `src/lib/validation/student-registration.ts`
+2. Extract submission handler to `src/lib/handlers/student-registration.ts`
 3. Maintain existing UI structure and user experience
 4. Preserve existing mock store integration
 5. Add property-based tests alongside existing tests

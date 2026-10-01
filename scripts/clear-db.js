@@ -37,8 +37,8 @@ async function main() {
       await sql`TRUNCATE TABLE attendance CASCADE`;
       await sql`TRUNCATE TABLE notifications CASCADE`;
       await sql`TRUNCATE TABLE audit_logs CASCADE`;
-      await sql`TRUNCATE TABLE pupil_parents CASCADE`;
-      await sql`TRUNCATE TABLE pupils CASCADE`;
+      await sql`TRUNCATE TABLE student_parents CASCADE`;
+      await sql`TRUNCATE TABLE students CASCADE`;
       await sql`TRUNCATE TABLE parents CASCADE`;
       await sql`DELETE FROM classes`;
       await sql`DELETE FROM users WHERE role != 'super_admin'`;
@@ -49,7 +49,7 @@ async function main() {
     // Check remaining row counts
     const schoolsCount = await sql`SELECT COUNT(*) FROM schools`;
     const usersCount = await sql`SELECT COUNT(*) FROM users`;
-    const pupilsCount = await sql`SELECT COUNT(*) FROM pupils`;
+    const studentsCount = await sql`SELECT COUNT(*) FROM students`;
     const parentsCount = await sql`SELECT COUNT(*) FROM parents`;
     const classesCount = await sql`SELECT COUNT(*) FROM classes`;
     const marksCount = await sql`SELECT COUNT(*) FROM marks`;
@@ -58,7 +58,7 @@ async function main() {
     console.log("Remaining counts:");
     console.log(`- Schools: ${schoolsCount[0].count}`);
     console.log(`- Users: ${usersCount[0].count}`);
-    console.log(`- Pupils: ${pupilsCount[0].count}`);
+    console.log(`- Students: ${studentsCount[0].count}`);
     console.log(`- Parents: ${parentsCount[0].count}`);
     console.log(`- Classes: ${classesCount[0].count}`);
     console.log(`- Marks: ${marksCount[0].count}`);

@@ -2,7 +2,7 @@
 import type {
   School,
   User,
-  Pupil,
+  Student,
   Parent,
   ClassRoom,
   Attendance,
@@ -132,9 +132,9 @@ export const mockParents: Parent[] = [
   },
 ];
 
-export const mockPupils: Pupil[] = [
+export const mockStudents: Student[] = [
   {
-    id: "pupil-1",
+    id: "student-1",
     admissionNo: "LS2024001",
     firstName: "Alice",
     lastName: "Student",
@@ -146,7 +146,7 @@ export const mockPupils: Pupil[] = [
     schoolId: "school-1",
   },
   {
-    id: "pupil-2",
+    id: "student-2",
     admissionNo: "LS2024002",
     firstName: "Bob",
     lastName: "Learner",
@@ -158,7 +158,7 @@ export const mockPupils: Pupil[] = [
     schoolId: "school-1",
   },
   {
-    id: "pupil-3",
+    id: "student-3",
     admissionNo: "LS2024003",
     firstName: "Emma",
     lastName: "Wilson",
@@ -170,7 +170,7 @@ export const mockPupils: Pupil[] = [
     schoolId: "school-1",
   },
   {
-    id: "pupil-4",
+    id: "student-4",
     admissionNo: "LS2024004",
     firstName: "James",
     lastName: "Brown",
@@ -182,7 +182,7 @@ export const mockPupils: Pupil[] = [
     schoolId: "school-1",
   },
   {
-    id: "pupil-5",
+    id: "student-5",
     admissionNo: "LS2024005",
     firstName: "Sophie",
     lastName: "Davis",
@@ -198,7 +198,7 @@ export const mockPupils: Pupil[] = [
 export const mockAttendance: Attendance[] = [
   {
     id: "att-1",
-    pupilId: "pupil-1",
+    studentId: "student-1",
     date: new Date().toISOString().slice(0, 10),
     arrival: "08:00",
     arrivalTransport: "School Bus",
@@ -208,7 +208,7 @@ export const mockAttendance: Attendance[] = [
   },
   {
     id: "att-2",
-    pupilId: "pupil-2",
+    studentId: "student-2",
     date: new Date().toISOString().slice(0, 10),
     arrival: "08:15",
     departure: "15:30",
@@ -223,7 +223,7 @@ export const mockAttendance: Attendance[] = [
   },
   {
     id: "att-3",
-    pupilId: "pupil-3",
+    studentId: "student-3",
     date: new Date().toISOString().slice(0, 10),
     arrival: "07:45",
     arrivalTransport: "Walking",
@@ -234,7 +234,7 @@ export const mockAttendance: Attendance[] = [
   // Previous days for demonstration
   {
     id: "att-4",
-    pupilId: "pupil-1",
+    studentId: "student-1",
     date: new Date(Date.now() - 86400000).toISOString().slice(0, 10), // Yesterday
     arrival: "08:10",
     departure: "15:00",
@@ -245,7 +245,7 @@ export const mockAttendance: Attendance[] = [
   },
   {
     id: "att-5",
-    pupilId: "pupil-2",
+    studentId: "student-2",
     date: new Date(Date.now() - 86400000).toISOString().slice(0, 10), // Yesterday
     arrival: "08:05",
     departure: "15:15",
@@ -254,10 +254,10 @@ export const mockAttendance: Attendance[] = [
     arrivalPersonName: "John Parent",
     arrivalPersonRelation: "Father",
   },
-  // Day before yesterday - pupil-4 has poor attendance
+  // Day before yesterday - student-4 has poor attendance
   {
     id: "att-6",
-    pupilId: "pupil-1",
+    studentId: "student-1",
     date: new Date(Date.now() - 172800000).toISOString().slice(0, 10), // Day before yesterday
     arrival: "08:20",
     arrivalTransport: "Car",
@@ -269,7 +269,7 @@ export const mockAttendance: Attendance[] = [
 export const mockNotifications: Notification[] = [
   {
     id: "notif-1",
-    pupilId: "pupil-1",
+    studentId: "student-1",
     parentId: "parent-1",
     channel: "sms",
     type: "arrival",
@@ -285,7 +285,7 @@ export const mockAuditLogs: AuditLog[] = [
     id: "audit-1",
     actorId: "admin-1",
     actorName: "Admin User",
-    action: "Created pupil",
+    action: "Created student",
     target: "Alice Student",
     timestamp: new Date().toISOString(),
   },
@@ -294,7 +294,7 @@ export const mockAuditLogs: AuditLog[] = [
 export const mockMarks: Mark[] = [
   {
     id: "mark-1",
-    pupilId: "pupil-1",
+    studentId: "student-1",
     subject: "Mathematics",
     term: "Term 1",
     year: "2024",
@@ -310,7 +310,7 @@ export const mockMarks: Mark[] = [
 export const mockFees: Fee[] = [
   {
     id: "fee-1",
-    pupilId: "pupil-1",
+    studentId: "student-1",
     schoolId: "school-1",
     description: "Tuition Fee",
     term: "Term 1",
@@ -325,7 +325,7 @@ export const mockFees: Fee[] = [
   },
   {
     id: "fee-2",
-    pupilId: "pupil-2",
+    studentId: "student-2",
     schoolId: "school-1",
     description: "Transport Fee",
     term: "Term 1",
@@ -340,7 +340,7 @@ export const mockFees: Fee[] = [
   },
   {
     id: "fee-3",
-    pupilId: "pupil-3",
+    studentId: "student-3",
     schoolId: "school-1",
     description: "Meal Fee",
     term: "Term 1",
@@ -354,7 +354,7 @@ export const mockFees: Fee[] = [
   },
   {
     id: "fee-4",
-    pupilId: "pupil-4",
+    studentId: "student-4",
     schoolId: "school-1",
     description: "Tuition Fee",
     term: "Term 1",
@@ -369,7 +369,7 @@ export const mockFees: Fee[] = [
   },
   {
     id: "fee-5",
-    pupilId: "pupil-5",
+    studentId: "student-5",
     schoolId: "school-1",
     description: "Activity Fee",
     term: "Term 1",
@@ -384,7 +384,7 @@ export const mockFees: Fee[] = [
   },
   {
     id: "fee-6",
-    pupilId: "pupil-1",
+    studentId: "student-1",
     schoolId: "school-1",
     description: "Books & Materials",
     term: "Term 2",
@@ -399,7 +399,7 @@ export const mockFees: Fee[] = [
   // Severely overdue example (more than 30 days)
   {
     id: "fee-7",
-    pupilId: "pupil-4",
+    studentId: "student-4",
     schoolId: "school-1",
     description: "Transport Fee",
     term: "Term 1",
@@ -418,7 +418,7 @@ export const mockData = {
   users: mockUsers,
   classes: mockClasses,
   parents: mockParents,
-  pupils: mockPupils,
+  students: mockStudents,
   attendance: mockAttendance,
   notifications: mockNotifications,
   audit: mockAuditLogs,

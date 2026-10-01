@@ -31,7 +31,7 @@ export const Route = createFileRoute("/app/parents")({
 });
 
 function ParentsPage() {
-  const { parents, pupils, addParent } = useStore();
+  const { parents, students, addParent } = useStore();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", email: "", relationship: "Mother" });
@@ -145,7 +145,7 @@ function ParentsPage() {
             </TableHeader>
             <TableBody>
               {filtered.map((p) => {
-                const kids = pupils.filter((k) => k.parentIds.includes(p.id));
+                const kids = students.filter((k) => k.parentIds.includes(p.id));
                 return (
                   <TableRow key={p.id}>
                     <TableCell className="font-medium">{p.name}</TableCell>
