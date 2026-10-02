@@ -23,13 +23,31 @@ function isApiOrServerFn(request?: Request): boolean {
   const url = request.url || "";
   const accept = request.headers?.get("accept") || "";
   const contentType = request.headers?.get("content-type") || "";
+
+  let hasServerFnHeader = false;
+  if (request.headers) {
+    try {
+      hasServerFnHeader = Array.from(request.headers.keys()).some(
+        (k) => k.toLowerCase().includes("server-fn") || k.toLowerCase().includes("tanstack"),
+      );
+    } catch {}
+  }
+
   return (
+    hasServerFnHeader ||
     request.headers?.has("x-server-fn") ||
     request.headers?.has("x-tanstack-start-server-fn") ||
+    request.headers?.has("x-server-fn-id") ||
+    request.headers?.has("x-tanstack-start-server-fn-id") ||
+    request.headers?.has("x-tanstack-server-fn") ||
+    request.headers?.has("x-tanstack-server-fn-id") ||
     url.includes("/_server") ||
+    url.includes("_serverFn") ||
+    url.includes("serverFn") ||
     url.includes("intent=serverFn") ||
     accept.includes("application/json") ||
-    contentType.includes("application/json")
+    contentType.includes("application/json") ||
+    contentType.includes("text/plain")
   );
 }
 
@@ -40,15 +58,33 @@ async function normalizeCatastrophicSsrResponse(
   request: Request,
 ): Promise<Response> {
   if (response.status < 500) return response;
+
+  if (isApiOrServerFn(request)) {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      const body = await response
+        .clone()
+        .text()
+        .catch(() => "");
+      return new Response(
+        JSON.stringify({
+          error: "Server function error (500 Internal Server Error)",
+          message: body || "Internal Server Error",
+        }),
+        {
+          status: 500,
+          headers: { "content-type": "application/json" },
+        },
+      );
+    }
+    return response;
+  }
+
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) return response;
 
   const body = await response.clone().text();
   if (!body.includes('"unhandled":true') || !body.includes('"message":"HTTPError"')) {
-    return response;
-  }
-
-  if (isApiOrServerFn(request)) {
     return response;
   }
 

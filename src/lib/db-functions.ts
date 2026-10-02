@@ -608,6 +608,21 @@ export const approveTeacher = createServerFn({ method: "POST" })
     const { id, actorId, actorName } = data;
     const logId = Math.random().toString(36).slice(2, 10);
 
+    if (!sql) {
+      const { mockUsers, mockAuditLogs } = await import("./mock-data");
+      const user = mockUsers.find((u) => u.id === id);
+      if (user) user.status = "verified";
+      mockAuditLogs.unshift({
+        id: logId,
+        actorId,
+        actorName,
+        action: "Approved teacher",
+        target: user?.name || id,
+        timestamp: new Date().toISOString(),
+      });
+      return { id };
+    }
+
     try {
       await sql.begin(async (sql) => {
         const users = await sql`
@@ -631,6 +646,21 @@ export const rejectTeacher = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { id, actorId, actorName } = data;
     const logId = Math.random().toString(36).slice(2, 10);
+
+    if (!sql) {
+      const { mockUsers, mockAuditLogs } = await import("./mock-data");
+      const user = mockUsers.find((u) => u.id === id);
+      if (user) user.status = "rejected";
+      mockAuditLogs.unshift({
+        id: logId,
+        actorId,
+        actorName,
+        action: "Rejected teacher",
+        target: user?.name || id,
+        timestamp: new Date().toISOString(),
+      });
+      return { id };
+    }
 
     try {
       await sql.begin(async (sql) => {
@@ -667,6 +697,40 @@ export const addStudent = createServerFn({ method: "POST" })
     // Server-side validation: parent info is required
     if (!parent.name || !parent.phone || !parent.email || !parent.relationship) {
       throw new Error("Parent / guardian details are required");
+    }
+
+    if (!sql) {
+      const { mockStudents, mockParents, mockAuditLogs } = await import("./mock-data");
+      if (
+        mockStudents.some(
+          (s) => s.admissionNo.toLowerCase() === student.admissionNo.trim().toLowerCase(),
+        )
+      ) {
+        throw new Error(`Admission number '${student.admissionNo}' already exists`);
+      }
+      const id = Math.random().toString(36).slice(2, 10);
+      const parentId = Math.random().toString(36).slice(2, 10);
+      const newParent = { id: parentId, ...parent, schoolId: student.schoolId };
+      mockParents.push(newParent);
+      const newStudent: Student = {
+        id,
+        ...student,
+        admissionNo: student.admissionNo.trim(),
+        firstName: student.firstName.trim(),
+        lastName: student.lastName.trim(),
+        active: true,
+        parentIds: [parentId, ...(student.parentIds || [])],
+      };
+      mockStudents.push(newStudent);
+      mockAuditLogs.unshift({
+        id: Math.random().toString(36).slice(2, 10),
+        actorId,
+        actorName,
+        action: "Created student",
+        target: `${student.firstName} ${student.lastName} (${student.admissionNo})`,
+        timestamp: new Date().toISOString(),
+      });
+      return newStudent;
     }
 
     // Server-side duplicate check for admission_no
@@ -748,6 +812,56 @@ export const bulkAddStudents = createServerFn({ method: "POST" })
 
     if (!students || students.length === 0) {
       throw new Error("No students provided for bulk upload");
+    }
+
+    if (!sql) {
+      const { mockStudents, mockParents } = await import("./mock-data");
+      const results: Array<{
+        success: boolean;
+        studentId?: string;
+        admissionNo: string;
+        name: string;
+        error?: string;
+      }> = [];
+
+      for (const item of students) {
+        const { student, parent } = item;
+        const admLower = student.admissionNo.trim().toLowerCase();
+        if (mockStudents.some((s) => s.admissionNo.toLowerCase() === admLower)) {
+          results.push({
+            success: false,
+            admissionNo: student.admissionNo,
+            name: `${student.firstName} ${student.lastName}`,
+            error: "Admission number already exists in system",
+          });
+          continue;
+        }
+        const studentId = Math.random().toString(36).slice(2, 10);
+        const parentId = Math.random().toString(36).slice(2, 10);
+        mockParents.push({ id: parentId, ...parent, schoolId: student.schoolId });
+        mockStudents.push({
+          id: studentId,
+          ...student,
+          admissionNo: student.admissionNo.trim(),
+          firstName: student.firstName.trim(),
+          lastName: student.lastName.trim(),
+          active: true,
+          parentIds: [parentId, ...(student.parentIds || [])],
+        });
+        results.push({
+          success: true,
+          studentId,
+          admissionNo: student.admissionNo,
+          name: `${student.firstName} ${student.lastName}`,
+        });
+      }
+
+      return {
+        total: students.length,
+        successCount: results.filter((r) => r.success).length,
+        failCount: results.filter((r) => !r.success).length,
+        results,
+      };
     }
 
     const results: Array<{
@@ -878,6 +992,15 @@ export const updateStudent = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { id, data: studentData } = data;
 
+    if (!sql) {
+      const { mockStudents } = await import("./mock-data");
+      const idx = mockStudents.findIndex((s) => s.id === id);
+      if (idx >= 0) {
+        mockStudents[idx] = { ...mockStudents[idx], ...studentData };
+      }
+      return { id, data: studentData };
+    }
+
     // Separate parentIds since it's junction table, other fields are in students table
     const { parentIds, ...directFields } = studentData;
     const dbFields = toSnake(directFields);
@@ -912,6 +1035,13 @@ export const updateStudent = createServerFn({ method: "POST" })
 export const deactivateStudent = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string }) => d)
   .handler(async ({ data }) => {
+    if (!sql) {
+      const { mockStudents } = await import("./mock-data");
+      const s = mockStudents.find((st) => st.id === data.id);
+      if (s) s.active = false;
+      return { id: data.id };
+    }
+
     try {
       await sql`
         UPDATE students SET active = false WHERE id = ${data.id}
@@ -931,6 +1061,35 @@ export const addParent = createServerFn({ method: "POST" })
   .inputValidator((d: { parent: Omit<Parent, "id">; actorId: string; actorName: string }) => d)
   .handler(async ({ data }) => {
     const { parent, actorId, actorName } = data;
+
+    if (!sql) {
+      const { mockParents, mockAuditLogs } = await import("./mock-data");
+      if (
+        mockParents.some((p) => p.schoolId === parent.schoolId && p.phone === parent.phone.trim())
+      ) {
+        throw new Error(
+          `A parent with phone number '${parent.phone}' already exists in this school`,
+        );
+      }
+      const id = Math.random().toString(36).slice(2, 10);
+      const newParent = {
+        id,
+        ...parent,
+        phone: parent.phone.trim(),
+        email: parent.email.trim(),
+        name: parent.name.trim(),
+      };
+      mockParents.push(newParent);
+      mockAuditLogs.unshift({
+        id: Math.random().toString(36).slice(2, 10),
+        actorId,
+        actorName,
+        action: "Registered parent",
+        target: parent.name,
+        timestamp: new Date().toISOString(),
+      });
+      return newParent;
+    }
 
     // Duplicate check for phone number within school
     const existingPhone = await sql`
@@ -994,6 +1153,51 @@ export const markArrival = createServerFn({ method: "POST" })
     const time = new Date().toTimeString().slice(0, 5);
     const attendanceId = Math.random().toString(36).slice(2, 10);
     const logId = Math.random().toString(36).slice(2, 10);
+
+    if (!sql) {
+      const { mockAttendance, mockAuditLogs, mockStudents } = await import("./mock-data");
+      const existingIdx = mockAttendance.findIndex(
+        (a) => a.studentId === studentId && a.date === date,
+      );
+      let att: Attendance;
+      if (existingIdx >= 0) {
+        mockAttendance[existingIdx] = {
+          ...mockAttendance[existingIdx],
+          arrival: time,
+          arrivalTransport: transportDetails.transport,
+          arrivalVehicleReg: transportDetails.vehicleReg || "",
+          arrivalPersonName: transportDetails.personName,
+          arrivalPersonRelation: transportDetails.personRelation,
+          arrivalPhone: transportDetails.phone || "",
+        };
+        att = mockAttendance[existingIdx];
+      } else {
+        att = {
+          id: attendanceId,
+          studentId,
+          date,
+          arrival: time,
+          arrivalTransport: transportDetails.transport,
+          arrivalVehicleReg: transportDetails.vehicleReg || "",
+          arrivalPersonName: transportDetails.personName,
+          arrivalPersonRelation: transportDetails.personRelation,
+          arrivalPhone: transportDetails.phone || "",
+        };
+        mockAttendance.unshift(att);
+      }
+      const student = mockStudents.find((s) => s.id === studentId);
+      const targetDesc = student ? `${student.firstName} ${student.lastName}` : studentId;
+      const log = {
+        id: logId,
+        actorId,
+        actorName,
+        action: "Marked arrival",
+        target: targetDesc,
+        timestamp: new Date().toISOString(),
+      };
+      mockAuditLogs.unshift(log);
+      return { attendance: att, notifications: [], audit: log };
+    }
 
     try {
       const result = await sql.begin(async (sql) => {
@@ -1139,6 +1343,51 @@ export const markDeparture = createServerFn({ method: "POST" })
     const attendanceId = Math.random().toString(36).slice(2, 10);
     const logId = Math.random().toString(36).slice(2, 10);
 
+    if (!sql) {
+      const { mockAttendance, mockAuditLogs, mockStudents } = await import("./mock-data");
+      const existingIdx = mockAttendance.findIndex(
+        (a) => a.studentId === studentId && a.date === date,
+      );
+      let att: Attendance;
+      if (existingIdx >= 0) {
+        mockAttendance[existingIdx] = {
+          ...mockAttendance[existingIdx],
+          departure: time,
+          departureTransport: transportDetails.transport,
+          departureVehicleReg: transportDetails.vehicleReg || "",
+          departurePersonName: transportDetails.personName,
+          departurePersonRelation: transportDetails.personRelation,
+          departurePhone: transportDetails.phone || "",
+        };
+        att = mockAttendance[existingIdx];
+      } else {
+        att = {
+          id: attendanceId,
+          studentId,
+          date,
+          departure: time,
+          departureTransport: transportDetails.transport,
+          departureVehicleReg: transportDetails.vehicleReg || "",
+          departurePersonName: transportDetails.personName,
+          departurePersonRelation: transportDetails.personRelation,
+          departurePhone: transportDetails.phone || "",
+        };
+        mockAttendance.unshift(att);
+      }
+      const student = mockStudents.find((s) => s.id === studentId);
+      const targetDesc = student ? `${student.firstName} ${student.lastName}` : studentId;
+      const log = {
+        id: logId,
+        actorId,
+        actorName,
+        action: "Marked departure",
+        target: targetDesc,
+        timestamp: new Date().toISOString(),
+      };
+      mockAuditLogs.unshift(log);
+      return { attendance: att, notifications: [], audit: log };
+    }
+
     try {
       const result = await sql.begin(async (sql) => {
         // Fetch student details
@@ -1273,6 +1522,25 @@ export const addMark = createServerFn({ method: "POST" })
     const id = Math.random().toString(36).slice(2, 10);
     const recordedAt = new Date().toISOString();
 
+    if (!sql) {
+      const { mockMarks } = await import("./mock-data");
+      const percentage = (mark.score / mark.maxScore) * 100;
+      let grade = "E";
+      if (percentage >= 90) grade = "A";
+      else if (percentage >= 80) grade = "B";
+      else if (percentage >= 70) grade = "C";
+      else if (percentage >= 60) grade = "D";
+      const newMark: Mark = {
+        id,
+        ...mark,
+        grade,
+        recordedBy: actorId,
+        recordedAt,
+      };
+      mockMarks.unshift(newMark);
+      return newMark;
+    }
+
     // Authorization check: Verify teacher can add marks for this subject
     const actor = await sql`SELECT role, class_id, subjects FROM users WHERE id = ${actorId}`;
     if (actor.length === 0) {
@@ -1338,6 +1606,26 @@ export const updateMark = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { id, data: markData, actorId } = data;
+
+    if (!sql) {
+      const { mockMarks } = await import("./mock-data");
+      const idx = mockMarks.findIndex((m) => m.id === id);
+      if (idx >= 0) {
+        let grade = markData.grade;
+        if (markData.score !== undefined || markData.maxScore !== undefined) {
+          const score = markData.score ?? mockMarks[idx].score;
+          const maxScore = markData.maxScore ?? mockMarks[idx].maxScore;
+          const percentage = (score / maxScore) * 100;
+          grade = "E";
+          if (percentage >= 90) grade = "A";
+          else if (percentage >= 80) grade = "B";
+          else if (percentage >= 70) grade = "C";
+          else if (percentage >= 60) grade = "D";
+        }
+        mockMarks[idx] = { ...mockMarks[idx], ...markData, ...(grade ? { grade } : {}) };
+      }
+      return { id, data: markData };
+    }
 
     // Authorization check if actorId is provided
     if (actorId) {
@@ -1419,6 +1707,13 @@ export const updateMark = createServerFn({ method: "POST" })
 export const deleteMark = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string }) => d)
   .handler(async ({ data }) => {
+    if (!sql) {
+      const { mockMarks } = await import("./mock-data");
+      const idx = mockMarks.findIndex((m) => m.id === data.id);
+      if (idx >= 0) mockMarks.splice(idx, 1);
+      return { id: data.id };
+    }
+
     try {
       await sql`
         DELETE FROM marks WHERE id = ${data.id}
@@ -1445,6 +1740,28 @@ export const addFee = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const id = Math.random().toString(36).slice(2, 10);
     const now = new Date().toISOString();
+
+    if (!sql) {
+      const { mockFees, mockAuditLogs } = await import("./mock-data");
+      const newFee: Fee = {
+        id,
+        ...data.fee,
+        createdBy: data.actorId,
+        createdAt: now,
+        updatedAt: now,
+      };
+      mockFees.unshift(newFee);
+      mockAuditLogs.unshift({
+        id: Math.random().toString(36).slice(2, 10),
+        actorId: data.actorId,
+        actorName: data.actorName,
+        action: "Added fee",
+        target: data.fee.description,
+        timestamp: now,
+      });
+      return newFee;
+    }
+
     const dbFee = toSnake({
       id,
       ...data.fee,
@@ -1479,7 +1796,26 @@ export const updateFee = createServerFn({ method: "POST" })
     }) => d,
   )
   .handler(async ({ data }) => {
-    const dbFields = toSnake({ ...data.data, updatedAt: new Date().toISOString() });
+    const now = new Date().toISOString();
+
+    if (!sql) {
+      const { mockFees, mockAuditLogs } = await import("./mock-data");
+      const idx = mockFees.findIndex((f) => f.id === data.id);
+      if (idx >= 0) {
+        mockFees[idx] = { ...mockFees[idx], ...data.data, updatedAt: now };
+      }
+      mockAuditLogs.unshift({
+        id: Math.random().toString(36).slice(2, 10),
+        actorId: data.actorId,
+        actorName: data.actorName,
+        action: "Updated fee",
+        target: data.id,
+        timestamp: now,
+      });
+      return { id: data.id, data: { ...data.data, updatedAt: now } };
+    }
+
+    const dbFields = toSnake({ ...data.data, updatedAt: now });
     await sql.begin(async (tx) => {
       await tx`UPDATE fees SET ${tx(dbFields)} WHERE id = ${data.id}`;
       await safeInsertAuditLog(
@@ -1515,6 +1851,52 @@ export const saveBulkMarks = createServerFn({ method: "POST" })
     const { marks: markItems, actorId } = data;
     if (!markItems || markItems.length === 0) {
       return [];
+    }
+
+    if (!sql) {
+      const { mockMarks } = await import("./mock-data");
+      const results: Mark[] = [];
+      const recordedAt = new Date().toISOString();
+      for (const item of markItems) {
+        const percentage = (item.score / item.maxScore) * 100;
+        let grade = "E";
+        if (percentage >= 90) grade = "A";
+        else if (percentage >= 80) grade = "B";
+        else if (percentage >= 70) grade = "C";
+        else if (percentage >= 60) grade = "D";
+
+        const existing = mockMarks.find(
+          (m) =>
+            m.studentId === item.studentId &&
+            m.subject === item.subject &&
+            m.term === item.term &&
+            m.year === item.year,
+        );
+        if (existing) {
+          existing.score = item.score;
+          existing.maxScore = item.maxScore;
+          existing.teacherComment = item.teacherComment || "";
+          existing.grade = grade;
+          results.push(existing);
+        } else {
+          const newM: Mark = {
+            id: Math.random().toString(36).slice(2, 10),
+            studentId: item.studentId,
+            subject: item.subject,
+            term: item.term,
+            year: item.year,
+            score: item.score,
+            maxScore: item.maxScore,
+            teacherComment: item.teacherComment || "",
+            grade,
+            recordedBy: actorId,
+            recordedAt,
+          };
+          mockMarks.unshift(newM);
+          results.push(newM);
+        }
+      }
+      return results;
     }
 
     const actor = await sql`SELECT role, class_id, subjects FROM users WHERE id = ${actorId}`;
@@ -1605,6 +1987,24 @@ export const addSchool = createServerFn({ method: "POST" })
   .inputValidator((d: { name: string; address?: string; phone?: string; email?: string }) => d)
   .handler(async ({ data }) => {
     const trimmedName = data.name.trim();
+
+    if (!sql) {
+      const { mockSchools } = await import("./mock-data");
+      if (mockSchools.some((s) => s.name.toLowerCase() === trimmedName.toLowerCase())) {
+        throw new Error(`A school named '${trimmedName}' already exists`);
+      }
+      const newSchool: School = {
+        id: "s-" + Math.random().toString(36).slice(2, 10),
+        name: trimmedName,
+        address: data.address,
+        phone: data.phone,
+        email: data.email,
+        registeredAt: new Date().toISOString().slice(0, 10),
+      };
+      mockSchools.push(newSchool);
+      return newSchool;
+    }
+
     const existingSchool = await sql`
       SELECT id FROM schools WHERE LOWER(name) = LOWER(${trimmedName})
     `;
@@ -1637,6 +2037,16 @@ export const updateSchool = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string; data: Partial<Omit<School, "id" | "registeredAt">> }) => d)
   .handler(async ({ data }) => {
     const { id, data: schoolData } = data;
+
+    if (!sql) {
+      const { mockSchools } = await import("./mock-data");
+      const idx = mockSchools.findIndex((s) => s.id === id);
+      if (idx >= 0) {
+        mockSchools[idx] = { ...mockSchools[idx], ...schoolData };
+      }
+      return { id, data: schoolData };
+    }
+
     if (schoolData.name) {
       const trimmedName = schoolData.name.trim();
       const existingSchool = await sql`
@@ -1664,6 +2074,13 @@ export const updateSchool = createServerFn({ method: "POST" })
 export const deleteSchool = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string }) => d)
   .handler(async ({ data }) => {
+    if (!sql) {
+      const { mockSchools } = await import("./mock-data");
+      const idx = mockSchools.findIndex((s) => s.id === data.id);
+      if (idx >= 0) mockSchools.splice(idx, 1);
+      return { id: data.id };
+    }
+
     try {
       await sql`DELETE FROM schools WHERE id = ${data.id}`;
       serverCache.invalidateTags(["schools", "audit"]);
@@ -1684,6 +2101,20 @@ export const addClass = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const trimmedName = data.name.trim();
+
+    if (!sql) {
+      const { mockClasses } = await import("./mock-data");
+      const newClass: ClassRoom = {
+        id: data.id || "c-" + Math.random().toString(36).slice(2, 10),
+        name: trimmedName,
+        schoolId: data.schoolId,
+        teacherId: data.teacherId,
+        subjects: data.subjects || [],
+      };
+      mockClasses.push(newClass);
+      return newClass;
+    }
+
     const existingClass = await sql`
       SELECT id FROM classes WHERE school_id = ${data.schoolId} AND LOWER(name) = LOWER(${trimmedName})
     `;
@@ -1721,6 +2152,16 @@ export const updateClass = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string; data: Partial<Omit<ClassRoom, "id">> }) => d)
   .handler(async ({ data }) => {
     const { id, data: classData } = data;
+
+    if (!sql) {
+      const { mockClasses } = await import("./mock-data");
+      const idx = mockClasses.findIndex((c) => c.id === id);
+      if (idx >= 0) {
+        mockClasses[idx] = { ...mockClasses[idx], ...classData };
+      }
+      return { id, data: classData };
+    }
+
     const dbFields = toSnake(classData);
     try {
       await sql.begin(async (sql) => {
@@ -1746,6 +2187,13 @@ export const updateClass = createServerFn({ method: "POST" })
 export const deleteClass = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string }) => d)
   .handler(async ({ data }) => {
+    if (!sql) {
+      const { mockClasses } = await import("./mock-data");
+      const idx = mockClasses.findIndex((c) => c.id === data.id);
+      if (idx >= 0) mockClasses.splice(idx, 1);
+      return { id: data.id };
+    }
+
     try {
       await sql.begin(async (sql) => {
         await sql`UPDATE users SET class_id = NULL WHERE class_id = ${data.id}`;
@@ -1767,6 +2215,24 @@ export const deleteUser = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { id, actorId, actorName } = data;
     const logId = Math.random().toString(36).slice(2, 10);
+
+    if (!sql) {
+      const { mockUsers, mockAuditLogs } = await import("./mock-data");
+      const idx = mockUsers.findIndex((u) => u.id === id);
+      if (idx >= 0) {
+        const deletedUser = mockUsers[idx];
+        mockUsers.splice(idx, 1);
+        mockAuditLogs.unshift({
+          id: logId,
+          actorId,
+          actorName,
+          action: "Deleted user",
+          target: `${deletedUser.name} (${deletedUser.role})`,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      return { id };
+    }
 
     try {
       await sql.begin(async (sql) => {
@@ -1827,6 +2293,26 @@ export const updateUser = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { id, actorId, actorName, data: updates } = data;
+
+    if (!sql) {
+      const { mockUsers, mockAuditLogs } = await import("./mock-data");
+      const idx = mockUsers.findIndex((u) => u.id === id);
+      if (idx >= 0) {
+        mockUsers[idx] = { ...mockUsers[idx], ...updates };
+        if (actorId && actorName) {
+          mockAuditLogs.unshift({
+            id: Math.random().toString(36).slice(2, 10),
+            actorId,
+            actorName,
+            action: "Updated user profile",
+            target: updates.name || mockUsers[idx].name,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+      return { id };
+    }
+
     try {
       await sql.begin(async (sql) => {
         const existing = await sql`SELECT * FROM users WHERE id = ${id}`;
@@ -1888,6 +2374,19 @@ export const addSubject = createServerFn({ method: "POST" })
       d,
   )
   .handler(async ({ data }) => {
+    if (!sql) {
+      const { mockSubjects } = await import("./mock-data");
+      const newSubject: Subject = {
+        id: `subj_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        schoolId: data.schoolId,
+        name: data.name.trim(),
+        code: data.code?.trim().toUpperCase(),
+        createdAt: new Date().toISOString(),
+      };
+      mockSubjects.push(newSubject);
+      return newSubject;
+    }
+
     const id = `subj_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const dbSubject = toSnake({
       id,
@@ -1921,6 +2420,19 @@ export const updateSubject = createServerFn({ method: "POST" })
     (d: { id: string; name: string; code?: string; actorId?: string; actorName?: string }) => d,
   )
   .handler(async ({ data }) => {
+    if (!sql) {
+      const { mockSubjects } = await import("./mock-data");
+      const idx = mockSubjects.findIndex((s) => s.id === data.id);
+      if (idx >= 0) {
+        mockSubjects[idx] = {
+          ...mockSubjects[idx],
+          name: data.name.trim(),
+          code: data.code?.trim().toUpperCase(),
+        };
+      }
+      return { id: data.id, name: data.name, code: data.code };
+    }
+
     try {
       const dbFields = toSnake({
         name: data.name.trim(),
@@ -1949,6 +2461,13 @@ export const updateSubject = createServerFn({ method: "POST" })
 export const deleteSubject = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string; actorId?: string; actorName?: string }) => d)
   .handler(async ({ data }) => {
+    if (!sql) {
+      const { mockSubjects } = await import("./mock-data");
+      const idx = mockSubjects.findIndex((s) => s.id === data.id);
+      if (idx >= 0) mockSubjects.splice(idx, 1);
+      return { id: data.id };
+    }
+
     try {
       const subjects = await sql`SELECT name FROM subjects WHERE id = ${data.id}`;
       const subjectName = subjects[0]?.name || data.id;
@@ -1982,6 +2501,24 @@ export const addSubjectsBulk = createServerFn({ method: "POST" })
     }) => d,
   )
   .handler(async ({ data }) => {
+    if (!sql) {
+      const { mockSubjects } = await import("./mock-data");
+      const inserted: Subject[] = [];
+      for (const item of data.subjects) {
+        if (!item.name.trim()) continue;
+        const newSubj: Subject = {
+          id: `subj_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          schoolId: data.schoolId,
+          name: item.name.trim(),
+          code: item.code?.trim().toUpperCase(),
+          createdAt: new Date().toISOString(),
+        };
+        mockSubjects.push(newSubj);
+        inserted.push(newSubj);
+      }
+      return { count: inserted.length, subjects: inserted };
+    }
+
     try {
       const inserted: Subject[] = [];
       for (const item of data.subjects) {
@@ -2036,6 +2573,23 @@ export const seedDefaultSubjects = createServerFn({ method: "POST" })
       { name: "Luganda", code: "LUG" },
       { name: "Religious Education", code: "RE" },
     ];
+
+    if (!sql) {
+      const { mockSubjects } = await import("./mock-data");
+      for (const sub of defaultList) {
+        if (!mockSubjects.some((s) => s.schoolId === data.schoolId && s.name === sub.name)) {
+          mockSubjects.push({
+            id: `subj_${data.schoolId}_${sub.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}`,
+            schoolId: data.schoolId,
+            name: sub.name,
+            code: sub.code,
+            createdAt: new Date().toISOString(),
+          });
+        }
+      }
+      return { success: true };
+    }
+
     try {
       for (const sub of defaultList) {
         const id = `subj_${data.schoolId}_${sub.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
