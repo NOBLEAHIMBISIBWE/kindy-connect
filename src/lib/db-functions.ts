@@ -184,6 +184,13 @@ export const getInitialData = createServerFn({ method: "GET" })
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
       const cutoffDate = ninetyDaysAgo.toISOString().slice(0, 10);
 
+      const optionalTableQuery = async (tableName: string, query: () => Promise<any>) => {
+        const table = await client`
+          SELECT to_regclass(${"public." + tableName}) AS table_name
+        `;
+        return table[0]?.table_name ? query() : [];
+      };
+
       const [
         schools,
         users,
@@ -208,8 +215,10 @@ export const getInitialData = createServerFn({ method: "GET" })
         client`SELECT * FROM notifications ORDER BY timestamp DESC LIMIT 200`,
         client`SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 200`,
         client`SELECT * FROM marks ORDER BY recorded_at DESC LIMIT 2000`,
-        client`SELECT * FROM subjects ORDER BY name ASC`,
-        client`SELECT * FROM fees ORDER BY due_date ASC NULLS LAST, created_at DESC`,
+        optionalTableQuery("subjects", () => client`SELECT * FROM subjects ORDER BY name ASC`),
+        optionalTableQuery("fees", () =>
+          client`SELECT * FROM fees ORDER BY due_date ASC NULLS LAST, created_at DESC`,
+        ),
       ]);
 
       const parentMap: Record<string, string[]> = {};
