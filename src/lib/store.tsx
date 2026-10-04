@@ -406,6 +406,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => {
       if (retryTimerRef.current) clearInterval(retryTimerRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attemptLoad, state.currentUserId]);
 
   // Refresh function to reload data from database
