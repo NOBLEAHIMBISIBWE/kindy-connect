@@ -1,3 +1,4 @@
+import postgres from "postgres";
 // Ensure process.env.DATABASE_URL is populated in local development
 if (typeof window === "undefined" && typeof process !== "undefined" && !process.env.DATABASE_URL) {
   if (typeof process.loadEnvFile === "function") {
@@ -35,7 +36,9 @@ if (!connectionString && typeof process !== "undefined") {
     "DATABASE_URL is not defined. Database operations are unavailable until a live database is configured.",
   );
 } else if (isInvalidConnectionString) {
-  console.warn("DATABASE_URL contains a setup placeholder. Replace it with a live PostgreSQL connection string.");
+  console.warn(
+    "DATABASE_URL contains a setup placeholder. Replace it with a live PostgreSQL connection string.",
+  );
 }
 
 const globalForDb = globalThis as unknown as {

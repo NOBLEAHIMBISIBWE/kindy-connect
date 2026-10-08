@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "db:test": "node test-database-connection.js",
+    "db:test": "bun test-database-connection.js",
     "db:setup": "node setup-database.js"
   },
   "dependencies": {
