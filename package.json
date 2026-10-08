@@ -14,8 +14,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "db:test": "node test-database-connection.js",
-    "db:setup": "node setup-database.js",
-    "db:mode": "node scripts/db-mode.js"
+    "db:setup": "node setup-database.js"
   },
   "dependencies": {
     "@fontsource/fredoka": "^5.2.10",

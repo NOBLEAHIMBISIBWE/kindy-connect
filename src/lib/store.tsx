@@ -688,6 +688,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     login: async (id, password) => {
       const u = await loginUser({ data: { id, password } });
+      if (u && "error" in u) {
+        throw new Error(u.error);
+      }
       if (u) {
         setState((s) => ({
           ...s,
@@ -740,6 +743,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           classId,
         },
       });
+      if ("error" in res) {
+        throw new Error(res.error);
+      }
       setState((s) => {
         const nextUsers = [...s.users, res.user];
         const nextSchools = res.school ? [...s.schools, res.school] : s.schools;

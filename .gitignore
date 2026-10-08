@@ -7,7 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build outputs
 dist
 dist-ssr
 .output
@@ -15,6 +18,11 @@ dist-ssr
 .tanstack/**
 .nitro
 *.local
+
+# Package manager locks (keep only npm)
+yarn.lock
+bun.lock
+pnpm-lock.yaml
 
 # Wrangler / Cloudflare
 .wrangler/
@@ -24,6 +32,13 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# Supabase temp files
+supabase/.temp/
+
+# Agent and skills files
+.agents/
+skills-lock.json
 
 # Editor directories and files
 .vscode/*
@@ -35,6 +50,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.vercel/
 
+# Deployment
+.vercel/
 .vercel

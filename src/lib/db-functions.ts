@@ -6,19 +6,6 @@ import { serverCache } from "./cache";
 
 type SqlClient = typeof sql;
 
-// Helper to check if database is available
-function isDatabaseAvailable(): boolean {
-  return sql !== null;
-}
-
-// Helper to throw error when database is required but not available
-function requireDatabase(): typeof sql {
-  if (!sql) {
-    throw new Error("Database operation not available - no database connection configured");
-  }
-  return sql;
-}
-
 export interface School {
   id: string;
   name: string;
@@ -192,11 +179,21 @@ async function safeInsertAuditLog(
 export const getInitialData = createServerFn({ method: "GET" })
   .inputValidator((d: { userId?: string } | undefined) => d ?? {})
   .handler(async ({ data }) => {
-    // Check if we should use mock data (development mode)
     if (!sql) {
-      const { mockData } = await import("./mock-data");
-      console.log("📝 Using mock data for development (no database connection)");
-      return mockData;
+      return {
+        schools: [],
+        users: [],
+        classes: [],
+        parents: [],
+        pupils: [],
+        attendance: [],
+        notifications: [],
+        audit: [],
+        marks: [],
+        subjects: [],
+        fees: [],
+        error: "Database is not configured. Set DATABASE_URL to connect to the live database.",
+      };
     }
 
     const fetchInitialData = async (client: typeof sql) => {
@@ -376,8 +373,13 @@ export const getInitialData = createServerFn({ method: "GET" })
 export const loginUser = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string; password: string }) => d)
   .handler(async ({ data }) => {
-    const db = requireDatabase();
     const { id, password } = data;
+
+    if (!sql) {
+      return { error: "Database is not configured. Set DATABASE_URL to connect to the live database." };
+    }
+
+    const db = sql;
     try {
       const results = await db`
         SELECT * FROM users 
@@ -413,7 +415,8 @@ export const loginUser = createServerFn({ method: "POST" })
 
       if (!isValidPassword) return null;
       if (user.role === "teacher" && user.status !== "verified") return null;
-      return user;
+      const { password: _password, ...safeUser } = user;
+      return safeUser;
     } catch (error) {
       console.error("Error in loginUser:", error);
       throw error;
@@ -435,7 +438,11 @@ export const registerUser = createServerFn({ method: "POST" })
     ) => d,
   )
   .handler(async ({ data }) => {
-    const db = requireDatabase();
+    if (!sql) {
+      return { error: "Database is not configured. Set DATABASE_URL to connect to the live database." };
+    }
+
+    const db = sql;
     const id = data.id.trim();
     const password = data.password.trim();
     const status = data.status || (data.role === "admin" ? "verified" : "pending");
