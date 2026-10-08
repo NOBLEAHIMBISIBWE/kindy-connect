@@ -5,8 +5,8 @@
 
 import { z } from "zod";
 
-// Validation schema for pupil CSV data
-export const pupilCSVSchema = z.object({
+// Validation schema for student CSV data
+export const studentCSVSchema = z.object({
   admissionNo: z.string().min(1, "Admission number is required"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
@@ -19,11 +19,11 @@ export const pupilCSVSchema = z.object({
   parentRelationship: z.string().min(1, "Parent relationship is required"),
 });
 
-export type PupilCSVRow = z.infer<typeof pupilCSVSchema>;
+export type StudentCSVRow = z.infer<typeof studentCSVSchema>;
 
 export interface ParseResult {
   success: boolean;
-  data: PupilCSVRow[];
+  data: StudentCSVRow[];
   errors: Array<{
     row: number;
     field: string;
@@ -68,10 +68,10 @@ export const HEADER_LABELS: Record<
   admissionNo: {
     label: "Admission Number",
     required: true,
-    description: "Unique pupil admission/ID number",
+    description: "Unique student admission/ID number",
   },
-  firstName: { label: "First Name", required: true, description: "Pupil's first name" },
-  lastName: { label: "Last Name", required: true, description: "Pupil's surname / last name" },
+  firstName: { label: "First Name", required: true, description: "Student's first name" },
+  lastName: { label: "Last Name", required: true, description: "Student's surname / last name" },
   gender: { label: "Gender", required: true, description: "M or F" },
   dob: { label: "Date of Birth", required: true, description: "Format: YYYY-MM-DD" },
   className: { label: "Class Name", required: true, description: "Exact class name in school" },
@@ -96,7 +96,7 @@ export const HEADER_ALIASES: Record<ExpectedHeader, string[]> = {
     "admission",
     "adm_no",
     "adm",
-    "pupil_id",
+    "student_id",
     "student_id",
     "reg_no",
     "id",
@@ -199,7 +199,7 @@ export function downloadCSVTemplate(): void {
   const url = URL.createObjectURL(blob);
 
   link.setAttribute("href", url);
-  link.setAttribute("download", `pupils_upload_template_${Date.now()}.csv`);
+  link.setAttribute("download", `students_upload_template_${Date.now()}.csv`);
   link.style.visibility = "hidden";
 
   document.body.appendChild(link);
@@ -226,11 +226,11 @@ export function compareCSVHeaders(
     normUploadedMap.set(normalizeHeader(h), h);
   });
 
-  // Check for combined name column (e.g. "name", "full_name", "pupil_name", "student_name")
+  // Check for combined name column (e.g. "name", "full_name", "student_name", "student_name")
   let mergedNameHeader: string | null = null;
   for (const h of uploadedHeaders) {
     const norm = normalizeHeader(h);
-    if (["fullname", "name", "pupilname", "studentname"].includes(norm)) {
+    if (["fullname", "name", "studentname", "studentname"].includes(norm)) {
       mergedNameHeader = h;
       break;
     }
@@ -396,7 +396,7 @@ export function parseCSVRaw(csvText: string): {
 }
 
 /**
- * Transform raw CSV rows into standardized PupilCSVRow objects based on column mapping/merging
+ * Transform raw CSV rows into standardized StudentCSVRow objects based on column mapping/merging
  */
 export function transformRawRows(
   rawRows: Record<string, string>[],
@@ -476,16 +476,16 @@ function parseCSVLine(line: string): string[] {
 /**
  * Validate parsed & transformed CSV data against schema
  */
-export function validatePupilsCSV(data: Record<string, string>[]): ParseResult {
+export function validateStudentsCSV(data: Record<string, string>[]): ParseResult {
   const errors: ParseResult["errors"] = [];
   const warnings: ParseResult["warnings"] = [];
-  const validData: PupilCSVRow[] = [];
+  const validData: StudentCSVRow[] = [];
 
   data.forEach((row, index) => {
     const rowNumber = index + 2;
 
     try {
-      const validated = pupilCSVSchema.parse(row);
+      const validated = studentCSVSchema.parse(row);
       validData.push(validated);
 
       if (validated.parentPhone && !validated.parentPhone.startsWith("+")) {
@@ -499,7 +499,7 @@ export function validatePupilsCSV(data: Record<string, string>[]): ParseResult {
       if (age < 1 || age > 25) {
         warnings.push({
           row: rowNumber,
-          message: `Pupil age is ${age} years - please verify date of birth`,
+          message: `Student age is ${age} years - please verify date of birth`,
         });
       }
     } catch (err) {
@@ -551,7 +551,7 @@ export async function parseCSVFile(
 
         if (!comparisonResult.isMatchValid) {
           const transformedRows = transformRawRows(rawRows, comparisonResult);
-          const validation = validatePupilsCSV(transformedRows);
+          const validation = validateStudentsCSV(transformedRows);
           validation.success = false;
           validation.errors.unshift({
             row: 1,
@@ -565,7 +565,7 @@ export async function parseCSVFile(
         }
 
         const transformedRows = transformRawRows(rawRows, comparisonResult);
-        const parseResult = validatePupilsCSV(transformedRows);
+        const parseResult = validateStudentsCSV(transformedRows);
         resolve({ parseResult, comparisonResult, rawHeaders: headers });
       } catch (error) {
         reject(error);
@@ -584,7 +584,7 @@ export async function parseCSVFile(
  * Check for duplicate admission numbers
  */
 export function checkDuplicates(
-  data: PupilCSVRow[],
+  data: StudentCSVRow[],
   existingAdmissionNos: string[],
 ): Array<{ row: number; admissionNo: string }> {
   const duplicates: Array<{ row: number; admissionNo: string }> = [];
@@ -624,7 +624,7 @@ export function formatValidationSummary(result: ParseResult): string {
   const parts: string[] = [];
 
   if (result.success) {
-    parts.push(`✅ ${result.data.length} pupils ready to upload`);
+    parts.push(`✅ ${result.data.length} students ready to upload`);
   } else {
     parts.push(`❌ ${result.errors.length} errors found`);
   }

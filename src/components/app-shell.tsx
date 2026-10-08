@@ -29,6 +29,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
   const { isLocked } = useStore() as any;
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
+
   useEffect(() => {
     if (!loading && !currentUser) {
       navigate({ to: "/" });
@@ -70,7 +71,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
     : isStaff
       ? [
           { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
-          { to: "/app/pupils", label: "Pupils", icon: Baby },
+          { to: "/app/students", label: "Students", icon: Baby },
           { to: "/app/parents", label: "Parents", icon: Users },
           { to: "/app/teachers", label: "Teachers", icon: GraduationCap, badge: pendingCount },
           { to: "/app/classes", label: "Classes", icon: BookOpen },
@@ -127,6 +128,24 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
           })}
         </nav>
         <div className="border-t p-3 space-y-3">
+<<<<<<< HEAD
+=======
+          {/* Database Mode Indicator */}
+          {isInMockMode && (
+            <div className="rounded-lg bg-orange-500/10 border border-orange-500/20 p-2.5 text-xs space-y-1">
+              <div className="flex items-center gap-1.5 font-medium text-orange-700 dark:text-orange-400">
+                <TestTube className="h-3 w-3" />
+                <span>Mock Mode</span>
+              </div>
+              <div className="text-orange-600/80 dark:text-orange-400/80 text-[10px] leading-tight">
+                Using sample data. Run{" "}
+                <code className="bg-orange-500/20 px-1 rounded">npm run db:mode</code> to switch to
+                database mode.
+              </div>
+            </div>
+          )}
+
+>>>>>>> ac652a88eb14d8e24447caa28c56278f963fc3d2
           <div className="rounded-lg bg-muted/40 p-2.5 text-xs space-y-1">
             <div className="font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">
               For Inquiries

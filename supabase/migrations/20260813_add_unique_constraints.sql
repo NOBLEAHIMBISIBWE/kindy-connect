@@ -23,17 +23,17 @@ BEGIN
         ALTER TABLE parents ADD CONSTRAINT unq_parents_school_phone UNIQUE (school_id, phone);
     END IF;
 
-    -- 4. Attendance unique pupil_id + date constraint
+    -- 4. Attendance unique student_id + date constraint
     IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'unq_attendance_pupil_date'
+        SELECT 1 FROM pg_constraint WHERE conname = 'unq_attendance_student_date'
     ) THEN
-        ALTER TABLE attendance ADD CONSTRAINT unq_attendance_pupil_date UNIQUE (pupil_id, date);
+        ALTER TABLE attendance ADD CONSTRAINT unq_attendance_student_date UNIQUE (student_id, date);
     END IF;
 
-    -- 5. Marks unique pupil_id + subject + term + year constraint
+    -- 5. Marks unique student_id + subject + term + year constraint
     IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'unq_marks_pupil_subject_term_year'
+        SELECT 1 FROM pg_constraint WHERE conname = 'unq_marks_student_subject_term_year'
     ) THEN
-        ALTER TABLE marks ADD CONSTRAINT unq_marks_pupil_subject_term_year UNIQUE (pupil_id, subject, term, year);
+        ALTER TABLE marks ADD CONSTRAINT unq_marks_student_subject_term_year UNIQUE (student_id, subject, term, year);
     END IF;
 END $$;

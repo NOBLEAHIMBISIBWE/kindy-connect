@@ -6,10 +6,10 @@ A comprehensive school management system built with TanStack Start and Supabase.
 
 - 👥 **User Management** - Multi-role system (Super Admin, Admin, Deputy, Teacher)
 - 🏫 **Multi-School Support** - Manage multiple schools from one system
-- 👶 **Pupil Management** - Complete student records with photos
+- 👶 **Student Management** - Complete student records with photos
 - 📊 **Attendance Tracking** - Arrival/departure logging with guardian info
 - 📝 **Marks & Grading** - Subject-wise assessment tracking
-- 👨‍👩‍👧 **Parent Portal** - Parent-pupil relationship management
+- 👨‍👩‍👧 **Parent Portal** - Parent-student relationship management
 - 📱 **Notifications** - SMS/Email alerts for arrivals and departures
 - 📈 **Reports** - Analytics and performance reports
 - 🔒 **Row Level Security** - School-based data isolation
@@ -43,12 +43,38 @@ npm install
 
 ### 2. Database Setup
 
-A live PostgreSQL database is required. The application does not provide sample accounts or sample records.
+**Current Status: Mock Mode**
 
-1. Create a Supabase project and copy its PostgreSQL connection string.
-2. Set `DATABASE_URL` in `.env` (and in your hosting provider's environment settings for deployed builds).
-3. Run `npm run db:test` to verify the connection.
-4. Run `npm run db:setup` to create the application schema.
+- ✅ All features work with sample data
+- ✅ Perfect for development and testing
+- ⚠️ Data doesn't persist between restarts
+
+**Quick Database Check:**
+
+```bash
+# Check current mode and get setup options
+npm run db:mode
+
+# Test database connection
+npm run db:test
+```
+
+**To set up a persistent database (optional):**
+
+See the database setup and environment sections below for complete instructions.
+
+**Quick Database Setup:**
+
+```bash
+# Interactive database setup assistant
+npm run db:mode
+
+# Or manual setup:
+# 1. Create Supabase project at https://supabase.com
+# 2. Get connection URL from Project Settings → Database
+# 3. Add to .env: DATABASE_URL=your_connection_string
+# 4. Setup schema: npm run db:setup
+```
 
 ### 3. Environment Setup
 
@@ -150,7 +176,7 @@ kindy-connect/
 │ ├── routes/ # TanStack Router pages
 │ │ ├── index.tsx # Login page
 │ │ ├── app.dashboard.tsx # Main dashboard
-│ │ ├── app.pupils.tsx # Pupil management
+│ │ ├── app.students.tsx # Student management
 │ │ ├── app.attendance.tsx # Attendance tracking
 │ │ └── ...
 │ ├── router.tsx # Router configuration
@@ -170,9 +196,9 @@ kindy-connect/
 - **schools** - School information
 - **users** - Teachers, admins, deputies
 - **classes** - Class/grade information
-- **pupils** - Student records
+- **students** - Student records
 - **parents** - Guardian information
-- **pupil_parents** - Parent-student relationships
+- **student_parents** - Parent-student relationships
 - **attendance** - Daily attendance logs
 - **marks** - Academic assessments
 - **notifications** - SMS/Email logs

@@ -82,7 +82,7 @@ const DEFAULT_REPORT_FORMAT: ReportFormatConfig = {
 function ReportsPage() {
   const {
     currentUser,
-    pupils = [],
+    students = [],
     attendance = [],
     classes = [],
     marks = [],
@@ -167,7 +167,7 @@ function ReportsPage() {
   const [selectedTerm, setSelectedTerm] = useState("Term 2");
   const [selectedYear, setSelectedYear] = useState("2025");
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
-  const [previewPupil, setPreviewPupil] = useState<any>(null);
+  const [previewStudent, setPreviewStudent] = useState<any>(null);
   const [marksSheetOpen, setMarksSheetOpen] = useState(false);
   const [sheetDisplayMode, setSheetDisplayMode] = useState<"score" | "percentage" | "grade">(
     "score",
@@ -183,12 +183,12 @@ function ReportsPage() {
       : currentClassObj?.schoolId || currentUser?.schoolId;
   const rawReportSubjects = getSchoolSubjects(reportSchoolId);
   const subjects = useMemo(() => rawReportSubjects.map((s) => s.name), [rawReportSubjects]);
-  const selectedClassPupils = pupils.filter((p) => p.classId === selectedClass && p.active);
+  const selectedClassStudents = students.filter((p) => p.classId === selectedClass && p.active);
 
   const broadsheetData = useMemo(() => {
-    return selectedClassPupils.map((p) => {
-      const pupilMarks = marks.filter(
-        (m) => m.pupilId === p.id && m.term === selectedTerm && m.year === selectedYear,
+    return selectedClassStudents.map((p) => {
+      const studentMarks = marks.filter(
+        (m) => m.studentId === p.id && m.term === selectedTerm && m.year === selectedYear,
       );
 
       let totalPct = 0;
@@ -200,7 +200,7 @@ function ReportsPage() {
       > = {};
 
       subjects.forEach((subj) => {
-        const m = pupilMarks.find((x) => x.subject === subj);
+        const m = studentMarks.find((x) => x.subject === subj);
         if (m) {
           const pct = (m.score / m.maxScore) * 100;
           subjectMarks[subj] = { score: m.score, maxScore: m.maxScore, grade: m.grade, pct };
@@ -222,13 +222,13 @@ function ReportsPage() {
       }
 
       return {
-        pupil: p,
+        student: p,
         subjectMarks,
         avgPct,
         overallGrade,
       };
     });
-  }, [selectedClassPupils, marks, selectedTerm, selectedYear, subjects]);
+  }, [selectedClassStudents, marks, selectedTerm, selectedYear, subjects]);
 
   const lateThreshold = "08:00";
   const late = todayAtt.filter((a) => a.arrival && a.arrival > lateThreshold);
@@ -239,14 +239,14 @@ function ReportsPage() {
     const cutoff = d.toISOString().slice(0, 10);
     const recent = attendance.filter((a) => a.date >= cutoff);
 
-    return pupils.map((p) => {
-      const pRecs = recent.filter((a) => a.pupilId === p.id);
+    return students.map((p) => {
+      const pRecs = recent.filter((a) => a.studentId === p.id);
       const daysPresent = pRecs.length;
       const lateDays = pRecs.filter((a) => a.arrival && a.arrival > lateThreshold).length;
       const clsName = classes.find((c) => c.id === p.classId)?.name || "-";
-      return { pupil: p, className: clsName, daysPresent, lateDays };
+      return { student: p, className: clsName, daysPresent, lateDays };
     });
-  }, [attendance, pupils, classes, lateThreshold]);
+  }, [attendance, students, classes, lateThreshold]);
 
   const monthlySummary = useMemo(() => {
     const d = new Date();
@@ -254,14 +254,14 @@ function ReportsPage() {
     const cutoff = d.toISOString().slice(0, 10);
     const recent = attendance.filter((a) => a.date >= cutoff);
 
-    return pupils.map((p) => {
-      const pRecs = recent.filter((a) => a.pupilId === p.id);
+    return students.map((p) => {
+      const pRecs = recent.filter((a) => a.studentId === p.id);
       const daysPresent = pRecs.length;
       const lateDays = pRecs.filter((a) => a.arrival && a.arrival > lateThreshold).length;
       const clsName = classes.find((c) => c.id === p.classId)?.name || "-";
-      return { pupil: p, className: clsName, daysPresent, lateDays };
+      return { student: p, className: clsName, daysPresent, lateDays };
     });
-  }, [attendance, pupils, classes, lateThreshold]);
+  }, [attendance, students, classes, lateThreshold]);
 
   const handleExportDailyPDF = () => {
     window.print();
@@ -269,9 +269,9 @@ function ReportsPage() {
   };
 
   const handleExportDailyCSV = () => {
-    const headers = ["Admission No", "Pupil Name", "Class", "Arrival Time", "Departure Time"];
+    const headers = ["Admission No", "Student Name", "Class", "Arrival Time", "Departure Time"];
     const rows = todayAtt.map((a) => {
-      const p = pupils.find((x) => x.id === a.pupilId);
+      const p = students.find((x) => x.id === a.studentId);
       return [
         p?.admissionNo || "-",
         p ? `${p.firstName} ${p.lastName}` : "Unknown",
@@ -292,14 +292,14 @@ function ReportsPage() {
   const handleExportWeeklyCSV = () => {
     const headers = [
       "Admission No",
-      "Pupil Name",
+      "Student Name",
       "Class",
       "Days Present (Last 7 Days)",
       "Late Arrivals",
     ];
     const rows = weeklySummary.map((item) => [
-      item.pupil.admissionNo,
-      `${item.pupil.firstName} ${item.pupil.lastName}`,
+      item.student.admissionNo,
+      `${item.student.firstName} ${item.student.lastName}`,
       item.className,
       item.daysPresent,
       item.lateDays,
@@ -316,14 +316,14 @@ function ReportsPage() {
   const handleExportMonthlyCSV = () => {
     const headers = [
       "Admission No",
-      "Pupil Name",
+      "Student Name",
       "Class",
       "Days Present (Last 30 Days)",
       "Late Arrivals",
     ];
     const rows = monthlySummary.map((item) => [
-      item.pupil.admissionNo,
-      `${item.pupil.firstName} ${item.pupil.lastName}`,
+      item.student.admissionNo,
+      `${item.student.firstName} ${item.student.lastName}`,
       item.className,
       item.daysPresent,
       item.lateDays,
@@ -338,9 +338,9 @@ function ReportsPage() {
   };
 
   const handleExportLateCSV = () => {
-    const headers = ["Admission No", "Pupil Name", "Class", "Arrival Time"];
+    const headers = ["Admission No", "Student Name", "Class", "Arrival Time"];
     const rows = late.map((a) => {
-      const p = pupils.find((x) => x.id === a.pupilId);
+      const p = students.find((x) => x.id === a.studentId);
       return [
         p?.admissionNo || "-",
         p ? `${p.firstName} ${p.lastName}` : "Unknown",
@@ -371,14 +371,14 @@ function ReportsPage() {
     }
   };
 
-  const calculateAverage = (pupilId: string) => {
-    const pupilMarks = marks.filter(
-      (m) => m.pupilId === pupilId && m.term === selectedTerm && m.year === selectedYear,
+  const calculateAverage = (studentId: string) => {
+    const studentMarks = marks.filter(
+      (m) => m.studentId === studentId && m.term === selectedTerm && m.year === selectedYear,
     );
-    if (pupilMarks.length === 0) return null;
+    if (studentMarks.length === 0) return null;
 
-    const totalPercentage = pupilMarks.reduce((sum, m) => sum + (m.score / m.maxScore) * 100, 0);
-    return totalPercentage / pupilMarks.length;
+    const totalPercentage = studentMarks.reduce((sum, m) => sum + (m.score / m.maxScore) * 100, 0);
+    return totalPercentage / studentMarks.length;
   };
 
   const getOverallGrade = (average: number | null) => {
@@ -390,62 +390,64 @@ function ReportsPage() {
     return "E";
   };
 
-  // Helper to calculate Class Rank for a pupil
-  const getPupilClassRank = (pupilId: string) => {
-    const classPupilsWithAvg = selectedClassPupils
+  // Helper to calculate Class Rank for a student
+  const getStudentClassRank = (studentId: string) => {
+    const classStudentsWithAvg = selectedClassStudents
       .map((p) => ({ id: p.id, avg: calculateAverage(p.id) }))
       .filter((x) => x.avg !== null)
       .sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0));
 
-    const rankIdx = classPupilsWithAvg.findIndex((x) => x.id === pupilId);
+    const rankIdx = classStudentsWithAvg.findIndex((x) => x.id === studentId);
     if (rankIdx === -1) return "N/A";
-    return `#${rankIdx + 1} of ${classPupilsWithAvg.length}`;
+    return `#${rankIdx + 1} of ${classStudentsWithAvg.length}`;
   };
 
-  const generateReportCard = (pupilId: string) => {
-    const pupil = pupils.find((p) => p.id === pupilId);
-    if (!pupil) return;
+  const generateReportCard = (studentId: string) => {
+    const student = students.find((p) => p.id === studentId);
+    if (!student) return;
 
-    const pupilMarks = marks.filter(
-      (m) => m.pupilId === pupilId && m.term === selectedTerm && m.year === selectedYear,
+    const studentMarks = marks.filter(
+      (m) => m.studentId === studentId && m.term === selectedTerm && m.year === selectedYear,
     );
 
-    if (pupilMarks.length === 0) {
-      toast.error(`No marks found for ${pupil.firstName} ${pupil.lastName}`);
+    if (studentMarks.length === 0) {
+      toast.error(`No marks found for ${student.firstName} ${student.lastName}`);
       return;
     }
 
-    setPreviewPupil({ ...pupil, marks: pupilMarks });
+    setPreviewStudent({ ...student, marks: studentMarks });
     setPreviewDialogOpen(true);
   };
 
   const generateAllReportCards = () => {
-    const classPupils = pupils.filter((p) => p.classId === selectedClass && p.active);
-    const pupilsWithMarks = classPupils.filter((p) => {
-      const pupilMarks = marks.filter(
-        (m) => m.pupilId === p.id && m.term === selectedTerm && m.year === selectedYear,
+    const classStudents = students.filter((p) => p.classId === selectedClass && p.active);
+    const studentsWithMarks = classStudents.filter((p) => {
+      const studentMarks = marks.filter(
+        (m) => m.studentId === p.id && m.term === selectedTerm && m.year === selectedYear,
       );
-      return pupilMarks.length > 0;
+      return studentMarks.length > 0;
     });
 
-    if (pupilsWithMarks.length === 0) {
-      toast.error("No pupils with marks in this class for the selected term");
+    if (studentsWithMarks.length === 0) {
+      toast.error("No students with marks in this class for the selected term");
       return;
     }
 
-    const first = pupilsWithMarks[0];
+    const first = studentsWithMarks[0];
     const firstMarks = marks.filter(
-      (m) => m.pupilId === first.id && m.term === selectedTerm && m.year === selectedYear,
+      (m) => m.studentId === first.id && m.term === selectedTerm && m.year === selectedYear,
     );
-    setPreviewPupil({ ...first, marks: firstMarks });
+    setPreviewStudent({ ...first, marks: firstMarks });
     setPreviewDialogOpen(true);
-    toast.success(`Generated ${pupilsWithMarks.length} report cards ready for review and printing`);
+    toast.success(
+      `Generated ${studentsWithMarks.length} report cards ready for review and printing`,
+    );
   };
 
   const downloadReportCard = () => {
     window.print();
     toast.success(
-      `Report card for ${previewPupil?.firstName || "pupil"} sent to print / PDF download`,
+      `Report card for ${previewStudent?.firstName || "student"} sent to print / PDF download`,
     );
     setPreviewDialogOpen(false);
   };
@@ -491,7 +493,7 @@ function ReportsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Pupil</TableHead>
+                    <TableHead>Student</TableHead>
                     <TableHead>Class</TableHead>
                     <TableHead>Arrival</TableHead>
                     <TableHead>Departure</TableHead>
@@ -499,7 +501,7 @@ function ReportsPage() {
                 </TableHeader>
                 <TableBody>
                   {todayAtt.map((a) => {
-                    const p = pupils.find((x) => x.id === a.pupilId);
+                    const p = students.find((x) => x.id === a.studentId);
                     if (!p) return null;
                     return (
                       <TableRow key={a.id}>
@@ -545,7 +547,7 @@ function ReportsPage() {
                 <TableHeader>
                   <TableRow>
                     {isAdmin && <TableHead>Admission No</TableHead>}
-                    <TableHead>Pupil</TableHead>
+                    <TableHead>Student</TableHead>
                     <TableHead>Class</TableHead>
                     <TableHead>Days Present</TableHead>
                     <TableHead>Late Arrivals</TableHead>
@@ -553,14 +555,14 @@ function ReportsPage() {
                 </TableHeader>
                 <TableBody>
                   {weeklySummary.map((item) => (
-                    <TableRow key={item.pupil.id}>
+                    <TableRow key={item.student.id}>
                       {isAdmin && (
                         <TableCell className="font-mono text-xs">
-                          {item.pupil.admissionNo}
+                          {item.student.admissionNo}
                         </TableCell>
                       )}
                       <TableCell>
-                        {item.pupil.firstName} {item.pupil.lastName}
+                        {item.student.firstName} {item.student.lastName}
                       </TableCell>
                       <TableCell>{item.className}</TableCell>
                       <TableCell>{item.daysPresent}</TableCell>
@@ -573,7 +575,7 @@ function ReportsPage() {
                         colSpan={isAdmin ? 5 : 4}
                         className="text-center py-6 text-muted-foreground"
                       >
-                        No pupils found
+                        No students found
                       </TableCell>
                     </TableRow>
                   )}
@@ -603,7 +605,7 @@ function ReportsPage() {
                 <TableHeader>
                   <TableRow>
                     {isAdmin && <TableHead>Admission No</TableHead>}
-                    <TableHead>Pupil</TableHead>
+                    <TableHead>Student</TableHead>
                     <TableHead>Class</TableHead>
                     <TableHead>Days Present</TableHead>
                     <TableHead>Late Arrivals</TableHead>
@@ -611,14 +613,14 @@ function ReportsPage() {
                 </TableHeader>
                 <TableBody>
                   {monthlySummary.map((item) => (
-                    <TableRow key={item.pupil.id}>
+                    <TableRow key={item.student.id}>
                       {isAdmin && (
                         <TableCell className="font-mono text-xs">
-                          {item.pupil.admissionNo}
+                          {item.student.admissionNo}
                         </TableCell>
                       )}
                       <TableCell>
-                        {item.pupil.firstName} {item.pupil.lastName}
+                        {item.student.firstName} {item.student.lastName}
                       </TableCell>
                       <TableCell>{item.className}</TableCell>
                       <TableCell>{item.daysPresent}</TableCell>
@@ -631,7 +633,7 @@ function ReportsPage() {
                         colSpan={isAdmin ? 5 : 4}
                         className="text-center py-6 text-muted-foreground"
                       >
-                        No pupils found
+                        No students found
                       </TableCell>
                     </TableRow>
                   )}
@@ -660,13 +662,13 @@ function ReportsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Pupil</TableHead>
+                    <TableHead>Student</TableHead>
                     <TableHead>Arrival</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {late.map((a) => {
-                    const p = pupils.find((x) => x.id === a.pupilId);
+                    const p = students.find((x) => x.id === a.studentId);
                     if (!p) return null;
                     return (
                       <TableRow key={a.id}>
@@ -699,7 +701,7 @@ function ReportsPage() {
                   Generate Report Cards
                 </CardTitle>
                 <CardDescription>
-                  Generate academic report cards for pupils based on their marks
+                  Generate academic report cards for students based on their marks
                 </CardDescription>
               </div>
               {isAdmin && (
@@ -793,7 +795,7 @@ function ReportsPage() {
                     <TableHeader>
                       <TableRow>
                         {isAdmin && <TableHead>Admission No</TableHead>}
-                        <TableHead>Pupil Name</TableHead>
+                        <TableHead>Student Name</TableHead>
                         <TableHead>Subjects</TableHead>
                         <TableHead>Average</TableHead>
                         <TableHead>Overall Grade</TableHead>
@@ -801,12 +803,12 @@ function ReportsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {pupils
+                      {students
                         .filter((p) => p.classId === selectedClass && p.active)
                         .map((p) => {
-                          const pupilMarks = marks.filter(
+                          const studentMarks = marks.filter(
                             (m) =>
-                              m.pupilId === p.id &&
+                              m.studentId === p.id &&
                               m.term === selectedTerm &&
                               m.year === selectedYear,
                           );
@@ -819,7 +821,7 @@ function ReportsPage() {
                               <TableCell className="font-medium">
                                 {p.firstName} {p.lastName}
                               </TableCell>
-                              <TableCell>{pupilMarks.length} subject(s)</TableCell>
+                              <TableCell>{studentMarks.length} subject(s)</TableCell>
                               <TableCell>
                                 {average !== null ? `${average.toFixed(1)}%` : "-"}
                               </TableCell>
@@ -836,7 +838,7 @@ function ReportsPage() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  disabled={pupilMarks.length === 0}
+                                  disabled={studentMarks.length === 0}
                                   onClick={() => generateReportCard(p.id)}
                                 >
                                   <FileText className="h-3 w-3 mr-1" />
@@ -926,7 +928,7 @@ function ReportsPage() {
                   <div className="space-y-0.5">
                     <Label className="text-sm font-medium">Class Rank / Position</Label>
                     <p className="text-xs text-muted-foreground">
-                      Display pupil's position in class
+                      Display student's position in class
                     </p>
                   </div>
                   <Switch
@@ -1080,7 +1082,7 @@ function ReportsPage() {
             )}
           </DialogHeader>
 
-          {previewPupil && (
+          {previewStudent && (
             <div className="space-y-4 py-4">
               {/* Header */}
               <div className="text-center border-b pb-4 space-y-1">
@@ -1093,20 +1095,20 @@ function ReportsPage() {
                 )}
               </div>
 
-              {/* Pupil Info */}
+              {/* Student Info */}
               <div className="flex flex-col sm:flex-row gap-4 bg-muted/50 p-4 rounded-lg text-sm items-start">
                 <div className="shrink-0 flex items-center justify-center">
-                  {previewPupil.photo ? (
+                  {previewStudent.photo ? (
                     <img
-                      src={previewPupil.photo}
-                      alt={`${previewPupil.firstName} ${previewPupil.lastName}`}
+                      src={previewStudent.photo}
+                      alt={`${previewStudent.firstName} ${previewStudent.lastName}`}
                       className="w-24 h-24 rounded-md object-cover border-2 border-background shadow-sm"
                     />
                   ) : (
                     <div className="w-24 h-24 rounded-md bg-background flex items-center justify-center border shadow-sm">
                       <span className="text-3xl text-muted-foreground font-semibold">
-                        {previewPupil.firstName?.[0]}
-                        {previewPupil.lastName?.[0]}
+                        {previewStudent.firstName?.[0]}
+                        {previewStudent.lastName?.[0]}
                       </span>
                     </div>
                   )}
@@ -1114,19 +1116,19 @@ function ReportsPage() {
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 flex-1 w-full">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Pupil Name</Label>
+                    <Label className="text-xs text-muted-foreground">Student Name</Label>
                     <p className="font-semibold">
-                      {previewPupil.firstName} {previewPupil.lastName}
+                      {previewStudent.firstName} {previewStudent.lastName}
                     </p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Admission No</Label>
-                    <p className="font-semibold font-mono">{previewPupil.admissionNo}</p>
+                    <p className="font-semibold font-mono">{previewStudent.admissionNo}</p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Class</Label>
                     <p className="font-semibold">
-                      {classes.find((c) => c.id === previewPupil.classId)?.name || "-"}
+                      {classes.find((c) => c.id === previewStudent.classId)?.name || "-"}
                     </p>
                   </div>
                   <div>
@@ -1140,7 +1142,7 @@ function ReportsPage() {
                     <div>
                       <Label className="text-xs text-muted-foreground">Class Rank</Label>
                       <p className="font-semibold text-primary">
-                        {getPupilClassRank(previewPupil.id)}
+                        {getStudentClassRank(previewStudent.id)}
                       </p>
                     </div>
                   )}
@@ -1162,7 +1164,7 @@ function ReportsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {previewPupil.marks.map((mark: any) => (
+                    {previewStudent.marks.map((mark: any) => (
                       <TableRow key={mark.id}>
                         <TableCell className="font-medium">{mark.subject}</TableCell>
                         <TableCell className="font-mono">
@@ -1193,17 +1195,17 @@ function ReportsPage() {
                   <div>
                     <Label className="text-xs text-muted-foreground">Overall Average</Label>
                     <p className="text-2xl font-bold">
-                      {calculateAverage(previewPupil.id)?.toFixed(1)}%
+                      {calculateAverage(previewStudent.id)?.toFixed(1)}%
                     </p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Overall Grade</Label>
                     <Badge
                       className={`text-xl px-4 py-1.5 ${getGradeColor(
-                        getOverallGrade(calculateAverage(previewPupil.id)),
+                        getOverallGrade(calculateAverage(previewStudent.id)),
                       )}`}
                     >
-                      {getOverallGrade(calculateAverage(previewPupil.id))}
+                      {getOverallGrade(calculateAverage(previewStudent.id))}
                     </Badge>
                   </div>
                 </div>
@@ -1254,13 +1256,13 @@ function ReportsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Pupil Marks Sheet Preview Dialog */}
+      {/* Student Marks Sheet Preview Dialog */}
       <Dialog open={marksSheetOpen} onOpenChange={setMarksSheetOpen}>
         <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
           <DialogHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b gap-3">
             <div>
               <DialogTitle className="text-xl font-bold">
-                {currentSchoolObj?.name || formatConfig.headerTitle} - Pupil Marks Sheet
+                {currentSchoolObj?.name || formatConfig.headerTitle} - Student Marks Sheet
               </DialogTitle>
               <p className="text-xs text-muted-foreground mt-1">
                 Class:{" "}
@@ -1282,15 +1284,15 @@ function ReportsPage() {
                 onClick={() => {
                   const headers = [
                     "Admission No",
-                    "Pupil Name",
+                    "Student Name",
                     ...subjects,
                     "Average (%)",
                     "Overall Grade",
                   ];
                   const rows = broadsheetData.map(
-                    ({ pupil, subjectMarks, avgPct, overallGrade }) => [
-                      pupil.admissionNo,
-                      `${pupil.firstName} ${pupil.lastName}`,
+                    ({ student, subjectMarks, avgPct, overallGrade }) => [
+                      student.admissionNo,
+                      `${student.firstName} ${student.lastName}`,
                       ...subjects.map((s) => {
                         const item = subjectMarks[s];
                         if (!item) return "-";
@@ -1374,8 +1376,8 @@ function ReportsPage() {
               </div>
             </div>
             <div className="text-xs text-muted-foreground">
-              Total Pupils:{" "}
-              <span className="font-semibold text-foreground">{selectedClassPupils.length}</span>
+              Total Students:{" "}
+              <span className="font-semibold text-foreground">{selectedClassStudents.length}</span>
             </div>
           </div>
 
@@ -1385,7 +1387,7 @@ function ReportsPage() {
                 <TableRow>
                   <TableHead className="w-10 text-center font-bold">#</TableHead>
                   {isAdmin && <TableHead className="w-28 font-bold">Admission No</TableHead>}
-                  <TableHead className="min-w-[140px] font-bold">Pupil Name</TableHead>
+                  <TableHead className="min-w-[140px] font-bold">Student Name</TableHead>
                   {subjects.map((s) => (
                     <TableHead key={s} className="text-center min-w-[75px] font-bold">
                       {s}
@@ -1397,15 +1399,15 @@ function ReportsPage() {
               </TableHeader>
               <TableBody>
                 {broadsheetData.map((row, idx) => (
-                  <TableRow key={row.pupil.id} className="hover:bg-muted/40">
+                  <TableRow key={row.student.id} className="hover:bg-muted/40">
                     <TableCell className="text-center font-medium text-muted-foreground">
                       {idx + 1}
                     </TableCell>
                     {isAdmin && (
-                      <TableCell className="font-mono text-xs">{row.pupil.admissionNo}</TableCell>
+                      <TableCell className="font-mono text-xs">{row.student.admissionNo}</TableCell>
                     )}
                     <TableCell className="font-semibold">
-                      {row.pupil.firstName} {row.pupil.lastName}
+                      {row.student.firstName} {row.student.lastName}
                     </TableCell>
                     {subjects.map((s) => {
                       const m = row.subjectMarks[s];
@@ -1466,7 +1468,7 @@ function ReportsPage() {
                       colSpan={subjects.length + 5}
                       className="text-center py-8 text-muted-foreground"
                     >
-                      No active pupils found for this class.
+                      No active students found for this class.
                     </TableCell>
                   </TableRow>
                 )}

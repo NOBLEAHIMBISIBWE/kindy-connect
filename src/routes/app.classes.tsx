@@ -36,7 +36,7 @@ function ClassesPage() {
     currentUser,
     classes = [],
     users = [],
-    pupils = [],
+    students = [],
     schools = [],
     addClass,
     updateClass,
@@ -449,7 +449,7 @@ function ClassesPage() {
                 {isSuperAdmin && <TableHead>School</TableHead>}
                 <TableHead>Assigned Teacher</TableHead>
                 <TableHead>Subjects Done</TableHead>
-                <TableHead>Total Pupils</TableHead>
+                <TableHead>Total Students</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -457,7 +457,7 @@ function ClassesPage() {
               {classesToDisplay.map((c) => {
                 const schoolName = schools.find((s) => s.id === c.schoolId)?.name || "N/A";
                 const teacherName = users.find((u) => u.id === c.teacherId)?.name || "Unassigned";
-                const classPupilsCount = pupils.filter(
+                const classStudentsCount = students.filter(
                   (p) => p.classId === c.id && p.active,
                 ).length;
                 const schoolSubjs = getSchoolSubjects(c.schoolId).map((s) => s.name);
@@ -499,7 +499,7 @@ function ClassesPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{classPupilsCount} pupils</TableCell>
+                    <TableCell>{classStudentsCount} students</TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button
                         size="sm"

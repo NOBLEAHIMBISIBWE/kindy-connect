@@ -57,7 +57,7 @@ export const Route = createFileRoute("/app/marks")({
 function MarksPage() {
   const {
     currentUser,
-    pupils = [],
+    students = [],
     classes = [],
     marks = [],
     addMark,
@@ -114,8 +114,8 @@ function MarksPage() {
   const [sheetDisplayMode, setSheetDisplayMode] = useState<"score" | "percentage" | "grade">(
     "score",
   );
-  const [selectedPupilId, setSelectedPupilId] = useState("");
-  const [pupilSearch, setPupilSearch] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [studentSearch, setStudentSearch] = useState("");
   const [editingMark, setEditingMark] = useState<any>(null);
   const [formData, setFormData] = useState({
     score: "",
@@ -123,11 +123,11 @@ function MarksPage() {
     teacherComment: "",
   });
 
-  const classPupils = useMemo(() => {
-    return pupils
+  const classStudents = useMemo(() => {
+    return students
       .filter((p) => p.classId === classId && p.active)
       .sort((a, b) => a.firstName.localeCompare(b.firstName));
-  }, [pupils, classId]);
+  }, [students, classId]);
 
   const filteredMarks = useMemo(() => {
     return marks.filter((m) => m.term === term && m.year === year && m.subject === subject);
@@ -180,7 +180,7 @@ function MarksPage() {
   const [defaultMaxScore, setDefaultMaxScore] = useState("100");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Sync inline state whenever pupils or selected criteria change
+  // Sync inline state whenever students or selected criteria change
   useEffect(() => {
     const initialMap: Record<
       string,
@@ -193,8 +193,8 @@ function MarksPage() {
       }
     > = {};
 
-    classPupils.forEach((p) => {
-      const existing = filteredMarks.find((m) => m.pupilId === p.id);
+    classStudents.forEach((p) => {
+      const existing = filteredMarks.find((m) => m.studentId === p.id);
       if (existing) {
         initialMap[p.id] = {
           score: existing.score.toString(),
@@ -215,22 +215,22 @@ function MarksPage() {
     });
 
     setInlineMarks(initialMap);
-  }, [classPupils, filteredMarks, term, year, subject, classId, defaultMaxScore]);
+  }, [classStudents, filteredMarks, term, year, subject, classId, defaultMaxScore]);
 
   const handleInlineChange = (
-    pupilId: string,
+    studentId: string,
     field: "score" | "maxScore" | "teacherComment",
     value: string,
   ) => {
     setInlineMarks((prev) => {
-      const existing = prev[pupilId] || {
+      const existing = prev[studentId] || {
         score: "",
         maxScore: defaultMaxScore,
         teacherComment: "",
       };
       return {
         ...prev,
-        [pupilId]: {
+        [studentId]: {
           ...existing,
           [field]: value,
           isDirty: true,
@@ -261,7 +261,7 @@ function MarksPage() {
   const handleSaveAllInlineMarks = async () => {
     const marksToSave: Array<{
       id?: string;
-      pupilId: string;
+      studentId: string;
       subject: string;
       term: string;
       year: string;
@@ -270,11 +270,11 @@ function MarksPage() {
       teacherComment?: string;
     }> = [];
 
-    Object.entries(inlineMarks).forEach(([pupilId, data]) => {
+    Object.entries(inlineMarks).forEach(([studentId, data]) => {
       if (data.isDirty && data.score.trim() !== "" && !isNaN(parseFloat(data.score))) {
         marksToSave.push({
           id: data.markId,
-          pupilId,
+          studentId,
           subject,
           term,
           year,
@@ -293,7 +293,7 @@ function MarksPage() {
     setIsSaving(true);
     try {
       await saveBulkMarks(marksToSave);
-      toast.success(`Successfully saved marks for ${marksToSave.length} pupil(s)!`);
+      toast.success(`Successfully saved marks for ${marksToSave.length} student(s)!`);
     } catch (err: any) {
       console.error("Failed to save bulk marks:", err);
       toast.error(err?.message || "Failed to save marks");
@@ -302,54 +302,55 @@ function MarksPage() {
     }
   };
 
-  // Keyboard Navigation: Enter / Down Arrow moves to next pupil's score input, Up Arrow moves to previous
+  // Keyboard Navigation: Enter / Down Arrow moves to next student's score input, Up Arrow moves to previous
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
-    pupilIndex: number,
+    studentIndex: number,
     field: "score" | "maxScore" | "teacherComment",
   ) => {
     if (e.key === "Enter" || e.key === "ArrowDown") {
       e.preventDefault();
-      const nextInput = document.getElementById(`inline-${field}-${pupilIndex + 1}`);
+      const nextInput = document.getElementById(`inline-${field}-${studentIndex + 1}`);
       if (nextInput) {
         (nextInput as HTMLInputElement).focus();
         (nextInput as HTMLInputElement).select();
       }
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      const prevInput = document.getElementById(`inline-${field}-${pupilIndex - 1}`);
+      const prevInput = document.getElementById(`inline-${field}-${studentIndex - 1}`);
       if (prevInput) {
         (prevInput as HTMLInputElement).focus();
         (prevInput as HTMLInputElement).select();
       }
     }
   };
-  const selectedPupil = useMemo(
-    () => classPupils.find((p) => p.id === selectedPupilId),
-    [classPupils, selectedPupilId],
+  const selectedStudent = useMemo(
+    () => classStudents.find((p) => p.id === selectedStudentId),
+    [classStudents, selectedStudentId],
   );
 
   const existingMarkForSelected = useMemo(
-    () => filteredMarks.find((m) => m.pupilId === selectedPupilId),
-    [filteredMarks, selectedPupilId],
+    () => filteredMarks.find((m) => m.studentId === selectedStudentId),
+    [filteredMarks, selectedStudentId],
   );
 
-  // Auto select first pupil when opening Add Mark dialog if none selected
+  // Auto select first student when opening Add Mark dialog if none selected
   useEffect(() => {
-    if (addDialogOpen && classPupils.length > 0) {
-      if (!selectedPupilId || !classPupils.some((p) => p.id === selectedPupilId)) {
-        selectPupilForEntry(classPupils[0].id);
+    if (addDialogOpen && classStudents.length > 0) {
+      if (!selectedStudentId || !classStudents.some((p) => p.id === selectedStudentId)) {
+        selectStudentForEntry(classStudents[0].id);
       } else {
-        selectPupilForEntry(selectedPupilId);
+        selectStudentForEntry(selectedStudentId);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addDialogOpen]);
 
-  const selectPupilForEntry = (pupilId: string) => {
-    setSelectedPupilId(pupilId);
+  const selectStudentForEntry = (studentId: string) => {
+    setSelectedStudentId(studentId);
     const existingMark = marks.find(
-      (m) => m.pupilId === pupilId && m.subject === subject && m.term === term && m.year === year,
+      (m) =>
+        m.studentId === studentId && m.subject === subject && m.term === term && m.year === year,
     );
     if (existingMark) {
       setEditingMark(existingMark);
@@ -368,11 +369,11 @@ function MarksPage() {
     }
   };
 
-  // Compute broadsheet marks matrix for the pupil sheet preview
+  // Compute broadsheet marks matrix for the student sheet preview
   const broadsheetData = useMemo(() => {
-    return classPupils.map((p) => {
-      const pupilMarks = marks.filter(
-        (m) => m.pupilId === p.id && m.term === term && m.year === year,
+    return classStudents.map((p) => {
+      const studentMarks = marks.filter(
+        (m) => m.studentId === p.id && m.term === term && m.year === year,
       );
 
       let totalPct = 0;
@@ -384,7 +385,7 @@ function MarksPage() {
       > = {};
 
       subjects.forEach((subj) => {
-        const m = pupilMarks.find((x) => x.subject === subj);
+        const m = studentMarks.find((x) => x.subject === subj);
         if (m) {
           const pct = (m.score / m.maxScore) * 100;
           subjectMarks[subj] = { score: m.score, maxScore: m.maxScore, grade: m.grade, pct };
@@ -406,16 +407,16 @@ function MarksPage() {
       }
 
       return {
-        pupil: p,
+        student: p,
         subjectMarks,
         avgPct,
         overallGrade,
       };
     });
-  }, [classPupils, marks, term, year, subjects]);
+  }, [classStudents, marks, term, year, subjects]);
 
   const handleSaveMark = (andNext: boolean = false) => {
-    if (!selectedPupilId || !formData.score || !formData.maxScore) {
+    if (!selectedStudentId || !formData.score || !formData.maxScore) {
       toast.error("Please fill in score and max score");
       return;
     }
@@ -428,10 +429,10 @@ function MarksPage() {
       return;
     }
 
-    const pupil = classPupils.find((p) => p.id === selectedPupilId);
+    const student = classStudents.find((p) => p.id === selectedStudentId);
     const existingMark = marks.find(
       (m) =>
-        m.pupilId === selectedPupilId &&
+        m.studentId === selectedStudentId &&
         m.subject === subject &&
         m.term === term &&
         m.year === year,
@@ -443,10 +444,10 @@ function MarksPage() {
         maxScore: maxScoreNum,
         teacherComment: formData.teacherComment,
       });
-      toast.success(`Mark updated for ${pupil?.firstName} ${pupil?.lastName}`);
+      toast.success(`Mark updated for ${student?.firstName} ${student?.lastName}`);
     } else {
       addMark({
-        pupilId: selectedPupilId,
+        studentId: selectedStudentId,
         subject,
         term,
         year,
@@ -454,14 +455,14 @@ function MarksPage() {
         maxScore: maxScoreNum,
         teacherComment: formData.teacherComment,
       });
-      toast.success(`Mark added for ${pupil?.firstName} ${pupil?.lastName}`);
+      toast.success(`Mark added for ${student?.firstName} ${student?.lastName}`);
     }
 
     if (andNext) {
-      const currentIndex = classPupils.findIndex((p) => p.id === selectedPupilId);
-      if (currentIndex !== -1 && currentIndex < classPupils.length - 1) {
-        const nextPupil = classPupils[currentIndex + 1];
-        selectPupilForEntry(nextPupil.id);
+      const currentIndex = classStudents.findIndex((p) => p.id === selectedStudentId);
+      if (currentIndex !== -1 && currentIndex < classStudents.length - 1) {
+        const nextStudent = classStudents[currentIndex + 1];
+        selectStudentForEntry(nextStudent.id);
       }
     }
   };
@@ -478,15 +479,15 @@ function MarksPage() {
       teacherComment: formData.teacherComment,
     });
 
-    const pupil = classPupils.find((p) => p.id === editingMark.pupilId);
-    toast.success(`Mark updated for ${pupil?.firstName} ${pupil?.lastName}`);
+    const student = classStudents.find((p) => p.id === editingMark.studentId);
+    toast.success(`Mark updated for ${student?.firstName} ${student?.lastName}`);
     setEditDialogOpen(false);
     setEditingMark(null);
     setFormData({ score: "", maxScore: "100", teacherComment: "" });
   };
 
-  const handleDelete = (markId: string, pupilName: string) => {
-    if (confirm(`Are you sure you want to delete this mark for ${pupilName}?`)) {
+  const handleDelete = (markId: string, studentName: string) => {
+    if (confirm(`Are you sure you want to delete this mark for ${studentName}?`)) {
       deleteMark(markId);
       toast.success("Mark deleted");
       if (editingMark?.id === markId) {
@@ -497,7 +498,7 @@ function MarksPage() {
   };
 
   const openEditDialog = (mark: any) => {
-    setSelectedPupilId(mark.pupilId);
+    setSelectedStudentId(mark.studentId);
     setEditingMark(mark);
     setFormData({
       score: mark.score.toString(),
@@ -507,8 +508,8 @@ function MarksPage() {
     setAddDialogOpen(true);
   };
 
-  const openAddForPupil = (pupilId: string) => {
-    selectPupilForEntry(pupilId);
+  const openAddForStudent = (studentId: string) => {
+    selectStudentForEntry(studentId);
     setAddDialogOpen(true);
   };
 
@@ -531,13 +532,13 @@ function MarksPage() {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
 
-      const currentPupilId = selectedPupilId;
-      if (!currentPupilId) return;
+      const currentStudentId = selectedStudentId;
+      if (!currentStudentId) return;
 
       if (formData.score && formData.maxScore) {
         const existingMark = marks.find(
           (m) =>
-            m.pupilId === currentPupilId &&
+            m.studentId === currentStudentId &&
             m.subject === subject &&
             m.term === term &&
             m.year === year,
@@ -551,7 +552,7 @@ function MarksPage() {
           });
         } else {
           addMark({
-            pupilId: currentPupilId,
+            studentId: currentStudentId,
             subject,
             term,
             year,
@@ -562,15 +563,15 @@ function MarksPage() {
         }
       }
 
-      const currentIndex = classPupils.findIndex((p) => p.id === currentPupilId);
+      const currentIndex = classStudents.findIndex((p) => p.id === currentStudentId);
       if (currentIndex !== -1) {
         const nextIndex =
           e.key === "ArrowDown"
-            ? (currentIndex + 1) % classPupils.length
-            : (currentIndex - 1 + classPupils.length) % classPupils.length;
+            ? (currentIndex + 1) % classStudents.length
+            : (currentIndex - 1 + classStudents.length) % classStudents.length;
 
-        const nextPupil = classPupils[nextIndex];
-        selectPupilForEntry(nextPupil.id);
+        const nextStudent = classStudents[nextIndex];
+        selectStudentForEntry(nextStudent.id);
       }
     }
   };
@@ -624,7 +625,7 @@ function MarksPage() {
             <div>
               <CardTitle className="text-xl">Class Marks Entry</CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Enter scores directly for all pupils in the class sequentially without individual
+                Enter scores directly for all students in the class sequentially without individual
                 lookup.
               </p>
             </div>
@@ -686,38 +687,38 @@ function MarksPage() {
                           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                           <Input
                             placeholder="Search student..."
-                            value={pupilSearch}
-                            onChange={(e) => setPupilSearch(e.target.value)}
+                            value={studentSearch}
+                            onChange={(e) => setStudentSearch(e.target.value)}
                             className="pl-9 h-9 text-xs"
                           />
                         </div>
                         <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
                           <span>
                             All Students (
-                            <strong className="text-foreground">{classPupils.length}</strong>)
+                            <strong className="text-foreground">{classStudents.length}</strong>)
                           </span>
                           <span>
                             <strong className="text-green-600">{filteredMarks.length}</strong> /{" "}
-                            {classPupils.length} marked
+                            {classStudents.length} marked
                           </span>
                         </div>
                       </div>
 
                       <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 max-h-[380px]">
-                        {classPupils
+                        {classStudents
                           .filter((p) =>
                             `${p.firstName} ${p.lastName} ${p.admissionNo || ""}`
                               .toLowerCase()
-                              .includes(pupilSearch.toLowerCase()),
+                              .includes(studentSearch.toLowerCase()),
                           )
                           .map((p) => {
-                            const m = filteredMarks.find((mark) => mark.pupilId === p.id);
-                            const isSelected = p.id === selectedPupilId;
+                            const m = filteredMarks.find((mark) => mark.studentId === p.id);
+                            const isSelected = p.id === selectedStudentId;
                             return (
                               <button
                                 key={p.id}
                                 type="button"
-                                onClick={() => selectPupilForEntry(p.id)}
+                                onClick={() => selectStudentForEntry(p.id)}
                                 className={`w-full text-left p-2.5 rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
                                   isSelected
                                     ? "bg-primary/10 border-primary shadow-xs ring-1 ring-primary"
@@ -765,7 +766,7 @@ function MarksPage() {
                               </button>
                             );
                           })}
-                        {classPupils.length === 0 && (
+                        {classStudents.length === 0 && (
                           <p className="text-center text-xs text-muted-foreground py-8">
                             No students in this class.
                           </p>
@@ -775,21 +776,21 @@ function MarksPage() {
 
                     {/* Right Column: Selected Student Mark Form */}
                     <div className="md:col-span-7 flex flex-col justify-between h-full space-y-4">
-                      {selectedPupil ? (
+                      {selectedStudent ? (
                         <>
                           <div className="space-y-4">
                             <div className="p-3 bg-muted/40 rounded-lg border flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <div className="h-10 w-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm">
-                                  {selectedPupil.firstName[0]}
-                                  {selectedPupil.lastName[0]}
+                                  {selectedStudent.firstName[0]}
+                                  {selectedStudent.lastName[0]}
                                 </div>
                                 <div>
                                   <h4 className="font-bold text-sm">
-                                    {selectedPupil.firstName} {selectedPupil.lastName}
+                                    {selectedStudent.firstName} {selectedStudent.lastName}
                                   </h4>
                                   <p className="text-xs text-muted-foreground">
-                                    Adm No: {selectedPupil.admissionNo || "N/A"}
+                                    Adm No: {selectedStudent.admissionNo || "N/A"}
                                   </p>
                                 </div>
                               </div>
@@ -900,7 +901,7 @@ function MarksPage() {
                                   onClick={() =>
                                     handleDelete(
                                       existingMarkForSelected.id,
-                                      `${selectedPupil.firstName} ${selectedPupil.lastName}`,
+                                      `${selectedStudent.firstName} ${selectedStudent.lastName}`,
                                     )
                                   }
                                 >
@@ -1030,7 +1031,7 @@ function MarksPage() {
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead className="w-10 text-center font-bold">#</TableHead>
-                  <TableHead className="min-w-[160px] font-bold">Pupil Name</TableHead>
+                  <TableHead className="min-w-[160px] font-bold">Student Name</TableHead>
                   {isAdmin && <TableHead className="w-28 font-bold">Admission No</TableHead>}
                   <TableHead className="w-28 font-bold">Score</TableHead>
                   <TableHead className="w-24 font-bold">Max Score</TableHead>
@@ -1040,7 +1041,7 @@ function MarksPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {classPupils.map((p, idx) => {
+                {classStudents.map((p, idx) => {
                   const item = inlineMarks[p.id] || {
                     score: "",
                     maxScore: defaultMaxScore,
@@ -1155,13 +1156,13 @@ function MarksPage() {
                     </TableRow>
                   );
                 })}
-                {classPupils.length === 0 && (
+                {classStudents.length === 0 && (
                   <TableRow>
                     <TableCell
                       colSpan={isAdmin ? 8 : 7}
                       className="text-center py-8 text-muted-foreground"
                     >
-                      No pupils in this class. Select a class to enter marks.
+                      No students in this class. Select a class to enter marks.
                     </TableCell>
                   </TableRow>
                 )}
@@ -1169,7 +1170,7 @@ function MarksPage() {
             </Table>
           </div>
 
-          {canEditMarks && classPupils.length > 0 && (
+          {canEditMarks && classStudents.length > 0 && (
             <div className="flex items-center justify-between pt-4 mt-2 border-t">
               <div className="text-xs text-muted-foreground">
                 Tip: Press{" "}
@@ -1252,13 +1253,13 @@ function MarksPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Pupil Marks Sheet Preview Dialog */}
+      {/* Student Marks Sheet Preview Dialog */}
       <Dialog open={sheetDialogOpen} onOpenChange={setSheetDialogOpen}>
         <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
           <DialogHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b gap-3">
             <div>
               <DialogTitle className="text-xl font-bold">
-                {currentSchool?.name || "Noble Edu"} - Pupil Marks Sheet
+                {currentSchool?.name || "Noble Edu"} - Student Marks Sheet
               </DialogTitle>
               <p className="text-xs text-muted-foreground mt-1">
                 Class:{" "}
@@ -1280,15 +1281,15 @@ function MarksPage() {
                 onClick={() => {
                   const headers = [
                     "Admission No",
-                    "Pupil Name",
+                    "Student Name",
                     ...subjects,
                     "Average (%)",
                     "Overall Grade",
                   ];
                   const rows = broadsheetData.map(
-                    ({ pupil, subjectMarks, avgPct, overallGrade }) => [
-                      pupil.admissionNo,
-                      `${pupil.firstName} ${pupil.lastName}`,
+                    ({ student, subjectMarks, avgPct, overallGrade }) => [
+                      student.admissionNo,
+                      `${student.firstName} ${student.lastName}`,
                       ...subjects.map((s) => {
                         const item = subjectMarks[s];
                         if (!item) return "-";
@@ -1374,8 +1375,8 @@ function MarksPage() {
               </div>
             </div>
             <div className="text-xs text-muted-foreground">
-              Total Pupils:{" "}
-              <span className="font-semibold text-foreground">{classPupils.length}</span>
+              Total Students:{" "}
+              <span className="font-semibold text-foreground">{classStudents.length}</span>
             </div>
           </div>
 
@@ -1385,7 +1386,7 @@ function MarksPage() {
                 <TableRow>
                   <TableHead className="w-10 text-center font-bold">#</TableHead>
                   {isAdmin && <TableHead className="w-28 font-bold">Admission No</TableHead>}
-                  <TableHead className="min-w-[140px] font-bold">Pupil Name</TableHead>
+                  <TableHead className="min-w-[140px] font-bold">Student Name</TableHead>
                   {subjects.map((s) => (
                     <TableHead key={s} className="text-center min-w-[75px] font-bold">
                       {s}
@@ -1397,15 +1398,15 @@ function MarksPage() {
               </TableHeader>
               <TableBody>
                 {broadsheetData.map((row, idx) => (
-                  <TableRow key={row.pupil.id} className="hover:bg-muted/40">
+                  <TableRow key={row.student.id} className="hover:bg-muted/40">
                     <TableCell className="text-center font-medium text-muted-foreground">
                       {idx + 1}
                     </TableCell>
                     {isAdmin && (
-                      <TableCell className="font-mono text-xs">{row.pupil.admissionNo}</TableCell>
+                      <TableCell className="font-mono text-xs">{row.student.admissionNo}</TableCell>
                     )}
                     <TableCell className="font-semibold">
-                      {row.pupil.firstName} {row.pupil.lastName}
+                      {row.student.firstName} {row.student.lastName}
                     </TableCell>
                     {subjects.map((s) => {
                       const m = row.subjectMarks[s];
@@ -1466,7 +1467,7 @@ function MarksPage() {
                       colSpan={subjects.length + 5}
                       className="text-center py-8 text-muted-foreground"
                     >
-                      No active pupils found for this class.
+                      No active students found for this class.
                     </TableCell>
                   </TableRow>
                 )}

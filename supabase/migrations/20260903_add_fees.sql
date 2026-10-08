@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS fees (
     id VARCHAR(50) PRIMARY KEY,
-    pupil_id VARCHAR(50) NOT NULL REFERENCES pupils(id) ON DELETE CASCADE,
+    student_id VARCHAR(50) NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     school_id VARCHAR(50) NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     description VARCHAR(255) NOT NULL,
     term VARCHAR(50) NOT NULL,
@@ -13,11 +13,11 @@ CREATE TABLE IF NOT EXISTS fees (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_fee_paid_limit CHECK (amount_paid <= amount_due),
-    CONSTRAINT unq_fee_pupil_description_term_year UNIQUE (pupil_id, description, term, year)
+    CONSTRAINT unq_fee_student_description_term_year UNIQUE (student_id, description, term, year)
 );
 
 CREATE INDEX IF NOT EXISTS idx_fees_school_id ON fees(school_id);
-CREATE INDEX IF NOT EXISTS idx_fees_pupil_id ON fees(pupil_id);
+CREATE INDEX IF NOT EXISTS idx_fees_student_id ON fees(student_id);
 
 ALTER TABLE fees ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS fees_school_access ON fees;

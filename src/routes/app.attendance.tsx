@@ -30,7 +30,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
-import { Car, Info, Calendar, Users, CheckCircle, XCircle, Clock, Lock, Download, TrendingUp, AlertTriangle, BarChart3, FileText, UserCheck } from "lucide-react";
+import {
+  Car,
+  Info,
+  Calendar,
+  Users,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Lock,
+  Download,
+  TrendingUp,
+  AlertTriangle,
+  BarChart3,
+  FileText,
+  UserCheck,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,7 +64,7 @@ export const Route = createFileRoute("/app/attendance")({
 function AttendancePage() {
   const {
     currentUser,
-    pupils = [],
+    students = [],
     classes = [],
     attendance = [],
     markArrival,
@@ -62,50 +77,67 @@ function AttendancePage() {
   const isTeacher = currentUser?.role === "teacher";
 
   // Enhanced attendance analytics
-  const getAttendanceHistory = (pupilId: string, days: number = 7) => {
+  const getAttendanceHistory = (studentId: string, days: number = 7) => {
     const endDate = new Date();
     const startDate = subDays(endDate, days);
-    return attendance.filter(att => 
-      att.pupilId === pupilId && 
-      new Date(att.date) >= startDate && 
-      new Date(att.date) <= endDate
+    return attendance.filter(
+      (att) =>
+        att.studentId === studentId &&
+        new Date(att.date) >= startDate &&
+        new Date(att.date) <= endDate,
     );
   };
 
-  const calculateAttendanceRate = (pupilId: string, days: number = 7) => {
-    const history = getAttendanceHistory(pupilId, days);
-    const presentDays = history.filter(att => att.arrival).length;
+  const calculateAttendanceRate = (studentId: string, days: number = 7) => {
+    const history = getAttendanceHistory(studentId, days);
+    const presentDays = history.filter((att) => att.arrival).length;
     return days > 0 ? Math.round((presentDays / days) * 100) : 0;
   };
 
   const exportAttendanceData = () => {
-    const attendanceData = displayedPupils.map(p => {
-      const att = dayAtt.find(a => a.pupilId === p.id);
+    const attendanceData = displayedStudents.map((p) => {
+      const att = dayAtt.find((a) => a.studentId === p.id);
       const rate7Days = calculateAttendanceRate(p.id, 7);
       return [
         p.firstName + " " + p.lastName,
         p.admissionNo,
-        classes.find(c => c.id === p.classId)?.name || "-",
+        classes.find((c) => c.id === p.classId)?.name || "-",
         att?.arrival || "Absent",
         att?.departure || "-",
         att?.arrivalTransport || "-",
         att?.departureTransport || "-",
         att?.arrivalPersonName || "-",
         att?.departurePersonName || "-",
-        rate7Days + "%"
+        rate7Days + "%",
       ];
     });
 
     const csvContent = [
-      ["Pupil Name", "Admission No", "Class", "Arrival Time", "Departure Time", "Arrival Transport", "Departure Transport", "Brought By", "Picked By", "7-Day Rate"],
-      ...attendanceData
-    ].map(row => row.join(",")).join("\n");
+      [
+        "Student Name",
+        "Admission No",
+        "Class",
+        "Arrival Time",
+        "Departure Time",
+        "Arrival Transport",
+        "Departure Transport",
+        "Brought By",
+        "Picked By",
+        "7-Day Rate",
+      ],
+      ...attendanceData,
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `attendance_${date}_${classes.find(c => c.id === classId)?.name || 'class'}.csv`);
+    link.setAttribute(
+      "download",
+      `attendance_${date}_${classes.find((c) => c.id === classId)?.name || "class"}.csv`,
+    );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -114,15 +146,17 @@ function AttendancePage() {
   };
 
   const markAllPresent = () => {
-    const absentPupils = classPupils.filter(p => !dayAtt.find(a => a.pupilId === p.id)?.arrival);
-    
-    if (absentPupils.length === 0) {
-      toast.info("All pupils are already marked as present");
+    const absentStudents = classStudents.filter(
+      (p) => !dayAtt.find((a) => a.studentId === p.id)?.arrival,
+    );
+
+    if (absentStudents.length === 0) {
+      toast.info("All students are already marked as present");
       return;
     }
 
-    absentPupils.forEach(pupil => markArrival(pupil.id));
-    toast.success(`Marked ${absentPupils.length} pupils as present`);
+    absentStudents.forEach((student) => markArrival(student.id));
+    toast.success(`Marked ${absentStudents.length} students as present`);
   };
 
   // Super Admin School filtering
@@ -160,7 +194,7 @@ function AttendancePage() {
   const [filter, setFilter] = useState<"all" | "present" | "absent">("all");
   const [arrivalDialogOpen, setArrivalDialogOpen] = useState(false);
   const [departureDialogOpen, setDepartureDialogOpen] = useState(false);
-  const [selectedPupil, setSelectedPupil] = useState<any>(null);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [arrivalForm, setArrivalForm] = useState({
     transport: "",
     vehicleReg: "",
@@ -176,63 +210,67 @@ function AttendancePage() {
     phone: "",
   });
 
-  const classPupils = pupils.filter((p) => p.classId === classId && p.active);
+  const classStudents = students.filter((p) => p.classId === classId && p.active);
   const dayAtt = attendance.filter((a) => a.date === date);
 
   // Enhanced Statistics
-  const totalCount = classPupils.length;
+  const totalCount = classStudents.length;
   const presentCount = useMemo(() => {
-    return classPupils.filter((p) => {
-      const att = dayAtt.find((a) => a.pupilId === p.id);
+    return classStudents.filter((p) => {
+      const att = dayAtt.find((a) => a.studentId === p.id);
       return !!att?.arrival;
     }).length;
-  }, [classPupils, dayAtt]);
+  }, [classStudents, dayAtt]);
   const absentCount = totalCount - presentCount;
-  
+
   // Calculate attendance rate for the class over the last 7 days
   const classAttendanceRate = useMemo(() => {
     if (totalCount === 0) return 0;
-    const last7Days = Array.from({length: 7}, (_, i) => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
       const date = new Date();
       date.setDate(date.getDate() - i);
       return date.toISOString().slice(0, 10);
     });
-    
+
     const totalPossibleAttendance = totalCount * 7;
     const actualAttendance = last7Days.reduce((total, dateStr) => {
-      return total + attendance.filter(att => 
-        att.date === dateStr && 
-        classPupils.some(p => p.id === att.pupilId) && 
-        att.arrival
-      ).length;
+      return (
+        total +
+        attendance.filter(
+          (att) =>
+            att.date === dateStr &&
+            classStudents.some((p) => p.id === att.studentId) &&
+            att.arrival,
+        ).length
+      );
     }, 0);
-    
+
     return Math.round((actualAttendance / totalPossibleAttendance) * 100);
-  }, [classPupils, attendance, totalCount]);
+  }, [classStudents, attendance, totalCount]);
 
-  // Get pupils with attendance concerns (less than 80% in last 7 days)
-  const concernPupils = useMemo(() => {
-    return classPupils.filter(p => calculateAttendanceRate(p.id, 7) < 80);
-  }, [classPupils]);
+  // Get students with attendance concerns (less than 80% in last 7 days)
+  const concernStudents = useMemo(() => {
+    return classStudents.filter((p) => calculateAttendanceRate(p.id, 7) < 80);
+  }, [classStudents]);
 
-  // Count departed pupils
+  // Count departed students
   const departedCount = useMemo(() => {
-    return classPupils.filter((p) => {
-      const att = dayAtt.find((a) => a.pupilId === p.id);
+    return classStudents.filter((p) => {
+      const att = dayAtt.find((a) => a.studentId === p.id);
       return !!att?.departure;
     }).length;
-  }, [classPupils, dayAtt]);
+  }, [classStudents, dayAtt]);
 
-  // Filtered pupils list
-  const displayedPupils = useMemo(() => {
-    return classPupils.filter((p) => {
-      const att = dayAtt.find((a) => a.pupilId === p.id);
+  // Filtered students list
+  const displayedStudents = useMemo(() => {
+    return classStudents.filter((p) => {
+      const att = dayAtt.find((a) => a.studentId === p.id);
       const isPresent = !!att?.arrival;
       if (filter === "present") return isPresent;
       if (filter === "absent") return !isPresent;
       return true;
     });
-  }, [classPupils, dayAtt, filter]);
+  }, [classStudents, dayAtt, filter]);
 
   const transportModes = ["Car", "School Bus", "Motorcycle", "Walking", "Bicycle", "Van", "Taxi"];
   const relations = [
@@ -246,14 +284,14 @@ function AttendancePage() {
     "Sibling",
   ];
 
-  const handleQuickArrival = (pupil: any) => {
-    markArrival(pupil.id);
-    toast.success(`Arrival logged for ${pupil.firstName} ${pupil.lastName} - parents notified`);
+  const handleQuickArrival = (student: any) => {
+    markArrival(student.id);
+    toast.success(`Arrival logged for ${student.firstName} ${student.lastName} - parents notified`);
   };
 
   const handleArrival = () => {
     if (
-      !selectedPupil ||
+      !selectedStudent ||
       !arrivalForm.transport ||
       !arrivalForm.personName ||
       !arrivalForm.personRelation ||
@@ -263,7 +301,7 @@ function AttendancePage() {
       return;
     }
 
-    markArrival(selectedPupil.id, {
+    markArrival(selectedStudent.id, {
       transport: arrivalForm.transport,
       vehicleReg: arrivalForm.vehicleReg,
       personName: arrivalForm.personName,
@@ -273,7 +311,7 @@ function AttendancePage() {
 
     toast.success(`Arrival logged - parents notified`);
     setArrivalDialogOpen(false);
-    setSelectedPupil(null);
+    setSelectedStudent(null);
     setArrivalForm({
       transport: "",
       vehicleReg: "",
@@ -285,7 +323,7 @@ function AttendancePage() {
 
   const handleDeparture = () => {
     if (
-      !selectedPupil ||
+      !selectedStudent ||
       !departureForm.transport ||
       !departureForm.personName ||
       !departureForm.personRelation ||
@@ -295,7 +333,7 @@ function AttendancePage() {
       return;
     }
 
-    markDeparture(selectedPupil.id, {
+    markDeparture(selectedStudent.id, {
       transport: departureForm.transport,
       vehicleReg: departureForm.vehicleReg,
       personName: departureForm.personName,
@@ -305,7 +343,7 @@ function AttendancePage() {
 
     toast.success(`Departure logged - parents notified`);
     setDepartureDialogOpen(false);
-    setSelectedPupil(null);
+    setSelectedStudent(null);
     setDepartureForm({
       transport: "",
       vehicleReg: "",
@@ -315,14 +353,16 @@ function AttendancePage() {
     });
   };
 
-  const handleQuickDeparture = (pupil: any) => {
-    markDeparture(pupil.id);
-    toast.success(`Departure logged for ${pupil.firstName} ${pupil.lastName} - parents notified`);
+  const handleQuickDeparture = (student: any) => {
+    markDeparture(student.id);
+    toast.success(
+      `Departure logged for ${student.firstName} ${student.lastName} - parents notified`,
+    );
   };
 
-  const openArrivalDialog = (pupil: any) => {
-    setSelectedPupil(pupil);
-    const parent = parents.find((pr) => pupil.parentIds?.includes(pr.id));
+  const openArrivalDialog = (student: any) => {
+    setSelectedStudent(student);
+    const parent = parents.find((pr) => student.parentIds?.includes(pr.id));
     setArrivalForm({
       transport: "Car",
       vehicleReg: "",
@@ -333,9 +373,9 @@ function AttendancePage() {
     setArrivalDialogOpen(true);
   };
 
-  const openDepartureDialog = (pupil: any) => {
-    setSelectedPupil(pupil);
-    const parent = parents.find((pr) => pupil.parentIds?.includes(pr.id));
+  const openDepartureDialog = (student: any) => {
+    setSelectedStudent(student);
+    const parent = parents.find((pr) => student.parentIds?.includes(pr.id));
     setDepartureForm({
       transport: "Car",
       vehicleReg: "",
@@ -364,7 +404,7 @@ function AttendancePage() {
         <Card className="border shadow-sm bg-card hover:bg-accent/10 transition-colors">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Pupils</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Students</p>
               <h3 className="text-2xl font-bold">{totalCount}</h3>
             </div>
             <div className="p-2 bg-primary/10 text-primary rounded-full">
@@ -409,10 +449,10 @@ function AttendancePage() {
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Departed</p>
-              <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400">{departedCount}</h3>
-              <p className="text-xs text-muted-foreground">
-                Gone home today
-              </p>
+              <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {departedCount}
+              </h3>
+              <p className="text-xs text-muted-foreground">Gone home today</p>
             </div>
             <div className="p-2 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-full">
               <UserCheck className="h-6 w-6" />
@@ -424,14 +464,16 @@ function AttendancePage() {
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">7-Day Rate</p>
-              <h3 className={`text-2xl font-bold ${classAttendanceRate >= 90 ? 'text-emerald-600' : classAttendanceRate >= 80 ? 'text-amber-600' : 'text-rose-600'}`}>
+              <h3
+                className={`text-2xl font-bold ${classAttendanceRate >= 90 ? "text-emerald-600" : classAttendanceRate >= 80 ? "text-amber-600" : "text-rose-600"}`}
+              >
                 {classAttendanceRate}%
               </h3>
-              <p className="text-xs text-muted-foreground">
-                Class average
-              </p>
+              <p className="text-xs text-muted-foreground">Class average</p>
             </div>
-            <div className={`p-2 rounded-full ${classAttendanceRate >= 90 ? 'bg-emerald-100 text-emerald-600' : classAttendanceRate >= 80 ? 'bg-amber-100 text-amber-600' : 'bg-rose-100 text-rose-600'}`}>
+            <div
+              className={`p-2 rounded-full ${classAttendanceRate >= 90 ? "bg-emerald-100 text-emerald-600" : classAttendanceRate >= 80 ? "bg-amber-100 text-amber-600" : "bg-rose-100 text-rose-600"}`}
+            >
               <TrendingUp className="h-6 w-6" />
             </div>
           </CardContent>
@@ -439,25 +481,33 @@ function AttendancePage() {
       </div>
 
       {/* Attendance Concerns Alert */}
-      {concernPupils.length > 0 && (
+      {concernStudents.length > 0 && (
         <Card className="border-l-4 border-l-amber-500 bg-amber-50 dark:bg-amber-950/10 mb-6">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
               <div className="flex-1">
-                <h4 className="font-medium text-amber-800 dark:text-amber-200">Attendance Concerns</h4>
+                <h4 className="font-medium text-amber-800 dark:text-amber-200">
+                  Attendance Concerns
+                </h4>
                 <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                  {concernPupils.length} pupil{concernPupils.length > 1 ? 's have' : ' has'} attendance below 80% in the last 7 days:
+                  {concernStudents.length} student{concernStudents.length > 1 ? "s have" : " has"}{" "}
+                  attendance below 80% in the last 7 days:
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {concernPupils.slice(0, 5).map(pupil => (
-                    <Badge key={pupil.id} variant="outline" className="text-amber-800 border-amber-300">
-                      {pupil.firstName} {pupil.lastName} ({calculateAttendanceRate(pupil.id, 7)}%)
+                  {concernStudents.slice(0, 5).map((student) => (
+                    <Badge
+                      key={student.id}
+                      variant="outline"
+                      className="text-amber-800 border-amber-300"
+                    >
+                      {student.firstName} {student.lastName} (
+                      {calculateAttendanceRate(student.id, 7)}%)
                     </Badge>
                   ))}
-                  {concernPupils.length > 5 && (
+                  {concernStudents.length > 5 && (
                     <Badge variant="outline" className="text-amber-800 border-amber-300">
-                      +{concernPupils.length - 5} more
+                      +{concernStudents.length - 5} more
                     </Badge>
                   )}
                 </div>
@@ -523,97 +573,95 @@ function AttendancePage() {
                 )}
               </div>
             </div>
+          </div>
 
+          {/* Quick Filters */}
+          <div className="flex items-center gap-2 mt-3 lg:mt-0">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">
+              Filter:
+            </span>
+            <Button
+              variant={filter === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter("all")}
+              className="h-8 text-xs font-medium"
+            >
+              All ({totalCount})
+            </Button>
+            <Button
+              variant={filter === "present" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter("present")}
+              className={`h-8 text-xs font-medium ${
+                filter === "present"
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  : "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+              }`}
+            >
+              Present ({presentCount})
+            </Button>
+            <Button
+              variant={filter === "absent" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter("absent")}
+              className={`h-8 text-xs font-medium ${
+                filter === "absent"
+                  ? "bg-rose-600 hover:bg-rose-700 text-white"
+                  : "text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+              }`}
+            >
+              Absent ({absentCount})
+            </Button>
+
+            {/* Quick Actions and Export */}
+            <div className="flex items-center gap-2 ml-4 pl-4 border-l">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={exportAttendanceData}
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      <span className="hidden sm:inline">Export</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Export attendance data to CSV</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {isToday(new Date(date)) && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <BarChart3 className="h-4 w-4 mr-1" />
+                      Quick Actions
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={markAllPresent} disabled={absentCount === 0}>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Mark All Present ({absentCount} students)
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => toast.info("Feature coming soon!")}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Generate Report
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
-            
-            {/* Quick Filters */}
-            <div className="flex items-center gap-2 mt-3 lg:mt-0">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">
-                Filter:
-              </span>
-              <Button
-                variant={filter === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("all")}
-                className="h-8 text-xs font-medium"
-              >
-                All ({totalCount})
-              </Button>
-              <Button
-                variant={filter === "present" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("present")}
-                className={`h-8 text-xs font-medium ${
-                  filter === "present"
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                    : "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
-                }`}
-              >
-                Present ({presentCount})
-              </Button>
-              <Button
-                variant={filter === "absent" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("absent")}
-                className={`h-8 text-xs font-medium ${
-                  filter === "absent"
-                    ? "bg-rose-600 hover:bg-rose-700 text-white"
-                    : "text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20"
-                }`}
-              >
-                Absent ({absentCount})
-              </Button>
-
-              {/* Quick Actions and Export */}
-              <div className="flex items-center gap-2 ml-4 pl-4 border-l">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={exportAttendanceData}
-                        className="flex items-center gap-2"
-                      >
-                        <Download className="h-4 w-4" />
-                        <span className="hidden sm:inline">Export</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Export attendance data to CSV</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
-                {isToday(new Date(date)) && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <BarChart3 className="h-4 w-4 mr-1" />
-                        Quick Actions
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={markAllPresent} disabled={absentCount === 0}>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Mark All Present ({absentCount} pupils)
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => toast.info("Feature coming soon!")}>
-                        <FileText className="h-4 w-4 mr-2" />
-                        Generate Report
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
-
           </div>
 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Pupil</TableHead>
+                <TableHead>Student</TableHead>
                 <TableHead>7-Day Rate</TableHead>
                 <TableHead>Arrival</TableHead>
                 <TableHead>Transport In</TableHead>
@@ -624,17 +672,24 @@ function AttendancePage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {displayedPupils.map((p) => {
-                const att = dayAtt.find((a) => a.pupilId === p.id);
+              {displayedStudents.map((p) => {
+                const att = dayAtt.find((a) => a.studentId === p.id);
                 const isToday = date === today;
                 const rate7Days = calculateAttendanceRate(p.id, 7);
-                const rateColor = rate7Days >= 90 ? 'text-emerald-600' : rate7Days >= 80 ? 'text-amber-600' : 'text-rose-600';
-                
+                const rateColor =
+                  rate7Days >= 90
+                    ? "text-emerald-600"
+                    : rate7Days >= 80
+                      ? "text-amber-600"
+                      : "text-rose-600";
+
                 return (
                   <TableRow key={p.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
-                        <span>{p.firstName} {p.lastName}</span>
+                        <span>
+                          {p.firstName} {p.lastName}
+                        </span>
                         {rate7Days < 80 && (
                           <TooltipProvider>
                             <Tooltip>
@@ -768,21 +823,25 @@ function AttendancePage() {
                   </TableRow>
                 );
               })}
-              {displayedPupils.length === 0 && (
+              {displayedStudents.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-12">
                     <div className="flex flex-col items-center justify-center">
                       <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No pupils found</h3>
+                      <h3 className="text-lg font-medium mb-2">No students found</h3>
                       <p className="text-sm text-muted-foreground mb-4">
-                        {totalCount === 0 
-                          ? "No pupils in this class" 
-                          : `No pupils found matching the "${filter}" filter.`
-                        }
+                        {totalCount === 0
+                          ? "No students in this class"
+                          : `No students found matching the "${filter}" filter.`}
                       </p>
                       {totalCount === 0 && (
-                        <Button variant="outline" onClick={() => {/* Navigate to pupils */}}>
-                          Add Pupils to Class
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            /* Navigate to students */
+                          }}
+                        >
+                          Add Students to Class
                         </Button>
                       )}
                     </div>
@@ -799,7 +858,7 @@ function AttendancePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              Mark Arrival - {selectedPupil?.firstName} {selectedPupil?.lastName}
+              Mark Arrival - {selectedStudent?.firstName} {selectedStudent?.lastName}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -915,7 +974,7 @@ function AttendancePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              Mark Departure - {selectedPupil?.firstName} {selectedPupil?.lastName}
+              Mark Departure - {selectedStudent?.firstName} {selectedStudent?.lastName}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
