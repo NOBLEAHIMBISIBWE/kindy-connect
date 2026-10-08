@@ -375,7 +375,9 @@ export const loginUser = createServerFn({ method: "POST" })
     const { id, password } = data;
 
     if (!sql) {
-      return { error: "Database is not configured. Set DATABASE_URL to connect to the live database." };
+      return {
+        error: "Database is not configured. Set DATABASE_URL to connect to the live database.",
+      };
     }
 
     const db = sql;
@@ -439,14 +441,10 @@ export const registerUser = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     if (!sql) {
-      return { error: "Database is not configured. Set DATABASE_URL to connect to the live database." };
-    }
+      return {
+        error: "Database is not configured. Set DATABASE_URL to connect to the live database.",
       };
-
-      mockUsers.push(newUser);
-      return { user: newUser, school: newSchool };
     }
-
     const db = sql;
     const id = data.id.trim();
     const password = data.password.trim();
